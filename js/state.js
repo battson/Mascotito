@@ -280,13 +280,13 @@ function createNewState(name, look) {
 }
 
 function recoveryKey() {
-  return PET_CONFIG.storageKey + ".recovery";
+  return currentStateKey() + ".recovery";
 }
 
 function loadState() {
   let raw;
   try {
-    raw = localStorage.getItem(PET_CONFIG.storageKey);
+    raw = localStorage.getItem(currentStateKey());
   } catch (e) {
     lastStorageNotice = "No se pudo acceder al guardado del navegador, así que el progreso no se va a guardar en esta sesión.";
     return null;
@@ -320,7 +320,7 @@ function loadState() {
 
 function saveState(state) {
   try {
-    const previousRaw = localStorage.getItem(PET_CONFIG.storageKey);
+    const previousRaw = localStorage.getItem(currentStateKey());
     if (previousRaw) {
       try {
         if (normalizeState(JSON.parse(previousRaw))) {
@@ -330,7 +330,7 @@ function saveState(state) {
         // el guardado anterior ya estaba roto: no lo usamos como respaldo
       }
     }
-    localStorage.setItem(PET_CONFIG.storageKey, JSON.stringify(state));
+    localStorage.setItem(currentStateKey(), JSON.stringify(state));
     return true;
   } catch (e) {
     lastStorageNotice = "No se pudo guardar tu mascota en este navegador (¿modo privado, o sin espacio?). Los cambios de esta sesión pueden perderse.";
@@ -341,7 +341,7 @@ function saveState(state) {
 
 function clearState() {
   try {
-    localStorage.removeItem(PET_CONFIG.storageKey);
+    localStorage.removeItem(currentStateKey());
     localStorage.removeItem(recoveryKey());
   } catch (e) {
     // si ni esto se puede, no hay mucho más para hacer

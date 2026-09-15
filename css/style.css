@@ -2857,3 +2857,16 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .feed-item { flex-direction:row; width:100%; border:0; border-radius:0; background:#efe3ca; justify-content:center; }
 .feed-item-icon { width:auto; height:auto; }
 .game-title { font-family:inherit; font-size:1rem; font-weight:700; }
+
+/* Entrada de usuario: comparte la paleta y los botones del juego. */
+.user-entry { width: min(480px, calc(100% - 32px)); margin: 40px auto; padding: 28px; background: var(--panel); border: 3px solid var(--wood-edge); border-radius: 20px; box-shadow: var(--shadow-soft); color: var(--ink); }
+.user-entry > img { display: block; max-width: 100%; height: auto; margin: 0 auto 20px; }
+.user-entry h1 { font-size: 1.6rem; line-height: 1.2; }
+.user-entry p { line-height: 1.5; }
+.user-entry form { display: grid; gap: 12px; margin-top: 24px; }
+.user-entry label { font-weight: 700; }
+.user-entry input { width: 100%; padding: 12px; font: inherit; border: 2px solid var(--wood-edge); border-radius: 10px; }
+.user-entry input:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+#username-error { color: #a52a19; margin: 0; }
+.user-entry-note, #username-help { font-size: .88rem; }
+#current-username { overflow-wrap: anywhere; }

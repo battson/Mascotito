@@ -2192,6 +2192,16 @@ function doReiniciar() {
 }
 
 function setupOptionsMenu() {
+  document.getElementById("opt-change-user").addEventListener("click", () => {
+    if (debugSnapshot) closeDebugMode();
+    if (state && !trySave(state)) return;
+    try {
+      localStorage.removeItem(USER_KEY);
+      window.location.reload();
+    } catch (error) {
+      announce("No se pudo cambiar de usuario. Volvé a intentar.");
+    }
+  });
   if (el.btnEditPet) el.btnEditPet.addEventListener("click", () => openOnboarding(state));
   el.btnOpciones.addEventListener("click", () => {
     if (el.optionsMenu.hidden) openOptionsMenu();
@@ -2431,7 +2441,10 @@ document.addEventListener("keydown", ev => {
 });
 // ---------- Arranque ----------
 
-(function init() {
+(async function init() {
+  const username = restoreUsername() || await requestUsername();
+  document.getElementById("current-username").textContent = username;
+  el.appHeader.hidden = false;
   // Iconos estáticos que no cambian durante la sesión (los que sí cambian
   // — puerta/etiqueta de lugar — se resuelven en setLocationVisuals).
   el.btnAleatorio.innerHTML = iconSvg("dado") + "<span>Aleatorio</span>";
