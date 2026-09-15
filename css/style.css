@@ -1,0 +1,2859 @@
+:root {
+  /* v2.3: rediseño "videojuego cartoon de madera" (pedido explícito,
+     visual únicamente — ninguna mecánica/id/clase que use JS se tocó).
+     Paleta exacta pedida para madera/dorado + tinta, más algunos tokens
+     DERIVADOS de esos 7 colores para no tener que inventar tonos sueltos
+     en cada regla. Todo el resto del archivo ya leía sus colores de
+     variables (herencia de v2.1), así que redefinir este bloque re-tiñe
+     casi toda la interfaz sola; los paneles/botones/carteles de madera de
+     verdad (con bisel/marco) son reglas nuevas más abajo que usan los
+     --wood-* directamente. */
+  --wood-light: #f6b34b;
+  --wood-main: #d98226;
+  --wood-edge: #a64e16;
+  --wood-shadow: #5b2a14;
+  --wood-highlight: #ffd97a;
+  --ink-dark: #45230f;
+  --ink-light: #fff0cd;
+
+  --bg: #ecd6a4; /* fondo general — tela/mesa clara detrás de los paneles de madera */
+  --panel: #fdf3de; /* superficies de contenido (pergamino claro) — mismo rol que antes, texto siempre legible arriba */
+  --ink: var(--ink-dark);
+  --muted: #8a5a37; /* texto secundario, mismo tono tierra más clarito, contraste AA sobre --bg/--panel */
+  --accent: var(--wood-main); /* dorado/madera principal — reemplaza el verde de v2.1 como color de marca */
+  --accent-dark: var(--wood-edge);
+  --soft-green: #f7e3b8; /* alias retro-compatible (hovers/chips claros) — ahora un dorado suave, no verde */
+  --peach: #e8a25e;
+  --peach-dark: #b96a34;
+  --warn: #e0a53a;
+  --danger: #d6553b;
+  --line: #c9924f; /* borde fino cálido, derivado de la madera */
+  --happy: var(--accent);
+  --radius-panel: 16px; /* tablones/carteles: esquinas más cuadradas que antes, menos "pill" */
+  --radius-btn: 10px;
+  --radius: var(--radius-panel);
+  --shadow-soft: 0 3px 10px rgba(69, 35, 15, 0.22);
+  --shadow-btn: 0 3px 0 var(--wood-edge); /* "canto" del botón de madera, se comprime al presionar */
+  --wood-grad-raised: linear-gradient(180deg, var(--wood-highlight) 0%, var(--wood-light) 45%, var(--wood-main) 100%);
+  --wood-grad-panel: linear-gradient(180deg, var(--wood-light) 0%, var(--wood-main) 100%);
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { max-width: 100%; overflow-x: hidden; } /* nunca scroll horizontal, ni siquiera por un redondeo de 1px en algún componente */
+
+/* Blindaje del atributo "hidden": varias reglas de acá abajo (.toy-ball,
+ * .wake-btn, .feed-menu, .options-menu, etc.) declaran su propio "display"
+ * para cuando SÍ están visibles, y esa declaración de autor le gana en
+ * cascada a la hoja de estilos del navegador que pone display:none por
+ * [hidden] — o sea que sin esto, un elemento "hidden" en el HTML igual se
+ * mostraba. Con !important acá nos aseguramos de que hidden siempre gane
+ * (cubre también los menús nuevos de esta entrega). */
+[hidden] { display: none !important; }
+
+/* Oculta visualmente pero deja leer por un lector de pantalla (la región
+   de anuncios #live-status). No usar display:none/visibility:hidden ahí
+   porque esos SÍ lo sacan también del árbol de accesibilidad. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Foco visible y consistente en todo lo interactivo. */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--accent-dark);
+  outline-offset: 2px;
+}
+
+/* Tamaño mínimo de 44px para cualquier control tocable (botones, swatches,
+   inputs) — pedido de accesibilidad (sección 9), así nadie con dedos
+   grandes o poca precisión motriz falla el toque en mobile. */
+button, .swatch, input[type="text"], input[type="color"] {
+  min-height: 44px;
+}
+
+.icon {
+  width: 1.15em;
+  height: 1.15em;
+  display: inline-block;
+  vertical-align: -0.2em;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Respeta la preferencia del sistema operativo/navegador automáticamente
+     — sin selector manual en la interfaz. Frena las animaciones puramente
+     decorativas (respirar, balanceo de brazos, temblor de ánimo crítico);
+     el seguimiento de pupilas y la caminata siguen funcionando porque son
+     parte de la interacción, no un adorno. */
+  .game-stage,
+  .brazo,
+  .game-stage.mood-critico,
+  .fly,
+  .cloud {
+    animation: none !important;
+  }
+  /* Sin la animación de órbita, las moscas quedarían todas amontonadas
+     en el centro — se las deja quietas pero repartidas, usando el mismo
+     radio (--fly-r) que ya tenía cada una para la vuelta circular. */
+  .fly {
+    transform: translateX(var(--fly-r, 44px));
+  }
+  /* Mismo criterio con los adornos de cuidado (rebote del juguete,
+   * aparición de manchas/burbujas/corazones, el pulso de aviso en una
+   * barra baja) y, nuevo en esta entrega, con la transición decorativa del
+   * cambio de lugar y el destello de la puerta — nunca lo que sea la única
+   * fuente de una info (los mensajes de texto/etiquetas siguen igual). */
+  .toy-ball,
+  .dirt-item,
+  .speech-bubble,
+  .bath-fx.bathing::before,
+  .bath-fx.bathing::after,
+  .heart-pop,
+  .meter-track.meter-low,
+  .wellbeing-track.meter-low,
+  .zzz-fx span,
+  .options-menu,
+  .stage-floor {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  .zzz-fx span {
+    opacity: 0.85 !important;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ---------- Encabezado ---------- */
+
+.app-header {
+  width: 100%;
+  max-width: 1440px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  margin: 12px auto 8px;
+  position: relative;
+  box-sizing: border-box;
+  /* v2.4: pedido explícito — se saca el borde, el border-radius y el
+     box-shadow del encabezado (antes era un "tablón de madera superpuesto"
+     con marco propio, ver historial abajo).
+     v2.5: pedido explícito — también se saca el color de fondo (antes el
+     degradé de madera). Queda transparente, apoyado directo contra el
+     fondo de la página (--bg), sin cartel ni marco de ningún tipo. */
+  background: none;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* v2.3: lockup compacto del logo oficial en el encabezado — símbolo
+   (cabeza sola) + nombre extraído del arte original, ambos recortados del
+   emblema fuente (logo_alpha.ai), nunca redibujados. Fondo/backing suave
+   para que el dorado/crema del logo no choque contra --bg; una sola sombra
+   exterior, sin brillos ni marcos extra encima del arte (pedido explícito). */
+.brand-symbol {
+  display: block;
+  height: 44px;
+  width: auto;
+  filter: drop-shadow(0 1px 2px rgba(41, 62, 57, 0.18));
+}
+.brand-name-img {
+  display: block;
+  height: 20px;
+  width: auto;
+}
+@media (max-width: 560px) {
+  /* Mobile: sólo el símbolo + el texto accesible (.sr-only de al lado);
+     el nombre-imagen se retira, no se lo aplasta ni recorta. */
+  .brand-name-img { display: none; }
+}
+/* Título con Baloo 2 SemiBold (pedido explícito) — el link de Google
+   Fonts está en index.html. Con fallback a la tipografía general de la
+   app por si la fuente no llega a cargar (sin conexión, bloqueada, etc.). */
+.app-header h1 {
+  font-family: "Baloo 2", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin: 0;
+  color: var(--ink);
+}
+/* Insignia única "Alpha v2.1" (antes .badge + .version-badge por
+   separado) — se actualiza a mano en index.html en cada entrega. */
+.badge {
+  background: var(--accent);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* v2.2: reloj del encabezado — el cálculo de hora (`new Date()`, un tick
+   cada segundo, updateClock() en js/app.js) sigue vivo porque también
+   decide si Casa/Jardín se ven de día o de noche (mismo lugar único de
+   cálculo) — v2.5: pedido explícito, se sacó sólo el TEXTO visible del
+   encabezado (#header-clock salió del HTML); .header-clock ya no se usa,
+   se saca del CSS. */
+
+/* Botón de icono solo (opciones, en el encabezado) — mismo lenguaje visual
+   que el resto de los botones (radio chico, fondo claro), pero circular. */
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--wood-edge);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--wood-edge);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+}
+.icon-btn .icon { width: 1.3em; height: 1.3em; }
+.icon-btn:hover { background: var(--soft-green); }
+.icon-btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--wood-edge); }
+.icon-btn[aria-expanded="true"] { background: var(--soft-green); border-color: var(--accent); }
+
+/* Menú de opciones (sección 6/7): popover anclado al botón de engranaje —
+   agrupa Editar mascota + Modo prueba (preferencias/herramientas) y deja
+   Reiniciar progreso separado y marcado como acción destructiva. Se cierra
+   con Escape, con un click afuera, o al elegir una opción; el foco vuelve
+   a #btn-opciones al cerrar (ver js/app.js, setupOptionsMenu). */
+.options-menu {
+  position: absolute;
+  top: 100%;
+  right: 16px;
+  margin-top: 6px;
+  /* v2.3: "ventana tipo cartel de madera" — marco degradé madera, interior
+     de pergamino claro (misma técnica de borde-en-degradé que .wood-frame
+     más abajo, escrita a mano acá porque este panel ya tenía su propio
+     padding/posición). */
+  background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--wood-grad-panel) border-box;
+  border: 4px solid transparent;
+  border-radius: var(--radius-btn);
+  box-shadow: var(--shadow-soft), 0 10px 24px rgba(69, 35, 15, 0.28);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  z-index: 20;
+  animation: menu-in 0.16s ease-out;
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.options-menu-item {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+.options-menu-item:hover { background: var(--soft-green); }
+.options-menu-danger { color: var(--danger); }
+.options-menu-danger:hover { background: color-mix(in srgb, var(--danger) 12%, var(--panel)); }
+.options-menu-sep {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 4px 2px;
+}
+
+.screen {
+  width: 100%;
+  max-width: 760px;
+  padding: 12px 16px 40px;
+}
+/* La pantalla de JUEGO usa un contenedor más ancho (sección 6: "contenedor
+   centrado ~1200–1440px máx") para el layout de 2 columnas de escritorio.
+   v2.6: la de personalización pasa a usar el mismo ancho — pedido
+   explícito, "que la escena [de creación] tenga el mismo tamaño que la
+   escena del juego" — así el escenario de personalización (.creator-
+   layout, más abajo) puede llegar a los mismos 960px que .stage-col en
+   vez de quedar atado al ancho angosto de antes (760px). El nombre y el
+   título se quedan angostos y centrados con su propio ancho (.name-field
+   más abajo), no todo el contenido de la pantalla necesita ser ancho. */
+.screen.game, .screen.onboarding {
+  max-width: 1440px;
+}
+
+/* ---------- Escenario de la mascota (capas SVG apiladas) ---------- */
+
+.pet-stage {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 0 auto;
+}
+.pet-stage .pet-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.game-stage {
+  width: 280px;
+  height: 280px;
+  /* Ancla la animación de respiración abajo (donde están las patas), para
+     que el "pecho" suba un poco pero la mascota no parezca flotar sobre
+     el piso. */
+  transform-origin: 50% 100%;
+  animation: bob 3.2s ease-in-out infinite;
+  /* v2.2: acariciar ahora se hace clickeando directo al personaje (antes
+     vivía en el menú de Afecto) — el cursor de mano es la única pista
+     visual de que el personaje mismo es clickeable (ver doAcariciar /
+     el click listener sobre #game-stage en js/app.js). */
+  cursor: pointer;
+}
+@keyframes bob {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.025); }
+}
+.game-stage.mood-critico { animation: shake 0.5s ease-in-out infinite; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(-4px) translateY(-2px); }
+  75% { transform: translateX(4px) translateY(-2px); }
+}
+
+/* Escenario donde camina la mascota. La franja de piso queda marcada por
+   el propio dibujo de cada lugar (zócalo en Casa, franja de pasto en
+   Jardín — ver .location-casa/.location-jardin más abajo), ya no por una
+   línea CSS genérica como en versiones anteriores. #walker es quien se
+   mueve de lado a lado (ver js/app.js, walkFrame) — el bob/shake de arriba
+   sigue viviendo en .game-stage, así que ambos movimientos (caminar +
+   respirar) se combinan sin pisarse.
+   v2.1: preferentemente 16:9 en TODOS los tamaños (antes era 260px fijo en
+   mobile y sólo pasaba a 16:9 desde 768px) — pedido explícito, "tamaño
+   suficiente para apreciar expresiones... no fijar proporciones que
+   vuelvan diminuto el personaje en pantallas intermedias". */
+.stage-floor {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 220px;
+  margin-top: 4px;
+  background: var(--panel);
+  /* v2.3: marco de madera MODERADO alrededor del escenario (pedido
+     explícito) — borde sólido, en vez de un degradé de fondo (el fondo lo
+     sigue controlando por completo cada .location-casa/.location-jardin,
+     no se toca acá). No cubre ninguna zona clickeable: es sólo el borde.
+     v2.4: pedido explícito — se sacan el border-radius y el box-shadow
+     (el borde de madera en sí queda, sólo se pidió sacar esos dos). */
+  border: 7px solid var(--wood-main);
+  overflow: hidden;
+  transition: opacity 0.32s ease;
+}
+/* Transición breve al cambiar de lugar (sección 4/9: "transición breve",
+   250–400ms) — goToLocation() en js/app.js le agrega esta clase un
+   instante mientras cambia el fondo. */
+.stage-floor.location-fading { opacity: 0.15; }
+
+/* ---------- Casa y Jardín: lugares navegables (sección 4) ---------- */
+/* Fondos ilustrados con CSS puro (gradientes + formas en .location-deco),
+   fijos: no hay compra/colocación/edición de muebles. Se aplican con la
+   clase .location-<id> (ver PET_LOCATIONS en js/manifest.js y
+   applyLocation() en js/app.js) a #stage-floor. */
+
+/* v2.5: pedido explícito — el fondo de la Casa, antes armado a mano con
+   gradientes CSS (pared/zócalo/piso), se reemplaza por el arte real de
+   home-scene.ai (ver HOME_SCENE_INLINE en js/manifest.js, inyectado en
+   #location-deco por setLocationVisuals()). Sólo queda un color de panel
+   liso de respaldo por si el SVG tardara en pintarse. */
+.stage-floor.location-casa {
+  background: var(--panel);
+}
+/* v2.2: pediste que el Jardín "vuelva a ser como antes" — el rediseño de
+   v2.1 (cerca + arbustos + flores + fachada de casa, paleta marfil/verde)
+   quedaba feo — así que esto vuelve al planteo simple de v1.2/v1.8: cielo
+   celeste + pasto verde + sol + nubes, sin la decoración nueva. Se suma,
+   sí, la variante de noche que no existía antes (pedido nuevo): la app
+   alterna sola la clase .is-night sobre #stage-floor según la hora real
+   de la PC (ver updateClock() en js/app.js), de día se ve el sol y de
+   noche la luna + estrellas. */
+.stage-floor.location-jardin {
+  background: linear-gradient(to bottom, #bfe7f6 0%, #cdeaf6 55%, #9ed488 55%, #7fc86c 100%);
+  transition: background 0.6s ease;
+}
+.stage-floor.location-jardin.is-night {
+  background: linear-gradient(to bottom, #131b34 0%, #1c2a4d 55%, #2c4a34 55%, #1d3524 100%);
+}
+.location-jardin .sun {
+  position: absolute;
+  top: 8%;
+  right: 10%;
+  width: 15%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fff3c4 0%, #ffd357 55%, #ffc12e 100%);
+  box-shadow: 0 0 26px 6px rgba(255, 195, 60, 0.4);
+}
+.location-jardin .moon {
+  position: absolute;
+  top: 8%;
+  right: 12%;
+  width: 10%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fdfdf6 0%, #e6e6de 65%, #cfcfc4 100%);
+  box-shadow: 0 0 16px 4px rgba(220, 220, 240, 0.3);
+  display: none;
+}
+.location-jardin .star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.85;
+  display: none;
+}
+.location-jardin .star-1 { top: 14%; left: 20%; }
+.location-jardin .star-2 { top: 22%; left: 34%; }
+.location-jardin .star-3 { top: 12%; left: 46%; }
+.location-jardin .star-4 { top: 28%; left: 58%; }
+.stage-floor.location-jardin.is-night .sun { display: none; }
+.stage-floor.location-jardin.is-night .moon,
+.stage-floor.location-jardin.is-night .star { display: block; }
+.stage-floor.location-jardin.is-night .cloud { opacity: 0.35; }
+
+.location-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* v2.5: la Casa ya no arma su ventana/alfombra/cuadro con gradientes CSS
+   (::before/::after/.wall-deco) — vienen del SVG real inyectado adentro
+   de #location-deco (ver HOME_SCENE_INLINE, js/manifest.js). El vidrio de
+   la ventana usa fill="var(--ventana-color, #cdeaf6)" así que de noche
+   sólo hace falta pisar esa variable (pedido explícito: "el fondo... de
+   la ventana... debería cambiar de color según si es de día o de
+   noche") — mismo mecanismo is-night que ya prendía sol/luna en el
+   Jardín. La puerta (#scene-puerta, dentro del mismo SVG) es clickeable
+   — pedido explícito, mismo efecto que "Salir al jardín" (ver
+   setupNavigation() en js/app.js). */
+.stage-floor.location-casa.is-night {
+  --ventana-color: #1c2a4d;
+}
+#scene-puerta {
+  cursor: pointer;
+  pointer-events: auto;
+}
+#scene-puerta:hover { opacity: 0.92; }
+/* v2.2: se sacó la puerta dibujada (y su zona interactiva #door-hotspot) —
+   pedido explícito: "que sólo se entre y salga de su casa a través del
+   botón Salir a...". La navegación Casa↔Jardín ahora depende únicamente
+   de #btn-nav (ver stage-controls, más abajo). */
+
+/* Jardín: nubes, sol/luna + estrellas, y la franja de pasto transitable
+   más clara donde camina la mascota (vuelta al diseño simple de antes de
+   v2.1, ver comentario junto a .stage-floor.location-jardin más arriba). */
+/* Nubes: cada una su propio elemento (así cada una puede tener su propia
+   posición/tamaño/velocidad de deriva sin pisarse), agregadas como
+   <span class="cloud cloud-N"> — sólo se insertan en el DOM cuando el
+   lugar actual es Jardín (ver renderLocationDeco en js/app.js), así que no
+   necesitan ocultarse/mostrarse por CSS según el lugar. */
+.cloud {
+  position: absolute;
+  height: 6.5%;
+  aspect-ratio: 2.6 / 1;
+  background: #fff;
+  border-radius: 999px;
+  opacity: 0.9;
+  pointer-events: none;
+  animation: cloudDrift linear infinite;
+}
+.cloud::before {
+  content: "";
+  position: absolute;
+  top: -55%;
+  left: 18%;
+  width: 55%;
+  height: 100%;
+  background: inherit;
+  border-radius: 50%;
+}
+.cloud-1 { top: 14%; left: 6%; height: 7%; animation-duration: 11s; animation-delay: -2s; }
+.cloud-2 { top: 26%; left: 40%; height: 5%; opacity: 0.8; animation-duration: 14s; animation-delay: -8s; }
+.cloud-3 { top: 9%; left: 63%; height: 4.2%; opacity: 0.85; animation-duration: 9s; animation-delay: -5s; }
+@keyframes cloudDrift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(14%); }
+}
+.location-jardin .location-deco::before {
+  /* franja de pasto transitable, más clara que el resto para leerse como
+     "el camino" (pedido explícito: "franja transitable claramente
+     legible") — tono bien diferenciado del verde de fondo, no un matiz
+     casi igual. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26%;
+  background: linear-gradient(to bottom, #c8e8a8 0%, #bce097 100%);
+  box-shadow: 0 -2px 0 rgba(255, 255, 255, 0.25) inset;
+}
+/* ---------- Navegación entre lugares (sección 4, ver también v2.2 arriba) ---------- */
+/* v2.2: antes había además una zona interactiva dibujada como puerta
+   (#door-hotspot) sobre el escenario; se sacó del todo — pedido
+   explícito ("que sólo se entre y salga de su casa a través del botón
+   Salir a..."). Ahora #btn-nav (más abajo) es la única forma de cambiar
+   de lugar. */
+
+/* v2.4: la etiqueta de ubicación (".location-label", un cartelito arriba
+   del escenario con el nombre del lugar) se sacó del todo — pedido
+   explícito: "se entiende la ubicación en la que están" con sólo mirar el
+   fondo (Casa/Jardín), no hace falta el texto. El elemento se sacó del
+   HTML directamente, así que no queda regla acá. */
+
+/* v2.4: barra de acciones + botón de Salir/Entrar, ahora DENTRO del
+   escenario (pedido explícito, antes vivían debajo en ".stage-controls").
+   Superpuesta abajo del todo con un degradé oscuro para que los botones
+   se sigan leyendo sobre cualquier fondo/hora del día. */
+.stage-actions-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  /* v2.4 bugfix: NO usar "center" acá. Con overflow-x:auto + contenido
+     más ancho que el contenedor, "justify-content:center" desplaza el
+     scroll inicial al medio del contenido y deja la mitad izquierda en
+     territorio de scroll NEGATIVO, que la mayoría de los navegadores
+     directamente no dejan alcanzar (scrollLeft se clampea a >=0). Esos
+     tiles quedan con getBoundingClientRect().x negativo, recortados por
+     el overflow del contenedor, invisibles/no clickeables aunque el
+     layout "diga" que están ahí (así se rompía el click en Alimentar en
+     mobile, con <main id="game"> "tapando" el punto de click porque el
+     tile ni siquiera se pintaba en esa posición). "flex-start" deja el
+     scroll arrancando en 0 con el primer tile siempre visible y
+     clickeable, y todo el resto alcanzable con scroll positivo. */
+  justify-content: flex-start;
+  /* Mejora progresiva: si el navegador entiende "safe center", centra el
+     dock cuando entra completo (se ve mejor en desktop) pero sin volver a
+     caer en el bug de arriba — "safe" evita el territorio de scroll
+     negativo, cayendo a flex-start automáticamente si no entra todo. Si
+     el navegador NO entiende "safe center" esta línea es inválida y se
+     ignora entera, quedando el flex-start declarado arriba. */
+  justify-content: safe center;
+  gap: 8px;
+  padding: 10px 8px 10px;
+  background: linear-gradient(to top, rgba(69, 35, 15, 0.55) 0%, rgba(69, 35, 15, 0.16) 70%, transparent 100%);
+  /* v2.4: pensado para que SIEMPRE quepa en una sola fila dentro del
+     escenario (ahora que los botones viven adentro, no hay tanto lugar
+     vertical como antes) — en vez de partirse en 2 filas y arriesgarse a
+     recortarse contra el borde superior del escenario, se permite scroll
+     horizontal (pulgar en mobile, rueda/trackpad en desktop) cuando no
+     entran todos los tiles. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.stage-actions-row .actions {
+  margin-top: 0;
+  flex-wrap: nowrap;
+}
+/* Tiles un poco más chicos que en versiones anteriores (v2.3 los tenía
+   afuera del escenario, con más lugar) para que entren cómodos superpuestos
+   arriba del fondo sin tapar de más. flex-shrink:0 para que el scroll
+   horizontal (arriba) mueva los tiles enteros en vez de achicarlos. */
+.stage-actions-row .action-circle-wrap { width: 68px; flex-shrink: 0; }
+.stage-actions-row .cooldown-ring { height: 68px; }
+.stage-actions-row .action-circle .icon { width: 1.3rem; height: 1.3rem; }
+.stage-actions-row .action-circle-caption { font-size: 0.64rem; }
+.stage-actions-row .nav-btn-tile { flex-shrink: 0; }
+/* Botón de Salir al jardín/Entrar a casa: mismo lenguaje visual que los
+   tiles de cuidado (madera/dorado con bisel), para que se sienta parte del
+   mismo dock en vez de un botón suelto aparte. */
+.nav-btn-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 68px;
+  height: 58px;
+  background: var(--wood-grad-raised);
+  border: 2px solid var(--wood-edge);
+  border-radius: var(--radius-btn);
+  color: var(--ink-dark);
+  box-shadow: var(--shadow-btn), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-align: center;
+  line-height: 1.15;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.08s, box-shadow 0.08s;
+}
+.nav-btn-tile:hover:not(:disabled) { filter: brightness(1.06); }
+.nav-btn-tile:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--wood-edge); }
+.nav-btn-tile:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.nav-btn-tile:focus-visible { outline: 3px solid var(--wood-shadow); outline-offset: 2px; }
+.nav-btn-icon { display: inline-flex; }
+.nav-btn-icon .icon { width: 1.3rem; height: 1.3rem; }
+
+/* ---------- Panel de bienestar dentro del escenario (v2.4/v2.5) ----------
+ * v2.4: "dentro del juego deberían estar las necesidades del bienestar" —
+ * círculo con la cabeza de la mascota arriba a la izquierda + una placa
+ * con las 4 barras (Agua, Hambre, Higiene, Energía, en ese orden).
+ * v2.5, pedido explícito, 4 cambios sobre eso:
+ *  1) Todo el widget un poco más grande (avatar/barras/toggle).
+ *  2) El borde del círculo es semáforo de felicidad (verde >50%, amarillo
+ *     25%-50%, rojo <25% — ver updateWellbeingAvatar en js/app.js, que
+ *     setea --avatar-border) y la carita adentro refleja ánimo/enfermedad
+ *     con las MISMAS clases mood-X y sick que ya usa la mascota del juego
+ *     (ver más abajo, junto a esas reglas en .game-stage).
+ *  3) Las barras pasan a un acordeón oculto por defecto, en grilla 2x2
+ *     (antes una columna de 4 filas), que se abre con un botón de flecha
+ *     — apunta a la derecha cerrado, a la izquierda abierto (una sola
+ *     flecha rotada 180° por CSS, no dos iconos).
+ *  4) El nombre de la mascota vive debajo, en su propio recuadro (ver
+ *     .wellbeing-name-box más abajo) — no es parte de este HUD, es un
+ *     hijo del wrapper .wellbeing-widget que lo agrupa junto a él. */
+.wellbeing-widget {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  /* v2.6: bug real encontrado al verificar en mobile — con .wellbeing-bars
+     ahora siempre visible (ya no es un acordeón que arranca cerrado, ver
+     más abajo), el widget completo mide bastante más alto que antes, y en
+     escenarios angostos/bajos (esta placa NO se achica tanto como el
+     escenario, ver stage-floor min-height:220px) llegaba a taparle el
+     click a la puerta del fondo de la Casa (#scene-puerta), que queda
+     bastante arriba dentro del dibujo. Nada acá adentro es clickeable
+     (ni el avatar, ni las barras, ni el nombre), así que dejar pasar el
+     puntero de largo es seguro y arregla la superposición para cualquier
+     tamaño de pantalla, no sólo el que se probó. */
+  pointer-events: none;
+}
+.wellbeing-hud {
+  display: flex;
+  align-items: flex-start;
+}
+.wellbeing-avatar {
+  position: relative;
+  z-index: 2;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--panel);
+  border: 4px solid var(--wood-edge);
+  box-shadow: 0 2px 0 rgba(91, 42, 20, 0.4);
+  transition: border-color 0.3s ease;
+}
+/* v2.6: pedido explícito — el color del borde va de la mano del mismo
+   ánimo (mood-*) que ya maneja la carita de este mismo avatar, en vez de
+   ser un valor fijo por JS: verde en el estado neutral/feliz, amarillo al
+   "enojarse", y en el tramo más bajo una animación infinita que alterna
+   amarillo-rojo hasta que la felicidad vuelva a subir (ver
+   updateWellbeingAvatar() en js/app.js, que sólo pone/saca estas clases —
+   el color y el parpadeo son 100% CSS). Enferma pisa todo lo anterior con
+   su propia animación verde-azul, también en loop hasta que se cure. */
+.wellbeing-avatar.avatar-border-feliz { border-color: #1fa616; }
+.wellbeing-avatar.avatar-border-enojo { border-color: #a6a216; }
+.wellbeing-avatar.avatar-border-critico,
+.wellbeing-avatar.avatar-border-enferma {
+  /* La transición de color de la regla base compite con la animación
+     infinita (misma propiedad) — se apaga acá para que el parpadeo se
+     vea limpio en vez de "amortiguado". */
+  transition: none;
+}
+.wellbeing-avatar.avatar-border-critico { animation: avatar-border-critico 1.1s ease-in-out infinite; }
+.wellbeing-avatar.avatar-border-enferma { animation: avatar-border-enferma 1.6s ease-in-out infinite; }
+@keyframes avatar-border-critico {
+  0%, 100% { border-color: #a6a216; }
+  50% { border-color: #d12929; }
+}
+@keyframes avatar-border-enferma {
+  0%, 100% { border-color: #1fa616; }
+  50% { border-color: #4f9bc4; }
+}
+/* Recorte: la mascota se renderiza completa en un cuadrado 2x el círculo y
+ * se desplaza para que sólo se vea la zona de la cabeza (misma matemática
+ * para cualquier mascota, porque cabeza/ojos siempre están centrados en el
+ * mismo lugar del viewBox 400x400). */
+.wellbeing-avatar-stage {
+  position: absolute;
+  width: 144px;
+  height: 144px;
+  left: -36px;
+  top: -22px;
+  pointer-events: none;
+}
+/* v2.6: pedido explícito — sin border-radius ni borde (antes un borde
+   transparente usado sólo para el truco de fondo en dos capas, que ya no
+   hace falta sin borde) y box-shadow puntual en vez del "shadow-soft"
+   genérico de siempre. */
+.wellbeing-bars {
+  margin-left: -14px;
+  padding: 8px 12px 8px 26px;
+  background: var(--panel);
+  border: none;
+  border-radius: 0;
+  box-shadow: 2px 2px 0px rgb(10 10 10 / 50%);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 12px;
+  min-width: 170px;
+  animation: menu-in 0.16s ease-out;
+}
+.wellbeing-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.wellbeing-row .icon { width: 1.05em; height: 1.05em; color: var(--accent-dark); flex-shrink: 0; }
+.wellbeing-track {
+  flex: 1;
+  height: 8px;
+  background: var(--wood-shadow);
+  border: 1px solid var(--wood-light);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.wellbeing-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+.wellbeing-fill.meter-saciedad { background: var(--peach-dark); }
+.wellbeing-fill.meter-hidratacion { background: #4f9bc4; }
+.wellbeing-fill.meter-higiene { background: var(--accent); }
+.wellbeing-fill.meter-energia { background: var(--warn); }
+.wellbeing-track.meter-low { animation: meter-pulse 1.6s ease-in-out infinite; }
+/* v2.6: pedido explícito — se saca el acordeón (antes acá vivía
+   #wellbeing-toggle con el ícono "flecha") — .wellbeing-bars queda
+   siempre visible, ver más arriba. */
+
+/* Recuadro con el nombre, debajo del HUD. v2.6: pedido explícito — sin
+   border-radius ni borde (antes un borde transparente usado sólo para el
+   truco de fondo en dos capas); h2 con color fijo #313131 en vez de
+   var(--ink). */
+.wellbeing-name-box {
+  background: var(--panel);
+  border: none;
+  padding: 3px 12px;
+  box-shadow: var(--shadow-soft);
+}
+.wellbeing-name-box h2 {
+  margin: 0;
+  font-family: "Baloo 2", inherit;
+  font-size: 1.05rem;
+  color: #313131;
+  max-width: 42vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .wellbeing-avatar { width: 56px; height: 56px; }
+  .wellbeing-avatar-stage { width: 112px; height: 112px; left: -28px; top: -17px; }
+  .wellbeing-bars { min-width: 140px; padding: 6px 10px 6px 20px; gap: 4px 10px; }
+  .wellbeing-track { height: 6px; }
+  .wellbeing-name-box h2 { font-size: 0.92rem; max-width: 38vw; }
+}
+
+/* v2.2 — fix real: #walker no tenía `position` propio, así que quedaba en
+   flujo normal del documento (ningún otro hijo de #stage-floor participa
+   del flujo: label/deco/dirt/puerta son todos position:absolute) y se
+   ubicaba pegado ARRIBA del escenario en vez de sobre el piso — la
+   mascota "flotaba" en la parte de arriba de la tarjeta en vez de
+   caminar sobre el pasto/piso dibujado abajo. El translateX que ya le
+   pone js/app.js (walkFrame) sólo la corría de lado a lado, nunca la
+   bajó. Fix: ancla el bloque completo (mascota + sombra, ambos viven
+   adentro) al borde inferior real de #stage-floor. */
+.walker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .walker {
+    width: max(200px, 31.25%);
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+  .walker .game-stage {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Balanceo idle de los brazos: mismo ciclo, desfasado entre izquierdo y
+   derecho para que no se muevan como espejo perfecto. */
+@keyframes armSwing {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+.brazo { animation: armSwing 2.4s ease-in-out infinite; }
+#brazo-der { animation-delay: -1.2s; animation-direction: reverse; }
+
+/* Brazos, piernas, cabeza y orejas toman el color de cuerpo elegido
+   (variable seteada en js/app.js al renderizar), así siempre matchean sin
+   necesitar un SVG por color — sólo la capa base de cabeza/orejas
+   (class="cabeza-base"/"oreja-base") toma este color; el contorno/
+   sombreado y el interior rosado de las orejas quedan fijos. */
+.pet-stage .brazo path { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .pierna path { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .cabeza-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .oreja-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .cuerpo-base { fill: var(--pet-body-color, #6cb9dd); }
+
+/* Color de ojos (pedido explícito) — mismo mecanismo que el color de
+   cuerpo de arriba, pero sólo en las opciones de ojos con pupila propia. */
+.pet-stage .iris-main { fill: var(--eye-color, #4c4c4c); }
+.pet-stage .iris-shadow { fill: color-mix(in srgb, var(--eye-color, #4c4c4c) 70%, black); }
+.pet-stage .iris-highlight { stroke: color-mix(in srgb, var(--eye-color, #4c4c4c) 55%, white); }
+
+/* La cabeza (y todo lo que va montado sobre ella: orejas, cejas, ojos,
+   nariz, boca) se escala como grupo para que quede grande respecto al
+   cuerpo, estilo chibi. */
+.pet-stage .pet-layer-cabeza,
+.pet-stage .pet-layer-orejas,
+.pet-stage .pet-layer-cejas,
+.pet-stage .pet-layer-ojos,
+.pet-stage .pet-layer-narices,
+.pet-stage .pet-layer-boca {
+  transform: scale(1.22);
+  transform-origin: 50% 54%;
+}
+
+/* Sombra fija debajo de la mascota: color plano, sin desvanecido ni
+   desenfoque, borde duro. Va como ::before de .pet-stage (se pinta antes
+   que las capas del SVG) en vez de agregarla en JS. Le sirve tal cual a
+   #preview-stage (personalización); para #game-stage hay una versión
+   aparte más abajo (.pet-shadow), que no hereda el bob/shake del
+   personaje. */
+.pet-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 17%;
+  width: 46%;
+  height: 8%;
+  background: rgba(41, 62, 57, 0.22);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.walker .game-stage::before {
+  content: none;
+}
+.pet-shadow {
+  position: absolute;
+  inset: 0;
+}
+.pet-shadow::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 17%;
+  width: 46%;
+  height: 8%;
+  background: rgba(41, 62, 57, 0.22);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Las pupilas y las piernas se mueven por JS (seguimiento de cursor y
+   caminata orgánica, en js/app.js); esta transición es lo que las hace
+   ver suaves en vez de saltar de un ángulo a otro. */
+.pupila { transition: transform 0.12s ease-out; }
+
+/* Ojos: la escala vertical de reposo (--eye-scale) la setea JS según
+   causas puntuales (computeEyeScale en app.js) — 1 mientras está despierta
+   y sana, igual que en el creador. El pestañeo (blinkStage) pisa este
+   transform un instante con un inline style (scaleY casi 0). */
+.pet-stage .ojo {
+  transform: scaleY(var(--eye-scale, 1));
+  transition: transform 0.09s ease-in-out;
+}
+.pierna { transition: transform 0.15s ease-out; }
+
+/* Expresiones faciales completas por ánimo — cejas + boca. Sólo se aplica
+   en el escenario de JUEGO (.game-stage.mood-*): en la personalización no
+   hay "ánimo" todavía. */
+.pet-layer-cejas #ceja-izq,
+.pet-layer-cejas #ceja-der,
+.pet-layer-boca #boca-shape {
+  transition: transform 0.35s ease-in-out;
+}
+/* v2.5: el avatar de bienestar (".wellbeing-avatar-stage") reutiliza estas
+   mismas reglas de expresión — pedido explícito, "que su cara cambie como
+   pasa a la mascota en el juego" — updateWellbeingAvatar() en js/app.js le
+   pone las mismas clases mood-X y sick que ya recibe #game-stage. No se le
+   agregó el "shake" de mood-critico (ver más abajo): en un círculo tan
+   chico se ve más como un glitch que como una expresión. */
+.game-stage.mood-feliz .pet-layer-cejas #ceja-izq,
+.wellbeing-avatar-stage.mood-feliz .pet-layer-cejas #ceja-izq { transform: rotate(-8deg) translateY(-0.6px); }
+.game-stage.mood-feliz .pet-layer-cejas #ceja-der,
+.wellbeing-avatar-stage.mood-feliz .pet-layer-cejas #ceja-der { transform: rotate(8deg) translateY(-0.6px); }
+.game-stage.mood-feliz .pet-layer-boca #boca-shape,
+.wellbeing-avatar-stage.mood-feliz .pet-layer-boca #boca-shape { transform: scale(1.12, 1.35); }
+.game-stage.mood-triste .pet-layer-cejas #ceja-izq,
+.wellbeing-avatar-stage.mood-triste .pet-layer-cejas #ceja-izq { transform: rotate(11deg) translateY(0.8px); }
+.game-stage.mood-triste .pet-layer-cejas #ceja-der,
+.wellbeing-avatar-stage.mood-triste .pet-layer-cejas #ceja-der { transform: rotate(-11deg) translateY(0.8px); }
+.game-stage.mood-triste .pet-layer-boca #boca-shape,
+.wellbeing-avatar-stage.mood-triste .pet-layer-boca #boca-shape { transform: scale(0.92, -0.85); }
+.game-stage.mood-critico .pet-layer-cejas #ceja-izq,
+.wellbeing-avatar-stage.mood-critico .pet-layer-cejas #ceja-izq { transform: rotate(18deg) translateY(1.4px); }
+.game-stage.mood-critico .pet-layer-cejas #ceja-der,
+.wellbeing-avatar-stage.mood-critico .pet-layer-cejas #ceja-der { transform: rotate(-18deg) translateY(1.4px); }
+.game-stage.mood-critico .pet-layer-boca #boca-shape,
+.wellbeing-avatar-stage.mood-critico .pet-layer-boca #boca-shape { transform: scale(0.85, -1); }
+
+/* v2.3: animación de apertura/cierre de boca (pedido explícito), atada
+   SOLO a acciones puntuales (Comer/Beber/Hablar, y Acariciar como
+   reacción de alegría) — nunca en bucle permanente. #boca-shape (arriba)
+   sigue siendo lo único que mueve el ánimo; esto sólo cruza la opacidad
+   entre #boca-closed y #boca-open (dos dibujos reales, ver
+   js/manifest.js) adentro de #boca-anim, así que boca+ánimo quedan
+   intactos y se combinan solos. Las clases .mouth-anim-* las pone/saca
+   playMouthAnim()/stopMouthAnim() en js/app.js. */
+.pet-layer-boca #boca-open { opacity: 0; }
+.pet-layer-boca #boca-closed { opacity: 1; }
+
+/* Comer: 2 ciclos cortos de masticado. */
+.game-stage.mouth-anim-comer .pet-layer-boca #boca-closed { animation: mouth-bite-closed 0.45s ease-in-out 2; }
+.game-stage.mouth-anim-comer .pet-layer-boca #boca-open { animation: mouth-bite-open 0.45s ease-in-out 2; }
+@keyframes mouth-bite-closed { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes mouth-bite-open { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+/* Beber: una apertura chica y única (no llega a opacidad 1 llena, para
+   que se lea más chica que el "bocado" de Comer). */
+.game-stage.mouth-anim-beber .pet-layer-boca #boca-closed { animation: mouth-sip-closed 0.55s ease-in-out 1; }
+.game-stage.mouth-anim-beber .pet-layer-boca #boca-open { animation: mouth-sip-open 0.55s ease-in-out 1; }
+@keyframes mouth-sip-closed { 0%, 100% { opacity: 1; } 45% { opacity: 0.35; } }
+@keyframes mouth-sip-open { 0%, 100% { opacity: 0; } 45% { opacity: 0.75; } }
+
+/* Hablar: aperturas cortas y variadas mientras se ve el globo de
+   diálogo — sin sincronía de audio, sólo variación de ritmo/tamaño. */
+.game-stage.mouth-anim-hablar .pet-layer-boca #boca-closed { animation: mouth-talk-closed 0.95s ease-in-out infinite; }
+.game-stage.mouth-anim-hablar .pet-layer-boca #boca-open { animation: mouth-talk-open 0.95s ease-in-out infinite; }
+@keyframes mouth-talk-closed {
+  0%, 100% { opacity: 1; }
+  20% { opacity: 0.2; }
+  38% { opacity: 1; }
+  55% { opacity: 0.4; }
+  72% { opacity: 1; }
+  86% { opacity: 0.55; }
+}
+@keyframes mouth-talk-open {
+  0%, 100% { opacity: 0; }
+  20% { opacity: 0.85; }
+  38% { opacity: 0; }
+  55% { opacity: 0.65; }
+  72% { opacity: 0; }
+  86% { opacity: 0.5; }
+}
+
+/* Alegría (reacción de Acariciar): una sonrisa-apertura breve, un solo
+   pulso. */
+.game-stage.mouth-anim-feliz .pet-layer-boca #boca-closed { animation: mouth-joy-closed 0.48s ease-out 1; }
+.game-stage.mouth-anim-feliz .pet-layer-boca #boca-open { animation: mouth-joy-open 0.48s ease-out 1; }
+@keyframes mouth-joy-closed { 0%, 100% { opacity: 1; } 40% { opacity: 0; } }
+@keyframes mouth-joy-open { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Las animaciones de boca son reacción visual, no la única fuente de
+     info (el bocadillo/estado ya lo dice en texto) — se las frena igual
+     que el resto de los adornos, y no queda "a medio abrir": ambas capas
+     vuelven a su opacidad de reposo (cerrada visible, abierta oculta). */
+  .game-stage.mouth-anim-comer .pet-layer-boca #boca-closed,
+  .game-stage.mouth-anim-comer .pet-layer-boca #boca-open,
+  .game-stage.mouth-anim-beber .pet-layer-boca #boca-closed,
+  .game-stage.mouth-anim-beber .pet-layer-boca #boca-open,
+  .game-stage.mouth-anim-hablar .pet-layer-boca #boca-closed,
+  .game-stage.mouth-anim-hablar .pet-layer-boca #boca-open,
+  .game-stage.mouth-anim-feliz .pet-layer-boca #boca-closed,
+  .game-stage.mouth-anim-feliz .pet-layer-boca #boca-open {
+    animation: none !important;
+  }
+}
+
+/* ---------- Moscas cuando está sucia ---------- */
+.flies {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.flies.visible { opacity: 1; }
+.fly {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: #3a3a3a;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  animation: fly-orbit 2.6s linear infinite;
+}
+.fly:nth-child(1) { animation-duration: 2.6s; animation-delay: 0s; --fly-r: 42px; }
+.fly:nth-child(2) { animation-duration: 3.1s; animation-delay: -1.1s; animation-direction: reverse; --fly-r: 52px; }
+.fly:nth-child(3) { animation-duration: 2.3s; animation-delay: -0.6s; --fly-r: 34px; top: 44%; }
+.fly:nth-child(4) { animation-duration: 3.4s; animation-delay: -2s; animation-direction: reverse; --fly-r: 48px; top: 34%; }
+@keyframes fly-orbit {
+  0%   { transform: rotate(0deg) translateX(var(--fly-r, 44px)) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(var(--fly-r, 44px)) rotate(-360deg); }
+}
+
+/* ---------- Onboarding / personalización ---------- */
+
+.onboarding h2 { text-align: center; font-family: "Baloo 2", inherit; }
+
+/* v2.3: emblema completo del logo oficial, centrado arriba del título de
+   personalización. Backing circular suave (no un marco extra: el logo ya
+   trae su propio anillo) + una sola sombra exterior, para integrarlo sin
+   competir con el marfil de fondo. Tamaño proporcional: 180px desktop,
+   120px mobile (dentro del rango 160-200 / 110-140 pedido), con respiro
+   propio via margin (>=10% de su ancho) sin empujar demasiado el resto. */
+.brand-emblem {
+  display: block;
+  margin: 0 auto 20px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, var(--panel) 62%, transparent 64%);
+  filter: drop-shadow(0 4px 10px rgba(41, 62, 57, 0.16));
+}
+@media (max-width: 560px) {
+  .brand-emblem { width: 120px; height: 120px; margin-bottom: 14px; }
+}
+
+/* v2.6: campo de nombre, pedido explícito — se pide ANTES del escenario
+ * (ver orden en index.html) y queda angosto/centrado con su propio ancho
+ * máximo, aunque .screen.onboarding ahora sea tan ancha como la del
+ * juego (960-1440px) — no tendría sentido un input de una sola línea
+ * estirado a lo ancho de toda la pantalla. */
+.name-field {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.name-label {
+  display: block;
+  margin-top: 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: left;
+}
+.name-input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  font-size: 1rem;
+  background: var(--panel);
+  color: var(--ink);
+}
+/* Nombre obligatorio, mínimo 2 caracteres (pedido explícito) — ver
+   isValidPetName()/submitOnboarding() en js/app.js. */
+.name-input.input-error { border-color: var(--danger); }
+.field-error {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--danger);
+  text-align: left;
+}
+
+/* ---------- v2.4: creador/editor como "escenario" con pestañas ----------
+ * Rediseño pedido explícito: reemplaza la vieja grilla de tarjetas
+ * (.swatch-groups, todas las categorías visibles a la vez) — ahora es un
+ * único escenario, del mismo tamaño/proporción que .stage-floor del
+ * juego, con la mascota parada en el medio (idle + sigue el mouse con los
+ * ojos, salvo al pasar por encima de su cara) y 7 pestañas de categoría
+ * debajo (Color/Cabeza/Orejas/Ojos/Nariz/Boca/Cejas) que muestran de a una
+ * las opciones de esa categoría. Ver buildCreatorTabs()/
+ * renderCreatorPanel() en js/app.js.
+ *
+ * v2.6, pedido explícito: el escenario pasa a medir lo mismo que
+ * #stage-floor del juego (mismo max-width 960px que .stage-col, ver
+ * .screen.onboarding más arriba — antes estaba atado al ancho angosto de
+ * .screen, 760px). La mascota (.creator-pet-pos) sube arriba del todo en
+ * vez de vivir pegada abajo, para dejar lugar a un panel de controles
+ * (#creator-controls, más abajo) que agrupa TODO lo que antes vivía
+ * afuera del escenario — pestañas, opciones/colores y Guardar/Cancelar —
+ * superpuesto abajo con un degradé oscuro, mismo lenguaje visual que
+ * .stage-actions-row en el juego. */
+.creator-layout {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.creator-stage-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 220px;
+  /* v2.5: pedido explícito — reemplaza el fondo sólido #ecd6a4 (v2.4) por
+     el arte de cc-scene.ai, extraído fielmente con la misma técnica que
+     el resto del arte vectorial del proyecto (ver HOME_SCENE_INLINE en
+     js/manifest.js para el caso que sí necesita JS/CSS). Este fondo es
+     puramente decorativo (sin partes clickeables ni color que cambie de
+     día/noche), así que alcanza con un archivo estático + background-
+     image — no hace falta pegarlo inline. El archivo comparte el mismo
+     viewBox 1920x1080 (16:9) que este escenario, así que cover no
+     recorta ni deforma nada. */
+  background: var(--bg) url("../assets/backgrounds/cc-scene.svg") center / cover no-repeat;
+  border: 7px solid var(--wood-main);
+  overflow: hidden;
+}
+.creator-pet-pos {
+  /* Envoltorio de POSICIÓN (centrado) separado del elemento que anima
+     (.creator-pet-stage, más abajo) — igual criterio que .walker/
+     .game-stage en el juego: si el mismo elemento tuviera un transform de
+     posición Y la animación de "bob" (que también anima transform), uno
+     pisaría al otro. v2.6: sube arriba del escenario (antes bottom:8%,
+     pedido explícito de dejar lugar abajo para #creator-controls). */
+  position: absolute;
+  left: 50%;
+  top: 6%;
+  transform: translateX(-50%);
+}
+.creator-pet-stage {
+  width: min(200px, 30vw);
+  aspect-ratio: 1 / 1;
+  /* Misma respiración idle que la mascota del juego (.game-stage) — pedido
+     explícito "una animación idle". El balanceo de brazos (.brazo) ya
+     aplicaba acá sin cambios, por ser una clase de la propia capa SVG. */
+  animation: bob 3.2s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+.creator-random-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* v2.6: agrupa TODO lo que se pidió meter dentro del escenario — pestañas,
+   panel de opciones/colores y los botones de Guardar/Cancelar — anclado
+   abajo con un degradé oscuro (mismo criterio que .stage-actions-row en
+   el juego) para que se siga leyendo sobre cualquier apariencia elegida
+   de fondo. Column flex con la parte de opciones (.creator-panel) como
+   único tramo con scroll propio (flex:1 + overflow-y:auto): así las
+   pestañas de arriba y los botones de abajo quedan siempre a la vista
+   aunque una categoría tenga muchas opciones (p.ej. Color, con 8
+   swatches) y no entren todas en el alto disponible. */
+.creator-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 72%;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(69, 35, 15, 0.72) 0%, rgba(69, 35, 15, 0.4) 55%, rgba(69, 35, 15, 0) 100%);
+}
+/* v2.6 bugfix (verificación mobile): con 7 pestañas de categoría, en
+   pantallas angostas "Boca"/"Cejas" se pasaban a una segunda fila y le
+   comían la mitad de la altura disponible a #creator-controls (todo el
+   panel de opciones quedaba reducido a una tira de ~20px, mostrando los
+   swatches de color cortados a la mitad). Mismo criterio ya probado en
+   .stage-actions-row: una sola fila con scroll horizontal en vez de
+   partirse en 2 filas fijas, así el alto de las pestañas es siempre
+   predecible (una fila) y el resto del alto queda para el panel. */
+.creator-tabs, .creator-subtabs {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  gap: 6px;
+  justify-content: flex-start;
+  justify-content: safe center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.creator-subtabs { margin-top: -4px; }
+.creator-tab, .creator-subtab {
+  font-family: inherit;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--wood-edge);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+.creator-subtab { padding: 5px 12px; font-size: 0.74rem; }
+.creator-tab[aria-selected="true"], .creator-subtab[aria-selected="true"] {
+  background: var(--wood-grad-raised);
+  color: var(--ink-dark);
+  box-shadow: var(--shadow-btn);
+}
+.creator-tab:hover, .creator-subtab:hover { background: var(--soft-green); }
+.creator-tab[aria-selected="true"]:hover, .creator-subtab[aria-selected="true"]:hover { background: var(--wood-grad-raised); }
+.creator-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 3px solid var(--wood-edge);
+  border-radius: var(--radius-btn);
+  padding: 12px 16px;
+  box-shadow: 0 2px 0 rgba(91, 42, 20, 0.25);
+}
+.creator-panel .swatch-row { justify-content: center; }
+
+.onboarding-final-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.onboarding-final-actions .primary-btn,
+.onboarding-final-actions .secondary-btn {
+  flex: 1;
+  width: auto;
+}
+
+.swatch-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* Swatches: radio 12–16px (ya no círculos) — borde + check al
+   seleccionar, en vez de sólo un aro de color (sección 8: "selección con
+   borde+check"). */
+.swatch {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  border: 2px solid var(--line);
+  outline: none;
+  cursor: pointer;
+  background: var(--panel);
+  transition: border-color 0.15s, transform 0.1s;
+}
+.swatch:hover { transform: translateY(-1px); }
+.swatch.selected { border-color: var(--accent); border-width: 3px; box-shadow: 0 0 0 2px var(--wood-highlight); }
+.swatch.selected::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.2 12.6l4.8 4.8L19.8 6.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 60%;
+  box-shadow: 0 0 0 2px var(--panel);
+}
+
+/* Círculos numerados para elegir la forma del cuerpo (1, 2, ...) en vez
+   de un swatch de color, porque la forma no tiene color propio. */
+.swatch-number {
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Botones ---------- */
+
+.primary-btn, .secondary-btn, .action-circle, .link-btn {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+}
+.primary-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--wood-grad-raised);
+  border: 2px solid var(--wood-edge);
+  color: var(--ink-dark);
+  border-radius: var(--radius-btn);
+  font-family: "Baloo 2", inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 240, 205, 0.4);
+  box-shadow: var(--shadow-btn), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.1s;
+}
+.primary-btn:hover { filter: brightness(1.06); }
+.primary-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--wood-edge); }
+.primary-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: grayscale(0.3); }
+.primary-btn:focus-visible { outline: 3px solid var(--wood-edge); outline-offset: 2px; }
+
+.secondary-btn {
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 2px solid var(--wood-edge);
+  border-radius: var(--radius-btn);
+  font-size: 0.85rem;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 2px 0 var(--wood-edge);
+  transition: background 0.15s, transform 0.08s, box-shadow 0.08s;
+}
+.secondary-btn:hover { background: var(--soft-green); }
+.secondary-btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--wood-edge); }
+.secondary-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+.link-btn {
+  background: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+/* ---------- Pantalla de juego: identidad ----------
+ * v2.5: pedido explícito — se saca el renglón de arriba del escenario
+ * (nombre + estado breve + nivel, antes ".game-top"). El nombre pasa a
+ * ".wellbeing-name-box" (dentro del escenario, ver más abajo); el nivel
+ * ("bond-chip") se muda dentro de #stage-floor arriba a la derecha (ver
+ * regla más abajo); el estado breve (mood-caption) se saca del todo —
+ * las necesidades/el ánimo ahora se cuentan con frases que la mascota va
+ * diciendo (PET_REQUEST_PHRASES), no con un texto fijo. */
+
+.alert-banner {
+  background: color-mix(in srgb, var(--danger) 14%, var(--panel));
+  color: color-mix(in srgb, var(--danger) 65%, black);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 10px 0 0;
+  width: 100%;
+  max-width: 1440px;
+  box-sizing: border-box;
+}
+
+/* ---------- Panel de bienestar ----------
+ * v2.4: las 4 barras principales se mudaron DENTRO del escenario del
+ * juego (pedido explícito) — ver ".wellbeing-*" más arriba, junto a
+ * .stage-floor. Acá sólo queda @keyframes meter-pulse, reutilizado por
+ * ".wellbeing-track.meter-low" para el parpadeo de aviso en valores
+ * bajos; el resto de las reglas viejas (.meters/.meter-row/.meter-label/…)
+ * ya no las usa nada y se sacaron. */
+@keyframes meter-pulse {
+  0%, 100% { box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.45), 0 0 0 0 color-mix(in srgb, var(--danger) 35%, transparent); }
+  50% { box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.45), 0 0 0 4px transparent; }
+}
+
+/* v2.5: pedido explícito — se saca del todo la fila de Felicidad/Salud
+ * (antes ".secondary-indicators"/".indicator-chip", en el panel lateral
+ * .side-col, ya eliminado). La felicidad ahora se ve en el borde y la
+ * carita de #wellbeing-avatar (ver updateWellbeingAvatar en js/app.js) y
+ * la salud, con el mismo efecto visual de enfermedad que ya tiene la
+ * mascota del juego (misma clase "sick" aplicada también al avatar). */
+
+/* Chip de vínculo (nivel) — v2.5: pedido explícito, se muda DENTRO de
+ * #stage-floor, arriba a la derecha (antes vivía afuera del escenario,
+ * junto al nombre). */
+/* v2.6: pedido explícito — sin border-radius ni borde, y se saca el
+   corazoncito decorativo (antes .bond-chip-icon) del HTML — queda sólo
+   el texto de nivel + la barrita de progreso. */
+.bond-chip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  border: none;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-soft);
+}
+.bond-chip-track {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.bond-chip-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ---------- Mensaje único de prioridad ----------
+ * Un solo renglón, con color/ícono según qué tan urgente sea. */
+.status-line {
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 10px 0 0;
+  width: 100%;
+  max-width: 1440px;
+  box-sizing: border-box;
+}
+.status-line.status-aviso { background: color-mix(in srgb, var(--warn) 22%, var(--panel)); color: color-mix(in srgb, var(--warn) 55%, black); }
+.status-line.status-critico { background: color-mix(in srgb, var(--danger) 16%, var(--panel)); color: color-mix(in srgb, var(--danger) 60%, black); }
+.status-line.status-enferma { background: color-mix(in srgb, #a355c9 16%, var(--panel)); color: #7a3a96; }
+.status-line.status-dormida { background: color-mix(in srgb, #5a7fd6 16%, var(--panel)); color: #3d5aa8; }
+
+/* ---------- Layout principal de la pantalla de juego (sección 6) ----------
+ * v2.4: escenario ~70-75% + panel de bienestar en el resto (".side-col").
+ * v2.5: pedido explícito — se sacó .side-col del todo (ver más arriba,
+ * junto a .bond-chip/.wellbeing-*): ya no hay nada afuera del escenario,
+ * así que .game-main queda con una sola columna y #stage-floor se centra
+ * con un ancho máximo cómodo en vez de estirarse a todo el ancho
+ * disponible en pantallas muy anchas ("centrar la escena del juego",
+ * pedido explícito). */
+.game-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 14px;
+}
+.stage-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* v2.3: botones de acción — dejaron de ser círculos (pedido explícito:
+   "no circulares para las cuidados primarios, lo circular queda para
+   controles secundarios" — el círculo secundario es .icon-btn, arriba).
+   Ahora son tablones de madera/dorado con bisel real (borde+luz arriba+
+   sombra abajo) e icono+etiqueta corta, en vez de icono solo. Se
+   mantuvieron EXACTAMENTE los mismos ids/clases que ya usaba JS
+   (.action-circle-wrap, .cooldown-ring, .action-circle, .action-circle-*
+   por acción, .cooldown-label) — createActionButton() en js/app.js no se
+   tocó, sólo cambia lo que se ve. El aro de cooldown (conic-gradient) se
+   reemplazó por una barrita de progreso embutida abajo del botón, mismo
+   --pct que ya seteaba updateCooldownButtons(). */
+.action-circle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 84px;
+}
+/* v2.5: ancho y alto del aro deben coincidir — .action-circle ahora es
+   circular de verdad (border-radius:50%), así que si el aro no es
+   cuadrado queda una elipse en vez de un círculo. */
+.cooldown-ring {
+  --pct: 0;
+  position: relative;
+  width: 100%;
+  height: 84px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  border-radius: 50%;
+}
+/* v2.5: pedido explícito — vuelven a ser circulares (como en v2.2), pero
+   SIN el borde ni el box-shadow que sí tenían en aquel entonces: quedan
+   planos, sólo el fondo madera/dorado + el icono, ahora que conviven
+   directo sobre el fondo ilustrado del escenario (home-scene.ai) en vez
+   de sobre el degradé oscuro genérico de antes.
+   v2.6: pedido explícito — se saca también el fondo madera/dorado: queda
+   sólo el icono, flotando directo sobre la barra de acciones (mismo
+   degradé oscuro de .stage-actions-row detrás, que le sigue dando
+   contraste). El color del icono pasa de --ink-dark (pensado para leerse
+   sobre madera clara) a --wood-highlight, que se lee mejor sobre ese
+   fondo oscuro ahora que no hay círculo propio debajo. */
+.action-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  color: var(--wood-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  transition: filter 0.15s, transform 0.08s;
+}
+.action-circle .icon { width: 1.55rem; height: 1.55rem; }
+.action-circle:hover:not(:disabled) { filter: brightness(1.15); }
+.action-circle:active:not(:disabled) { transform: translateY(3px); }
+.action-circle:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.25); }
+.action-circle:focus-visible { outline: 3px solid var(--wood-highlight); outline-offset: 2px; }
+/* Barra de cooldown embutida: track siempre presente (discreto) + relleno
+   dorado que avanza con --pct — "en curso" sin tapar la etiqueta ni el
+   icono. */
+.cooldown-ring::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 5px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--wood-shadow);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+.cooldown-ring::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  bottom: 5px;
+  width: calc((100% - 20px) * var(--pct) / 100);
+  height: 4px;
+  border-radius: 3px;
+  background: var(--wood-highlight);
+  z-index: 2;
+  transition: width 0.3s linear;
+}
+/* v2.5: todas las acciones compartían la misma superficie madera/dorado
+ * (sin mezclar colores pastel por acción, como en v2.1) — v2.6: pedido
+ * explícito de sacar ese fondo del todo (ver .action-circle más arriba),
+ * así que esta regla queda sin nada que aportar; se deja comentada la
+ * lista de selectores por si en algún momento se pide volver a distinguir
+ * cada acción con un tinte propio. */
+.action-circle-caption {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+/* Segundos restantes en formato "Xs", debajo del botón — sólo tiene
+   contenido mientras hay cooldown activo. */
+.cooldown-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  min-height: 1.1em;
+}
+
+.app-footer {
+  margin-top: auto;
+  padding: 20px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---------- Menús de tarjetas: Alimentar / Afecto (sección 3/6/7) ----------
+ * Popover anclado con tarjetas — icono ilustrado, nombre, descripción
+ * corta. Sin inventario ni cantidad: son acciones siempre disponibles
+ * (cooldown propio, no un "stock"). */
+.feed-menu {
+  /* v2.3: "ventana tipo cartel de madera" para el menú de comida (pedido
+     explícito), con las opciones como tarjetas claras adentro (mismos
+     efectos/cooldown de siempre, sólo cambia el aspecto).
+     v2.4: el botón de Alimentar que lo abre se mudó adentro del escenario
+     (#stage-floor, ver .stage-actions-row) — este menú lo acompaña ahí,
+     flotando arriba de la barra de acciones (position:absolute) en vez de
+     ocupar flujo normal, que en el escenario (alto fijo, overflow:hidden)
+     lo hubiera dejado mal anclado o recortado en pantallas chicas. */
+  position: absolute;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  z-index: 8;
+  /* v2.4 bugfix: con width:auto (shrink-to-fit) un contenedor flex-wrap
+     posicionado en absoluto puede terminar colapsando a una sola columna
+     angosta (el ancho del ítem más chico) en vez de usar el espacio
+     disponible — se vio en mobile: en vez de acomodar 2 tarjetas por
+     fila quedaba 1 sola, larga, tapando a las otras 2 (sólo alcanzables
+     haciendo scroll). Fijar "width" en vez de depender sólo de
+     "max-width" fuerza un ancho previsible en cualquier pantalla. */
+  width: 94%;
+  max-width: 420px;
+  max-height: 66%;
+  overflow-y: auto;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--wood-grad-panel) border-box;
+  border: 4px solid transparent;
+  border-radius: var(--radius-btn);
+  padding: 12px;
+  box-shadow: var(--shadow-soft), 0 8px 20px rgba(69, 35, 15, 0.22);
+  animation: menu-in 0.16s ease-out;
+}
+@media (max-width: 480px) {
+  .feed-menu { bottom: 78px; }
+}
+.feed-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--soft-green);
+  border: 2px solid var(--wood-edge);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 108px;
+  max-width: 150px;
+  text-align: center;
+}
+.feed-item-icon { color: var(--accent-dark); }
+.feed-item-icon .icon { width: 1.7rem; height: 1.7rem; }
+.feed-item-desc {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.25;
+}
+.feed-item:hover:not(:disabled) { transform: translateY(-2px); }
+.feed-item:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 480px) {
+  /* v2.4 bugfix: con las 3 tarjetas a max-width:150px no entraban 2 por
+     fila en el ancho angosto del escenario mobile — quedaban en una sola
+     columna, y sin indicio visual de que hubiera más tarjetas abajo
+     (sólo alcanzables haciendo scroll dentro del menú), fácil de no
+     descubrir. Achicándolas un poco entran 2 por fila (la tercera pasa a
+     una segunda fila corta, ya visible sin scroll). Va DESPUÉS de la
+     regla base de ".feed-item" (misma especificidad) para que realmente
+     gane por orden de aparición — antes estaba colocada arriba, antes de
+     la regla base, y la base (con más max-width) terminaba ganando. */
+  .feed-menu { padding: 10px; gap: 8px; max-height: 82%; }
+  .feed-item { min-width: 96px; max-width: 128px; padding: 8px 10px; }
+  .feed-item-icon .icon { width: 1.4rem; height: 1.4rem; }
+}
+/* Advertencia comprensible sobre exceso de golosinas (sección 7) — fija
+   dentro del menú de comida, no sólo un mensaje que aparece después de
+   haber abusado. */
+.feed-menu-note {
+  flex-basis: 100%;
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin: 2px 4px 0;
+}
+
+/* ---------- Manchas del entorno ---------- */
+.dirt-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.dirt-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(41, 62, 57, 0.22);
+  animation: dirt-pop 0.25s ease-out;
+}
+.dirt-item:hover { transform: translate(-50%, -50%) scale(1.12); }
+@keyframes dirt-pop {
+  from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* ---------- Jugar: el juguete a atrapar ---------- */
+.toy-ball {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(41, 62, 57, 0.25);
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  animation: toy-bounce 0.8s ease-in-out infinite;
+}
+@keyframes toy-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ---------- Globo de diálogo ---------- */
+/* v2.6: pedido explícito — el globo aparece con fade in (ya lo hacía,
+   bubble-in) y ahora también desaparece con un fade out, flotando hacia
+   arriba desde la cabeza (top:34px ya lo posiciona justo arriba de la
+   mascota dentro de #walker) en vez de cortarse en seco. La clase
+   .speech-bubble-hide (agregada por showBubble() en js/app.js antes de
+   ocultarlo de verdad) pisa la animación de entrada con bubble-out —
+   misma propiedad, selector más específico (dos clases). */
+.speech-bubble {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  max-width: 80%;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(41, 62, 57, 0.16);
+  z-index: 5;
+  animation: bubble-in 0.2s ease-out;
+}
+.speech-bubble.speech-bubble-hide {
+  animation: bubble-out 0.42s ease-in forwards;
+}
+@keyframes bubble-in {
+  from { transform: translateX(-50%) translateY(-6px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+@keyframes bubble-out {
+  from { transform: translateX(-50%) translateY(0); opacity: 1; }
+  to { transform: translateX(-50%) translateY(-28px); opacity: 0; }
+}
+
+/* ---------- Baño: secuencia breve de burbujas ---------- */
+.bath-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.bath-fx.bathing { opacity: 1; }
+.bath-fx.bathing::before,
+.bath-fx.bathing::after {
+  content: "";
+  position: absolute;
+  bottom: 10%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(173, 216, 240, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  animation: bubble-rise 1.1s ease-in infinite;
+}
+.bath-fx.bathing::before { left: 38%; animation-delay: 0s; }
+.bath-fx.bathing::after { left: 58%; width: 10px; height: 10px; animation-delay: 0.3s; }
+@keyframes bubble-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0.9; }
+  80% { opacity: 0.7; }
+  100% { transform: translateY(-70px) scale(1.1); opacity: 0; }
+}
+
+/* ---------- Dormir: postura + "Zzz" flotando ---------- */
+.zzz-fx {
+  position: absolute;
+  top: 6%;
+  right: 10%;
+  display: none;
+  pointer-events: none;
+  font-family: "Baloo 2", inherit;
+  font-weight: 700;
+  color: var(--muted);
+}
+#walker:has(.game-stage.sleeping) .zzz-fx,
+#walker.is-sleeping .zzz-fx {
+  display: block;
+}
+.zzz-fx span {
+  position: absolute;
+  animation: zzz-float 2.4s ease-in infinite;
+  opacity: 0;
+}
+.zzz-fx span:nth-child(1) { font-size: 0.8rem; animation-delay: 0s; left: 0; }
+.zzz-fx span:nth-child(2) { font-size: 1.05rem; animation-delay: 0.5s; left: 8px; }
+.zzz-fx span:nth-child(3) { font-size: 1.3rem; animation-delay: 1s; left: 16px; }
+@keyframes zzz-float {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 0.9; }
+  100% { transform: translateY(-26px); opacity: 0; }
+}
+/* v2.4: el botón de Despertar dejó de ser un botón aparte (".wake-btn") —
+   pedido explícito: "el botón de despertar debería ser el mismo que
+   dormir, sólo que alternar". Ahora el mismo tile de "Dormir" en el dock
+   de acciones cambia de ícono/etiqueta a "Despertar" cuando corresponde
+   (ver updateSleepToggle() en js/app.js) — se reutiliza el estilo de
+   .action-circle de siempre, no hace falta una clase nueva. */
+
+/* Postura dormida: ojos casi cerrados (--eye-scale lo maneja JS), y la
+ * respiración/temblor decorativos se frenan. */
+.game-stage.sleeping { animation: none; }
+.game-stage.sleeping .pet-layer-cejas #ceja-izq,
+.game-stage.sleeping .pet-layer-cejas #ceja-der { transform: rotate(4deg) translateY(0.5px); }
+
+/* Enferma: postura apagada — leve desaturación + boca/cejas de tristeza
+ * (ya forzado por JS con mood-triste). v2.5: el avatar de bienestar
+ * recibe el mismo filtro cuando está enferma (pedido explícito). */
+.game-stage.sick,
+.wellbeing-avatar-stage.sick { filter: saturate(0.7) brightness(0.98); }
+
+/* Corazones/destellos al acariciar — <span> chicos que agrega/saca JS
+ * (popHearts) sobre #walker. */
+.heart-pop {
+  position: absolute;
+  top: 30%;
+  font-size: 1.1rem;
+  pointer-events: none;
+  animation: heart-float 1.3s ease-out forwards;
+}
+@keyframes heart-float {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateY(-60px) scale(1.15); opacity: 0; }
+}
+
+/* ---------- Modo prueba / debug ----------
+ * Oculto por defecto; se activa desde el menú de Opciones del encabezado
+ * ("Modo prueba"). No es parte de la jugabilidad normal — pensado para
+ * poder validar el juego sin esperar horas reales. */
+.debug-panel {
+  max-width: 1440px;
+  width: 100%;
+  margin: 12px auto 0;
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.8rem;
+  box-sizing: border-box;
+}
+.debug-title { font-weight: 700; margin: 0 0 8px; }
+.debug-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.debug-row span:first-child { min-width: 90px; }
+.debug-val { min-width: 28px; text-align: right; color: var(--muted); }
+.debug-row button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+/* ---------- Responsive / accesibilidad (sección 9) ----------
+ * Angostas: una sola columna (ya es el comportamiento por defecto de
+ * .game-main y .onboarding-layout arriba de 900px se hacen "row"), acciones
+ * en dos filas si no entran todas (flex-wrap ya lo permite). Verificado
+ * sin scroll horizontal desde 360px. */
+@media (max-width: 480px) {
+  .app-header { padding: 10px 12px; }
+  .screen { padding: 10px 12px 32px; }
+  /* v2.4: la barra de acciones se mudó DENTRO del escenario (pedido
+     explícito, ver .stage-actions-row más arriba) — ahí ya queda en una
+     sola fila con scroll horizontal en vez de partirse en 2 filas fijas
+     como antes (no hay margen vertical de sobra dentro del escenario para
+     una segunda fila). Acá sólo se achican un poco más los tiles para que
+     entren más juntos y haga falta menos scroll en pantallas angostas. */
+  .stage-actions-row { gap: 6px; padding: 8px 6px 8px; }
+  .stage-actions-row .action-circle-wrap,
+  .stage-actions-row .nav-btn-tile { width: 58px; }
+  /* v2.5: el aro circular necesita el mismo alto que el ancho del wrap
+     (58px) para seguir siendo un círculo — .nav-btn-tile no es circular,
+     así que sigue con su propio alto de siempre (52px), por separado. */
+  .stage-actions-row .cooldown-ring { height: 58px; }
+  .stage-actions-row .nav-btn-tile { height: 52px; }
+  .stage-actions-row .action-circle .icon,
+  .stage-actions-row .nav-btn-icon .icon { width: 1.15rem; height: 1.15rem; }
+  .stage-actions-row .action-circle-caption,
+  .nav-btn-tile { font-size: 0.58rem; }
+  .options-menu { right: 8px; left: 8px; min-width: 0; }
+  /* v2.6: panel de controles de personalización (pestañas + opciones +
+     Guardar/Cancelar) más compacto en mobile, para que le quede lugar de
+     sobra a la mascota arriba. */
+  .creator-controls { max-height: 78%; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); gap: 6px; }
+  .creator-panel { padding: 8px 10px; }
+  .creator-tab { padding: 6px 12px; font-size: 0.76rem; }
+}
+
+/* v2.3: el tema de madera/dorado es un solo look intencional (como
+   cualquier videojuego con arte propio) — ya no cambia de paleta con el
+   modo oscuro del sistema, así que no hay un segundo juego de --bg/--panel/
+   --ink acá. Lo único que sigue dependiendo de prefers-color-scheme es el
+   fondo del ESCENARIO (casa/jardín), que es arte de ambientación, no
+   "chrome" de interfaz. */
+@media (prefers-color-scheme: dark) {
+  /* v2.5: la Casa ya no tiene una variante de modo oscuro propia — el
+     fondo ahora es el arte real de home-scene.ai (fijo, como el resto de
+     la ilustración del juego), no un gradiente CSS que pudiera redefinirse
+     acá. La única variante de día/noche que le queda es is-night (ver
+     más arriba, junto a #scene-puerta). */
+  .stage-floor.location-jardin {
+    background: linear-gradient(to bottom, #16232a 0%, #172a25 58%, #172a25 62%, #234a30 62%, #1d3d28 100%);
+  }
+}
+
+/* ======================================================================
+   v2.7 — Rediseño UX/UI: Mascotito como videojuego browser full-screen
+   ====================================================================== */
+:root {
+  --ui-cream: #fff8e8;
+  --ui-cream-2: #f9ecd0;
+  --ui-orange: #d98226;
+  --ui-orange-dark: #a64e16;
+  --ui-brown: #4b2b18;
+  --ui-navy: #17233f;
+  --ui-green: #43a957;
+  --ui-blue: #48a9df;
+  --ui-yellow: #efb533;
+  --ui-purple: #8b68c9;
+  --ui-pink: #dd6d85;
+  --ui-shadow: 0 14px 34px rgba(32, 22, 12, .22);
+  --ui-border: rgba(166, 78, 22, .72);
+  font-family: "Baloo 2", "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100dvh;
+  background: #f4ead2;
+  align-items: stretch;
+}
+
+/* Header / HUD superior */
+.app-header {
+  max-width: none;
+  min-height: 76px;
+  margin: 0;
+  padding: 10px clamp(14px, 2.4vw, 42px);
+  background: rgba(255, 248, 232, .96);
+  border-bottom: 1px solid rgba(166, 78, 22, .16);
+  box-shadow: 0 6px 22px rgba(61, 36, 17, .10);
+  z-index: 60;
+  gap: 18px;
+}
+.brand { flex-shrink: 0; }
+.brand-symbol { height: 50px; }
+.brand-name-img { height: 24px; }
+.badge { background: var(--ui-orange); box-shadow: inset 0 1px rgba(255,255,255,.25); }
+
+.game-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-inline: auto;
+}
+.game-nav-item {
+  min-height: 48px;
+  min-width: 82px;
+  border: 0;
+  border-radius: 16px;
+  padding: 7px 13px;
+  background: transparent;
+  color: #5e4028;
+  font: 700 .88rem/1 "Baloo 2", sans-serif;
+  cursor: pointer;
+  transition: background .16s ease, transform .16s ease, color .16s ease;
+}
+.game-nav-item:hover:not(:disabled) { background: #f8e4bd; transform: translateY(-1px); }
+.game-nav-item.is-active { background: #f8d697; color: #8d4316; }
+.game-nav-item.is-locked { opacity: .42; cursor: not-allowed; }
+
+.header-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.currency-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #fff1cb;
+  color: #4e2c12;
+  font-variant-numeric: tabular-nums;
+}
+.currency-icon {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  color: transparent;
+  background: radial-gradient(circle at 35% 30%, #ffe88c 0 18%, #f5b524 20% 60%, #c97a14 62% 100%);
+  box-shadow: inset 0 0 0 2px rgba(132,74,10,.22);
+}
+.header-level { width: 190px; }
+.header-level-row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; color:#512d18; }
+.header-level-row strong { font-size: .92rem; }
+.header-level-row span { font: 600 .66rem/1 "Segoe UI", sans-serif; color:#8b684f; font-variant-numeric:tabular-nums; }
+.header-level-track { height: 8px; border-radius: 999px; overflow:hidden; background:#ead6b6; box-shadow: inset 0 1px 2px rgba(69,35,15,.18); }
+.header-level-fill { width:0; height:100%; background:linear-gradient(90deg,#efa336,#d87820); border-radius:inherit; transition:width .35s ease; }
+
+.icon-btn {
+  background: #fffaf0;
+  border: 1px solid #e3caa5;
+  box-shadow: 0 4px 12px rgba(69,35,15,.10);
+}
+
+/* Pantalla juego: ocupa la ventana y deja de parecer un iframe chico */
+.screen.game {
+  width: 100%;
+  max-width: none;
+  flex: 1;
+  padding: 14px clamp(12px, 1.5vw, 24px) 18px;
+}
+.game-main { margin-top: 0; gap: 0; }
+.stage-col { max-width: 1640px; width: 100%; margin: 0 auto; }
+.stage-floor {
+  width: 100%;
+  height: calc(100dvh - 110px);
+  min-height: 620px;
+  max-height: 920px;
+  aspect-ratio: auto;
+  margin: 0;
+  border: 2px solid rgba(86, 46, 20, .20);
+  border-radius: 26px;
+  box-shadow: var(--ui-shadow);
+  background-clip: padding-box;
+}
+body:has(#game:not([hidden])) .app-footer { display:none; }
+
+/* Más profundidad ambiental en el jardín, sin reemplazar la lógica día/noche */
+.stage-floor.location-jardin {
+  background: linear-gradient(to bottom, #c8e9f8 0%, #bfe5f7 54%, #416e4d 54%, #315f42 65%, #9fc96e 65%, #91bd61 100%);
+}
+.stage-floor.location-jardin.is-night {
+  background: linear-gradient(to bottom, #13213f 0%, #1b2d51 54%, #234635 54%, #24422f 65%, #6f8e55 65%, #637f4c 100%);
+}
+.location-jardin .location-deco::before {
+  height: 35%;
+  background: linear-gradient(to bottom, rgba(205,235,167,.97), rgba(143,181,93,.98));
+  box-shadow: 0 -4px 22px rgba(22,56,33,.18) inset;
+}
+.location-jardin .location-deco::after {
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  top:51%; height:14%;
+  opacity:.78;
+  background:
+    linear-gradient(to bottom, transparent 0 35%, rgba(83,59,38,.9) 36% 43%, transparent 44% 63%, rgba(83,59,38,.9) 64% 71%, transparent 72%),
+    repeating-linear-gradient(90deg, transparent 0 6%, rgba(122,88,58,.92) 6.2% 8.1%, transparent 8.3% 13%);
+  filter: drop-shadow(0 4px 3px rgba(25,25,25,.12));
+}
+
+/* Mascota: más protagonista */
+.walker { bottom: 92px; z-index: 4; }
+@media (min-width: 768px) {
+  .walker { width: clamp(250px, 24vw, 360px); }
+}
+.pet-shadow { opacity: .22; transform: scale(1.08); }
+
+/* Cards HUD */
+.hud-card,
+.wellbeing-widget,
+.bond-chip {
+  color: #3d281a;
+  background: rgba(255, 249, 235, .95);
+  border: 2px solid var(--ui-border);
+  border-radius: 22px;
+  box-shadow: 0 10px 26px rgba(28, 20, 14, .18), inset 0 1px rgba(255,255,255,.7);
+  backdrop-filter: blur(7px);
+}
+.hud-eyebrow {
+  display:block;
+  color:#b36a2a;
+  font:800 .63rem/1.1 "Segoe UI",sans-serif;
+  letter-spacing:.12em;
+}
+.hud-card h3,
+.hud-card-title-row h3 { margin:2px 0 0; font:800 1.22rem/1.05 "Baloo 2",sans-serif; color:#382315; }
+
+.wellbeing-widget {
+  top: 18px;
+  left: 18px;
+  width: 330px;
+  padding: 18px;
+  gap: 12px;
+  pointer-events:none;
+}
+.hud-card-title-row { display:flex; align-items:center; justify-content:space-between; width:100%; }
+.hud-status-dot { width:10px; height:10px; border-radius:50%; background:#55ad62; box-shadow:0 0 0 5px rgba(85,173,98,.13); }
+.wellbeing-hud { width:100%; align-items:center; gap:12px; }
+.wellbeing-avatar { width:68px; height:68px; border-width:3px; box-shadow:0 4px 10px rgba(35,25,18,.14); }
+.wellbeing-avatar-stage { width:136px; height:136px; left:-34px; top:-21px; }
+.wellbeing-bars {
+  flex:1;
+  min-width:0;
+  margin-left:0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  background:transparent;
+  box-shadow:none;
+  animation:none;
+}
+.wellbeing-row {
+  display:grid;
+  grid-template-columns: 19px 62px 1fr 38px;
+  gap:7px;
+  width:100%;
+}
+.wellbeing-row .icon { color:#9a5b29; width:18px; height:18px; }
+.wellbeing-label { font:700 .76rem/1 "Segoe UI",sans-serif; color:#5a412e; }
+.wellbeing-value { text-align:right; font:800 .72rem/1 "Segoe UI",sans-serif; color:#5b402c; font-variant-numeric:tabular-nums; }
+.wellbeing-track { height:9px; border:0; background:#eadfc8; box-shadow:inset 0 1px 2px rgba(70,40,18,.12); }
+.wellbeing-row.is-warning .wellbeing-value { color:#b44b2f; }
+.wellbeing-fill.meter-saciedad { background: var(--ui-green); }
+.wellbeing-fill.meter-hidratacion { background: var(--ui-blue); }
+.wellbeing-fill.meter-higiene { background: var(--ui-yellow); }
+.wellbeing-fill.meter-energia { background: var(--ui-purple); }
+.wellbeing-name-box {
+  width:100%;
+  padding:10px 12px;
+  border-radius:14px;
+  background:#fffdf6;
+  box-shadow:inset 0 0 0 1px rgba(166,78,22,.10);
+}
+.wellbeing-name-box h2 { max-width:none; font-size:1rem; color:#382315; }
+
+/* Progreso en esquina superior derecha */
+.bond-chip {
+  top:18px;
+  right:18px;
+  width:270px;
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap:5px 10px;
+  padding:14px 16px;
+  font-size:.8rem;
+}
+.bond-label { grid-column:1 / -1; color:#b36a2a; font:800 .61rem/1 "Segoe UI",sans-serif; letter-spacing:.12em; }
+#bond-level-text { font:800 1rem/1 "Baloo 2",sans-serif; color:#402719; }
+.bond-chip-track { grid-column:1 / -1; width:100%; height:8px; background:#ead9bd; border-radius:999px; }
+.bond-chip-fill { background:linear-gradient(90deg,#efa336,#d87820); }
+.bond-xp-text { justify-self:end; align-self:center; color:#886247; font:700 .67rem/1 "Segoe UI",sans-serif; font-variant-numeric:tabular-nums; }
+
+.daily-card {
+  position:absolute;
+  z-index:7;
+  top:126px;
+  right:18px;
+  width:270px;
+  padding:16px;
+  pointer-events:none;
+}
+.daily-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.daily-card-header strong { padding:4px 9px; border-radius:999px; background:#f7e3bd; color:#884817; font-size:.77rem; }
+.daily-list { list-style:none; margin:14px 0 12px; padding:0; display:grid; gap:10px; }
+.daily-list li { display:flex; align-items:center; gap:9px; color:#5d4736; font:700 .78rem/1.2 "Segoe UI",sans-serif; }
+.daily-check {
+  display:grid; place-items:center;
+  width:20px; height:20px;
+  border:2px solid #d2b285;
+  border-radius:6px;
+  color:transparent;
+  background:#fffaf0;
+  transition:.18s ease;
+}
+.daily-list li.is-done { color:#52705a; }
+/* v3.2, pedido explícito: "que el texto de los objetivos se tachen cuando
+   los vas cumpliendo" — el tachado va sólo en el texto del objetivo, no
+   en el ✓ (.daily-check), que ya se distingue solo con su propio color. */
+.daily-list li.is-done span:not(.daily-check) { text-decoration: line-through; }
+.daily-list li.is-done .daily-check { color:white; background:#4eaa5e; border-color:#3f914d; }
+.daily-reward { padding-top:11px; border-top:1px solid #e6d4b8; display:flex; justify-content:space-between; gap:10px; font:700 .69rem/1.2 "Segoe UI",sans-serif; color:#866149; }
+.daily-reward strong { color:#9a531d; text-align:right; }
+/* v3.2, pedido explícito: "...y también el de recompensas" — una vez
+   cobrada (state.daily.rewarded, ver updateDailyGoals en js/app.js) el
+   texto de la recompensa también se tacha. */
+.daily-reward.is-claimed span,
+.daily-reward.is-claimed strong { text-decoration: line-through; }
+
+.time-card {
+  position:absolute;
+  z-index:7;
+  left:18px;
+  top:390px;
+  width:250px;
+  min-height:96px;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:14px 16px;
+  color:white;
+  background:rgba(20,35,67,.90);
+  border-color:rgba(244,166,62,.85);
+  pointer-events:none;
+}
+.time-icon { font-size:2.05rem; line-height:1; color:#fff6d7; }
+.time-card .hud-eyebrow { color:#e9c987; }
+.time-card strong { display:block; margin-top:3px; font:800 1.32rem/1 "Baloo 2",sans-serif; }
+.time-card #time-card-label { display:block; margin-top:3px; color:#d6def1; font:600 .76rem/1 "Segoe UI",sans-serif; }
+
+/* Dock inferior: acciones como controles de videojuego, no iconos flotantes */
+.stage-actions-row {
+  left:50%; right:auto; bottom:16px;
+  width:min(880px, calc(100% - 360px));
+  transform:translateX(-50%);
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 12px;
+  overflow:visible;
+  background:rgba(255,248,232,.94);
+  border:2px solid rgba(166,78,22,.72);
+  border-radius:24px;
+  box-shadow:0 14px 28px rgba(33,22,13,.22), inset 0 1px rgba(255,255,255,.85);
+  backdrop-filter:blur(9px);
+}
+.stage-actions-row .actions { flex:1; gap:8px; justify-content:center; }
+.stage-actions-row .action-circle-wrap { width:92px; gap:0; }
+.stage-actions-row .cooldown-ring { height:68px; width:92px; border-radius:16px; }
+.action-circle {
+  border-radius:16px;
+  background:linear-gradient(180deg,#fff9eb,#f3dfba);
+  border:1px solid #e1c18d;
+  color:#5d3a20;
+  box-shadow:0 3px 8px rgba(61,38,20,.10), inset 0 1px rgba(255,255,255,.8);
+  transition:transform .14s ease, box-shadow .14s ease, background .14s ease;
+}
+.action-circle:hover:not(:disabled) { filter:none; transform:translateY(-2px); box-shadow:0 7px 14px rgba(61,38,20,.16), inset 0 1px white; background:#fff5dd; }
+.action-circle:active:not(:disabled) { transform:translateY(1px) scale(.98); }
+.stage-actions-row .action-circle .icon { width:1.7rem; height:1.7rem; }
+.action-circle-caption { margin-top:5px; font:800 .67rem/1 "Baloo 2",sans-serif; color:#4c301e; }
+.action-circle-wrap.needs-attention .action-circle { border-color:#de8125; box-shadow:0 0 0 3px rgba(222,129,37,.15), 0 5px 12px rgba(61,38,20,.12); animation:attentionPulse 1.7s ease-in-out infinite; }
+@keyframes attentionPulse { 50% { transform:translateY(-2px); } }
+.cooldown-ring::before { left:10px; right:10px; bottom:4px; height:4px; padding:0; border:0; border-radius:999px; background:linear-gradient(90deg,#d98226 var(--pct-css, 0%),#e8d5b4 var(--pct-css, 0%)); opacity:.9; }
+.cooldown-label { color:#8e4b1d; }
+.nav-btn-tile {
+  width:94px;
+  height:68px;
+  flex-shrink:0;
+  border-radius:16px;
+  background:#ef9e38;
+  border:1px solid #c66b1e;
+  box-shadow:0 4px 9px rgba(103,56,21,.20), inset 0 1px rgba(255,255,255,.35);
+  color:#4b2a16;
+}
+
+/* Feed menu acompaña el nuevo dock */
+.feed-menu {
+  bottom:104px;
+  border-radius:20px;
+  background:rgba(255,249,235,.98);
+  border:2px solid rgba(166,78,22,.58);
+  box-shadow:0 16px 34px rgba(36,25,16,.25);
+}
+
+/* Globo de diálogo con más presencia */
+.speech-bubble {
+  max-width:330px;
+  padding:14px 18px;
+  border-radius:20px;
+  background:#fffaf0;
+  color:#3f2a1b;
+  border:1px solid rgba(166,78,22,.22);
+  box-shadow:0 10px 20px rgba(26,22,18,.15);
+  font:700 1rem/1.25 "Baloo 2",sans-serif;
+}
+
+/* Menos aspecto de web utilitaria */
+.options-menu { border-radius:16px; box-shadow:0 14px 32px rgba(45,28,15,.22); }
+
+/* Responsive: conserva jerarquía y no simplemente encoge todo */
+@media (max-width: 1240px) {
+  .game-nav-item { min-width:68px; padding-inline:9px; }
+  .game-nav-item.is-locked { display:none; }
+  .header-level { width:150px; }
+  .wellbeing-widget { width:300px; }
+  .daily-card, .bond-chip { width:240px; }
+  .stage-actions-row { width:min(760px, calc(100% - 250px)); }
+}
+
+@media (max-width: 900px) {
+  .app-header { min-height:68px; padding:8px 12px; }
+  .brand-name-img, .badge { display:none; }
+  .game-nav { gap:2px; }
+  .game-nav-item { min-width:58px; font-size:.75rem; }
+  .header-progress { margin-left:auto; }
+  .header-level { display:none; }
+  .currency-pill { padding-inline:10px; }
+  .stage-floor { height:calc(100dvh - 92px); min-height:650px; border-radius:20px; }
+  .wellbeing-widget { width:270px; padding:12px; top:10px; left:10px; }
+  .wellbeing-avatar { width:56px; height:56px; }
+  .wellbeing-avatar-stage { width:112px; height:112px; left:-28px; top:-17px; }
+  .wellbeing-row { grid-template-columns:17px 52px 1fr 34px; gap:5px; }
+  .bond-chip { top:10px; right:10px; width:210px; padding:10px 12px; }
+  .daily-card { top:110px; right:10px; width:210px; padding:12px; }
+  .daily-reward { display:block; }
+  .daily-reward strong { display:block; margin-top:4px; text-align:left; }
+  .time-card { display:none; }
+  .stage-actions-row { width:calc(100% - 24px); bottom:12px; overflow-x:auto; justify-content:flex-start; }
+  .stage-actions-row .actions { justify-content:flex-start; }
+  .walker { bottom:94px; }
+}
+
+@media (max-width: 640px) {
+  .screen.game { padding:8px; }
+  .game-nav { display:none; }
+  .currency-pill { display:none; }
+  .stage-floor { height:calc(100dvh - 82px); min-height:690px; border-radius:18px; }
+  .wellbeing-widget { width:calc(100% - 20px); max-width:none; }
+  .wellbeing-hud { align-items:flex-start; }
+  .wellbeing-bars { display:grid; grid-template-columns:1fr 1fr; gap:7px 10px; }
+  .wellbeing-row { grid-template-columns:18px 48px 1fr; }
+  .wellbeing-value { display:none; }
+  .wellbeing-name-box { position:absolute; top:18px; left:92px; width:auto; max-width:55%; background:transparent; box-shadow:none; padding:0; }
+  .hud-card-title-row { padding-left:82px; }
+  .bond-chip { top:170px; left:10px; right:auto; width:188px; }
+  .daily-card { top:170px; right:10px; width:calc(100% - 218px); min-width:160px; }
+  .daily-list { gap:6px; margin:9px 0 0; }
+  .daily-list li { font-size:.68rem; }
+  .daily-reward { display:none; }
+  .walker { width:250px; bottom:100px; }
+  .stage-actions-row { border-radius:20px; padding:8px; }
+  .stage-actions-row .action-circle-wrap { width:74px; }
+  .stage-actions-row .cooldown-ring { width:74px; height:58px; }
+  .stage-actions-row .action-circle .icon { width:1.35rem; height:1.35rem; }
+  .nav-btn-tile { width:74px; height:58px; }
+}
+
+/* ==========================================================
+   v2.8 — UI/UX refinements
+   ========================================================== */
+
+/* Header: brand left, progression centered, settings right. */
+.app-header {
+  display:grid;
+  grid-template-columns:minmax(220px,1fr) auto minmax(220px,1fr);
+  align-items:center;
+  gap:18px;
+}
+.app-header .brand { justify-self:start; }
+.header-progress {
+  justify-self:center;
+  margin:0 !important;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+#btn-opciones { justify-self:end; }
+.header-edit-btn {
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  background:transparent;
+  border:0;
+  color:#6b3a19;
+  cursor:pointer;
+  transition:transform .15s ease, background .15s ease;
+}
+.header-edit-btn:hover { transform:translateY(-1px); background:rgba(217,130,38,.12); }
+.header-edit-btn svg { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.currency-pill { border:0 !important; box-shadow:none !important; background:rgba(255,247,225,.88); }
+.currency-icon { width:28px; height:28px; display:grid; place-items:center; color:#a85d14; }
+.currency-icon svg { width:28px; height:28px; fill:#f3b43f; stroke:#9a5315; stroke-width:1.25; stroke-linecap:round; stroke-linejoin:round; }
+.icon-btn { border:0 !important; border-radius:0 !important; box-shadow:none !important; background:transparent !important; }
+.icon-btn .gear-icon { width:24px; height:24px; }
+
+/* Cards requested without outline / rounded container styling. */
+.hud-card,
+.wellbeing-widget,
+.bond-chip {
+  border:0 !important;
+  border-radius:0 !important;
+}
+.wellbeing-widget { box-shadow:0 14px 30px rgba(31,24,18,.13); }
+
+/* Modern action rail: flat, square and icon-led. */
+.stage-actions-row {
+  border:0 !important;
+  border-radius:0 !important;
+  background:rgba(255,249,236,.94);
+  box-shadow:0 -1px 0 rgba(69,35,15,.08), 0 14px 30px rgba(26,20,16,.18);
+  padding:8px 10px;
+}
+.stage-actions-row .action-circle-wrap { gap:3px; }
+.stage-actions-row .cooldown-ring,
+.action-circle,
+.nav-btn-tile {
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+.action-circle {
+  background:transparent;
+  color:#4c301f;
+  position:relative;
+}
+.action-circle::after {
+  content:"";
+  position:absolute;
+  left:18%; right:18%; bottom:5px;
+  height:2px;
+  background:transparent;
+  transition:background .15s ease, transform .15s ease;
+}
+.action-circle:hover:not(:disabled) {
+  background:rgba(217,130,38,.10);
+  transform:translateY(-2px);
+}
+.action-circle:hover:not(:disabled)::after,
+.action-circle-wrap.needs-attention .action-circle::after { background:#d98226; transform:scaleX(1.12); }
+.action-circle-wrap.needs-attention .action-circle {
+  animation:none;
+  background:rgba(217,130,38,.08);
+}
+.stage-actions-row .action-circle .icon,
+.stage-actions-row .nav-btn-icon .icon {
+  width:1.75rem;
+  height:1.75rem;
+  stroke-width:1.55;
+}
+.action-circle-caption { font-weight:700; letter-spacing:.01em; }
+.cooldown-ring::before { border-radius:0 !important; height:3px; left:15px; right:15px; }
+.nav-btn-tile { background:#d98226; color:#fff8e9; }
+.nav-btn-tile:hover { background:#c87320; }
+
+/* Comic-like speech balloon physically belongs to the character. */
+.walker { overflow:visible; }
+.speech-bubble {
+  position:absolute;
+  left:50%;
+  bottom:calc(100% - 18px);
+  transform:translateX(-50%);
+  width:max-content;
+  max-width:min(320px, 78vw);
+  min-width:130px;
+  padding:13px 16px;
+  border:0;
+  border-radius:0;
+  background:#fffdf6;
+  color:#382315;
+  box-shadow:5px 6px 0 rgba(69,35,15,.20);
+  text-align:center;
+  font:700 .98rem/1.3 "Baloo 2", sans-serif;
+  z-index:15;
+  pointer-events:none;
+}
+.speech-bubble::after {
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-18px;
+  width:0; height:0;
+  border-left:15px solid transparent;
+  border-right:4px solid transparent;
+  border-top:20px solid #fffdf6;
+  transform:translateX(-50%) skewX(-8deg);
+  filter:drop-shadow(3px 3px 0 rgba(69,35,15,.12));
+}
+
+/* Minigame system */
+.minigame-panel {
+  position:absolute;
+  z-index:30;
+  inset:11% 16% 19%;
+  display:flex;
+  flex-direction:column;
+  background:rgba(15,24,43,.94);
+  color:white;
+  box-shadow:0 20px 50px rgba(10,15,25,.40);
+  backdrop-filter:blur(10px);
+}
+.minigame-topbar {
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  align-items:center;
+  gap:18px;
+  padding:14px 16px 10px;
+  background:rgba(255,255,255,.05);
+}
+.minigame-topbar strong { display:block; margin-top:2px; font:800 1.15rem/1 "Baloo 2",sans-serif; }
+.minigame-meta { display:flex; gap:8px; }
+.minigame-meta span { min-width:62px; padding:7px 9px; background:rgba(255,255,255,.10); text-align:center; font-weight:800; }
+#minigame-close { width:38px; height:38px; border:0; border-radius:0; background:rgba(255,255,255,.10); color:white; font-size:1.35rem; cursor:pointer; }
+#minigame-close:hover { background:rgba(255,255,255,.18); }
+.minigame-instructions { margin:0; padding:8px 16px 10px; color:#e9ddc6; font-size:.86rem; }
+.minigame-arena { position:relative; flex:1; min-height:260px; overflow:hidden; background:linear-gradient(180deg,rgba(44,84,91,.35),rgba(11,24,38,.15)); }
+.minigame-target {
+  position:absolute;
+  width:68px; height:68px;
+  border:0;
+  border-radius:50%;
+  background:#f5b840;
+  color:#5b2a14;
+  font-size:2rem;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 10px 20px rgba(0,0,0,.25);
+}
+.minigame-target[data-game="luciernagas"] { width:54px; height:54px; background:#ffe78b; color:#ba6e16; box-shadow:0 0 28px rgba(255,231,139,.85); }
+.minigame-target.target-pop { animation:minigamePop .18s ease-out; }
+@keyframes minigamePop { from { transform:scale(.65); opacity:.2; } to { transform:scale(1); opacity:1; } }
+
+/* Debug mode is now a real fixed tool window rather than disappearing in the footer. */
+.debug-panel {
+  position:fixed;
+  z-index:100;
+  top:82px;
+  right:18px;
+  width:min(420px, calc(100vw - 36px));
+  max-height:calc(100dvh - 100px);
+  overflow:auto;
+  padding:18px;
+  background:#fff8e8;
+  color:#45230f;
+  box-shadow:0 20px 50px rgba(32,21,13,.28);
+  border:0;
+  border-radius:0;
+}
+.debug-title { margin:0 46px 14px 0; font:800 1.2rem/1 "Baloo 2",sans-serif; }
+.debug-close { position:absolute; top:10px; right:10px; width:36px; height:36px; border:0; border-radius:0; background:#ead8b9; color:#45230f; font-size:1.3rem; cursor:pointer; }
+.debug-row { padding:10px 0; border-bottom:1px solid rgba(69,35,15,.10); }
+.debug-row button { border:0; border-radius:0; background:#e9cf9f; color:#45230f; padding:8px 10px; cursor:pointer; }
+.debug-row button:hover { background:#dfbc7d; }
+
+/* Editing experience */
+.screen.onboarding.is-editing { padding-top:22px; }
+.screen.onboarding.is-editing #onboarding-title { margin-bottom:8px; font-size:1.5rem; }
+.screen.onboarding.is-editing .creator-layout { margin-top:12px; }
+.screen.onboarding.is-editing .creator-stage-wrap {
+  box-shadow:0 24px 55px rgba(24,18,14,.24);
+}
+.screen.onboarding.is-editing .creator-controls {
+  background:linear-gradient(180deg,rgba(20,25,34,0),rgba(16,20,28,.92) 16%,rgba(16,20,28,.97));
+  padding-top:42px;
+}
+.screen.onboarding.is-editing .creator-tab,
+.screen.onboarding.is-editing .creator-subtab {
+  border-radius:0 !important;
+}
+
+@media (max-width:900px) {
+  .app-header { grid-template-columns:auto 1fr auto; gap:8px; }
+  .header-progress { justify-self:end; gap:6px; }
+  .header-level { display:block; width:130px; }
+  .header-edit-btn { width:38px; height:38px; }
+  .minigame-panel { inset:13% 8% 20%; }
+}
+@media (max-width:640px) {
+  .header-progress { justify-self:center; }
+  .currency-pill { display:flex !important; padding:4px 7px; }
+  .header-level { width:105px; }
+  .header-level-row span { display:none; }
+  .stage-actions-row { border-radius:0 !important; }
+  .minigame-panel { inset:19% 4% 19%; }
+  .minigame-topbar { grid-template-columns:1fr auto; }
+  .minigame-meta { grid-column:1 / 2; grid-row:2; }
+  #minigame-close { grid-column:2; grid-row:1 / 3; }
+}
+
+/* v2.9 — stage, creator and global overlays */
+.app-header { grid-template-columns:minmax(150px,1fr) auto minmax(44px,1fr); }
+.header-edit-btn { display:flex; width:auto; gap:7px; padding:8px 10px; white-space:nowrap; font:700 .85rem "Baloo 2",sans-serif; }
+.daily-card { top:18px; }
+.time-card { display:flex; bottom:auto; left:18px; }
+.walker { width:clamp(340px,31vw,440px); bottom:110px; }
+.walker .game-stage { width:100%; height:auto; aspect-ratio:1; cursor:pointer; touch-action:manipulation; }
+.speech-bubble { top:auto; bottom:88%; height:auto; padding:16px 20px 20px; max-width:min(300px,80vw); overflow-wrap:anywhere; }
+.flies,.bath-fx,.zzz-fx,.heart-pop,.pet-shadow { pointer-events:none; }
+.debug-panel { inset:0; width:100%; height:100dvh; max-height:none; z-index:2147483647; padding:24px; margin:0; background:rgba(15,30,48,.72); display:grid; place-items:center; overflow:auto; }
+.debug-window { position:relative; width:min(600px,100%); max-height:calc(100dvh - 48px); overflow:auto; padding:28px; background:#fff8e8; text-align:left; box-shadow:0 20px 60px #101a3255; }
+.debug-open { overflow:hidden; }
+.debug-title { color:#244962; line-height:1.3; }
+.debug-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.debug-row input { flex:1; min-width:80px; accent-color:#d98226; }
+.debug-row button { min-height:44px; }
+.debug-close { background:#244962; color:white; }
+.minigame-panel { z-index:50; inset:12% 16% 18%; }
+.minigame-arena { min-height:140px; }
+.screen.onboarding,.screen.onboarding.is-editing { width:100%; max-width:1600px; padding:20px; margin:auto; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:12px 24px; }
+#brand-emblem { width:100px; height:100px; grid-column:1; grid-row:1 / 3; margin:0; }
+#onboarding-title,.screen.onboarding.is-editing #onboarding-title { text-align:left; font-size:2rem; margin:0; color:#244962; }
+.name-field { width:min(460px,100%); max-width:none; margin:0; grid-column:2; }
+.is-editing #onboarding-title { grid-column:1 / -1; }
+.is-editing .name-field { grid-column:1 / -1; }
+.name-input { background:#fffaf0; border:0; border-bottom:3px solid #d98226; border-radius:0; box-shadow:none; }
+.creator-layout,.screen.onboarding.is-editing .creator-layout { grid-column:1 / -1; width:100%; max-width:none; margin:0; }
+.creator-stage-wrap { height:max(620px,calc(100dvh - 210px)); aspect-ratio:auto; border:0; display:grid; grid-template-columns:minmax(0,1fr) 400px; background:#e1eced url('../assets/backgrounds/cc-scene.svg') center / cover no-repeat; }
+.creator-pet-pos { position:relative; left:auto; top:auto; transform:none; align-self:center; justify-self:center; width:min(480px,90%); }
+.creator-pet-stage { width:100%; aspect-ratio:1; }
+.creator-controls,.screen.onboarding.is-editing .creator-controls { position:relative; inset:auto; height:100%; max-height:none; padding:24px; gap:18px; background:#fff8e8; overflow:auto; }
+.creator-tabs,.creator-subtabs { flex-wrap:wrap; overflow:visible; justify-content:flex-start; }
+.creator-tab,.creator-subtab { border:0; border-radius:0; background:#ece3d1; color:#244962; padding:10px 14px; box-shadow:none; }
+.creator-tab[aria-selected="true"],.creator-subtab[aria-selected="true"] { background:#244962; color:#fff8e8; box-shadow:none; }
+.creator-panel { border:0; border-radius:0; background:#f2e9d7; box-shadow:none; padding:18px; }
+.creator-panel .swatch-row { justify-content:flex-start; gap:14px; }
+.creator-random-btn { right:424px; top:20px; }
+.onboarding .primary-btn,.onboarding .secondary-btn { border:0; border-radius:0; box-shadow:none; background:#244962; color:#fff8e8; min-height:44px; }
+.onboarding .primary-btn { background:#d98226; }
+.swatch,.part-card { border-radius:0; }
+@media(max-width:900px) {
+ .daily-card { top:10px; }
+ .time-card { left:10px; }
+ .walker { width:340px; }
+ .creator-stage-wrap { grid-template-columns:minmax(0,1fr) 330px; }
+ .creator-controls,.screen.onboarding.is-editing .creator-controls { padding:18px; }
+ .creator-random-btn { right:348px; }
+ .brand-name-img { display:none; }
+}
+@media(max-width:640px) {
+ .app-header { grid-template-columns:auto 1fr auto; padding:8px; gap:4px; }
+ .brand-symbol { width:42px; height:auto; }
+ .header-progress { gap:3px; }
+ .header-level { width:66px; }
+ .header-edit-btn { font-size:.73rem; padding:5px; gap:3px; }
+ .header-edit-btn svg { width:16px; }
+ .currency-pill { padding:3px!important; }
+ .currency-icon,.currency-icon svg { width:20px; }
+ .stage-floor { min-height:820px; }
+ .wellbeing-widget { width:calc(55% - 15px); padding:10px; }
+ .hud-card-title-row { padding-left:0; }
+ .wellbeing-hud { display:block; }
+ .wellbeing-avatar { display:none; }
+ .wellbeing-bars { display:flex; flex-direction:column; gap:8px; }
+ .wellbeing-row { grid-template-columns:16px 43px 1fr; gap:3px; }
+ .daily-card { top:10px; width:calc(45% - 15px); min-width:0; padding:10px; }
+ .daily-card-header { gap:4px; }
+ .daily-card-header strong { padding:3px; white-space:nowrap; }
+ .daily-list li { font-size:.7rem; }
+ .daily-reward { display:block; font-size:.65rem; }
+ .walker { width:min(330px,calc(100% - 32px)); bottom:110px; }
+ .time-card { width:calc(55% - 15px); padding:10px; }
+ .minigame-panel { inset:18% 3% 15%; }
+ .screen.onboarding,.screen.onboarding.is-editing { padding:12px; gap:8px 12px; }
+ #brand-emblem { width:64px; height:64px; }
+ #onboarding-title,.screen.onboarding.is-editing #onboarding-title { font-size:1.5rem; }
+ .creator-stage-wrap { height:auto; min-height:780px; display:flex; flex-direction:column; }
+ .creator-pet-pos { width:min(360px,90%); margin:55px auto 10px; flex-shrink:0; }
+ .creator-controls,.screen.onboarding.is-editing .creator-controls { height:auto; flex:1; padding:16px; gap:12px; overflow:visible; }
+ .creator-panel { min-height:120px; overflow:visible; }
+ .creator-random-btn { right:12px; top:12px; }
+ .creator-tab { padding:8px 12px; }
+ .debug-panel { padding:12px; }
+ .debug-window { padding:20px; max-height:calc(100dvh - 24px); }
+}
+.creator-pet-stage { height:auto; }
+/* Reserve vertical room for the enlarged pet and its balloon below the HUD. */
+@media(min-width:641px) { .stage-floor { min-height:890px; } }
+#game-stage { -webkit-tap-highlight-color:transparent; }
+@media(max-width:640px) {
+ .daily-card-header { flex-wrap:wrap; }
+ .daily-card-header h3 { font-size:1.05rem; }
+ .daily-card-header strong { font-size:.65rem; }
+}
+/* v3.0 — configuration submenu, inventory and game selection */
+.app-header { z-index:100; }
+.options-menu { width:min(480px,calc(100vw - 24px)); max-height:calc(100dvh - 90px); overflow:auto; border-radius:0; }
+#opt-debug { display:flex; justify-content:space-between; }
+#opt-debug::after { content:'▸'; }
+#opt-debug[aria-expanded="true"]::after { content:'▾'; }
+#debug-panel { position:static; display:block; width:100%; height:auto; max-height:none; padding:0; margin:0; background:#f1e6d0; overflow:visible; box-shadow:none; }
+.debug-window { width:100%; max-height:none; padding:18px 14px; background:transparent; box-shadow:none; overflow:visible; }
+.debug-title { margin-top:0; font-size:1rem; }
+.debug-row { gap:7px; font-size:.8rem; }
+.debug-row button { padding:7px; }
+#game-stage[aria-disabled="true"] { cursor:default; }
+.game-selector { position:absolute; inset:8% 12% 17%; z-index:55; background:#fff8e8; color:#244962; padding:26px; overflow:auto; box-shadow:0 20px 50px #101a3266; }
+.selector-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.selector-heading h2 { margin:4px 0 20px; }
+#game-selector-close { align-self:flex-start; border:0; background:#244962; color:#fff8e8; width:40px; height:40px; font-size:1.5rem; cursor:pointer; }
+#game-choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.game-choice { display:flex; flex-direction:column; gap:10px; padding:18px; background:#eee4d2; cursor:pointer; }
+.game-choice:has(input:checked) { background:#244962; color:#fff8e8; box-shadow:inset 0 -4px #d98226; }
+.game-choice input { accent-color:#d98226; align-self:flex-start; }
+.game-choice-icon { font-size:2rem; }
+.game-choice small { line-height:1.5; }
+#game-play { width:100%; border:0; border-radius:0; background:#d98226; box-shadow:none; min-height:48px; }
+#game-selector-note { min-height:24px; }
+.minigame-arena[data-game="pesca"] { background:repeating-radial-gradient(ellipse at 50% 60%,#326983 0 30px,#397c96 32px 34px,#326983 37px 65px); }
+.minigame-target[data-game="pesca"] { left:50%!important; top:50%!important; transform:translate(-50%,-50%); width:200px; height:90px; border-radius:0; font-size:1.25rem; background:#fff8e8; color:#244962; animation:none; }
+.minigame-target[data-phase="bite"] { background:#f7b143; box-shadow:0 0 35px #ffdc7b; }
+#food-stock { color:#244962; font-weight:700; }
+@media(max-width:700px) {
+ .game-selector { inset:10% 3% 15%; padding:16px; }
+ #game-choices { grid-template-columns:1fr; gap:8px; }
+ .game-choice { display:grid; grid-template-columns:18px 35px 1fr; padding:12px; gap:6px; align-items:center; }
+ .game-choice small { grid-column:2 / -1; font-size:.7rem; }
+ .game-choice-icon { font-size:1.4rem; }
+ .selector-heading h2 { font-size:1.25rem; }
+ .options-menu { right:6px; max-height:calc(100dvh - 76px); }
+}
+@media(max-width:380px) {
+ .app-header { grid-template-columns:minmax(0,1fr) auto; }
+ .app-header .brand { display:none; }
+ .header-progress { justify-self:start; min-width:0; }
+ .header-level { width:55px; }
+}
+/* v3.1 — games, fishing, inventory and notifications */
+.game-selector { display:flex; flex-direction:column; gap:16px; inset:8% 10% 16%; }
+.selector-heading h2 { margin:0; font-size:1.7rem; }
+.selector-heading .hud-eyebrow { display:none; }
+#game-choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; flex:1; min-height:340px; }
+.game-choice { position:relative; display:flex; flex-direction:column; padding:0; overflow:hidden; min-height:340px; background:#dcebef; color:#244962; cursor:default; }
+.game-art { flex:1; display:grid; place-items:center; min-height:210px; background:linear-gradient(160deg,#dcebef,#acd3df); }
+.game-art img { width:70%; max-width:190px; }
+.game-art span { font-size:7rem; color:#d98226; }
+.game-title { flex:none; position:relative; z-index:2; width:100%; min-height:62px; padding:16px 10px; border:0; background:#244962; color:#fff8e8; font:700 1rem inherit; cursor:pointer; }
+.game-details { position:absolute; z-index:1; inset:auto 0 62px; padding:20px; background:#fff8e8; transform:translateY(110%); opacity:0; visibility:hidden; transition:transform .24s ease,opacity .24s ease,visibility .24s; }
+.game-choice:has(.game-title:hover) .game-details,.game-choice:has(.game-details:hover) .game-details,.game-choice:focus-within .game-details,.game-choice.is-open .game-details { transform:translateY(0); opacity:1; visibility:visible; }
+.game-details p { font-size:.86rem; line-height:1.5; margin:0 0 16px; }
+.card-play { width:100%; padding:13px; background:#d98226; color:#fff8e8; font-weight:700; border:0; cursor:pointer; }
+#game-selector-close { align-self:center; width:min(240px,100%); height:46px; font-size:1rem; flex-shrink:0; }
+#game-selector-note { margin:0; min-height:0; }
+.fishing-scene { display:none; position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+[data-game="pesca"]>.fishing-scene { display:block; }
+.fishing-line { position:absolute; width:2px; height:45%; left:50%; top:0; background:#f4eed2; transform-origin:top; animation:line-sway 3s ease-in-out infinite; }
+.fishing-float { position:absolute; left:calc(50% - 12px); top:42%; width:24px; height:36px; border-radius:50%; background:linear-gradient(#fff8e8 50%,#df7433 50%); box-shadow:0 5px 8px #163d5966; animation:float-bob 1.8s ease-in-out infinite; }
+.water-ring { position:absolute; left:50%; top:48%; width:60px; height:18px; border:2px solid #c0f0ff; border-radius:50%; animation:ripple-out 2.5s linear infinite; }
+.ring-two { animation-delay:1.25s; }
+.swimming-fish { position:absolute; width:75px; top:63%; opacity:.3; animation:fish-swim 8s ease-in-out infinite; }
+[data-phase="bite"] .fishing-float { animation:float-bob .15s infinite alternate; }
+[data-phase="bite"] .water-ring { animation-duration:.5s; border-color:#ffdc7b; }
+.caught-fish { position:absolute; left:calc(50% - 45px); top:45%; width:90px; pointer-events:none; animation:fish-catch 1s ease-out forwards; }
+.minigame-target[data-game="pesca"] { top:82%!important; height:64px; }
+@keyframes float-bob { 50% { transform:translateY(9px) rotate(10deg); } }
+@keyframes line-sway { 50% { transform:rotate(2deg); } }
+@keyframes ripple-out { from { transform:translate(-50%,-50%) scale(.3);opacity:.8; } to { transform:translate(-50%,-50%) scale(3);opacity:0; } }
+@keyframes fish-swim { 0% { left:-90px;transform:scaleX(-1); } 49% { left:90%;transform:scaleX(-1); } 50% { left:90%;transform:scaleX(1); } 100% { left:-90px;transform:scaleX(1); } }
+@keyframes fish-catch { 0% { transform:translateY(0) rotate(0);opacity:1; } 70% { transform:translateY(-140px) rotate(-30deg);opacity:1; } 100% { transform:translateY(-170px) rotate(-40deg);opacity:0; } }
+.debug-window { display:flex; flex-direction:column; }
+.debug-save-actions { order:99; display:flex; gap:8px; position:sticky; bottom:0; background:#fff8e8; padding:12px 0; }
+.debug-save-actions button { flex:1; border:0; padding:12px; cursor:pointer; }
+#debug-save { background:#244962; color:white; }
+.debug-help { margin:6px 0 12px; font-size:.8rem; line-height:1.4; }
+.feed-menu { max-height:300px; width:min(360px,calc(100% - 24px)); border:0; border-radius:0; padding:14px; }
+.feed-item { display:flex; align-items:center; gap:16px; padding:8px; }
+.feed-item-icon img { width:90px; height:65px; }
+.feed-item-desc { display:none; }
+#fish-quantity { display:block; font-size:1.7rem; color:#244962; }
+.notification-card { position:absolute; left:18px; width:250px; z-index:10; background:#fff8e8; color:#244962; padding:10px 12px; box-shadow:0 5px 16px #14253a20; max-height:160px; overflow:auto; }
+.notification-card ul { padding:0; margin:0; list-style:none; }
+.notification-card li { font-size:.78rem; line-height:1.4; padding:5px 0; }
+.notification-card li+li { border-top:1px solid #ddcfb3; }
+/* v3.2, pedido explícito: separar en 3 ventanas lo que antes vivía todo
+   junto en .notification-card (ver renderNotifications en js/app.js) —
+   estas dos reusan la misma base visual, sólo cambia lo que va adentro. */
+.notification-card p { margin:0; font-size:.78rem; line-height:1.4; }
+/* "Durmiendo": estática (sin botón de cerrar), tinte propio para
+   distinguirla de un aviso puntual. */
+.sleep-notice-card { background:#eef1f6; color:#2c3a4f; font-weight:700; }
+/* Avisos del sistema: con botón de cerrar propio, arriba a la derecha. */
+.system-notice-card { padding-right:34px; }
+.notice-close-btn {
+  position:absolute; top:6px; right:6px;
+  width:24px; height:24px;
+  display:grid; place-items:center;
+  border:0; border-radius:0; background:transparent;
+  color:#244962; font-size:1.1rem; line-height:1; cursor:pointer;
+}
+.notice-close-btn:hover, .notice-close-btn:focus-visible { background:#e4d9bf; }
+.dirt-layer { z-index:6; }
+.dirt-item { width:46px; height:44px; background:transparent; border-radius:0; box-shadow:none; }
+.dirt-item img { width:100%; height:100%; pointer-events:none; }
+.game-stage.is-pooping { animation:poop-squat .7s ease-in-out; }
+@keyframes poop-squat { 50% { transform:scaleY(.88); } }
+@media(max-width:900px) { .notification-card { left:10px; } }
+@media(max-width:700px) {
+ .game-selector { inset:5% 3% 15%; padding:16px; }
+ #game-choices { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; min-height:340px; flex:1; }
+ .game-choice { flex:0 0 85%; scroll-snap-align:center; min-height:340px; }
+ .game-art { min-height:230px; }
+ .game-details { grid-column:auto; }
+ .game-details p { font-size:.85rem; }
+ .game-title { font-size:1rem; }
+ .game-choice-icon { font-size:6rem; }
+}
+@media(max-width:640px) { .notification-card { width:calc(55% - 15px); max-height:125px; padding:8px; } }
+@media(prefers-reduced-motion:reduce) { .fishing-scene *,.caught-fish,.game-stage.is-pooping { animation:none!important; } .game-details { transition:none; } }
+.feed-menu { flex-direction:column; align-items:stretch; flex-wrap:nowrap; background:#fff8e8; }
+.feed-item { flex-direction:row; width:100%; border:0; border-radius:0; background:#efe3ca; justify-content:center; }
+.feed-item-icon { width:auto; height:auto; }
+.game-title { font-family:inherit; font-size:1rem; font-weight:700; }
