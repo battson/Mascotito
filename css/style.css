@@ -2233,7 +2233,13 @@ body {
 .stage-floor {
   width: 100%;
   height: calc(100dvh - 110px);
-  min-height: 620px;
+  /* v3.6.3 (pedido explícito): "responsive desktop, que el alto/ancho no
+     exceda lo que entra en el browser" — antes 620px era un piso fijo
+     que, en ventanas bajas, terminaba empujando a #stage-floor por
+     encima del viewport (scroll de página entera). Con min() el piso
+     cede solo en ventanas realmente bajas (deja algo de margen para
+     header/padding), en vez de pelear contra el 100dvh de arriba. */
+  min-height: min(620px, calc(100dvh - 150px));
   max-height: 920px;
   aspect-ratio: auto;
   margin: 0;
@@ -2866,8 +2872,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
  .debug-window { padding:20px; max-height:calc(100dvh - 24px); }
 }
 .creator-pet-stage { height:auto; }
-/* Reserve vertical room for the enlarged pet and its balloon below the HUD. */
-@media(min-width:641px) { .stage-floor { min-height:890px; } }
 #game-stage { -webkit-tap-highlight-color:transparent; }
 @media(max-width:640px) {
  .daily-card-header { flex-wrap:wrap; }

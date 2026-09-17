@@ -8,7 +8,7 @@
  * falta cambiar este string, todo lo demás (título, badge, pie de
  * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
  */
-const APP_VERSION = "3.6.2";
+const APP_VERSION = "3.6.3";
 
 /**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
