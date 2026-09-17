@@ -51,6 +51,8 @@ const el = {
   creatorTabs: document.getElementById("creator-tabs"),
   creatorSubtabs: document.getElementById("creator-subtabs"),
   creatorSwatchRow: document.getElementById("creator-swatch-row"),
+  creatorPanel: document.getElementById("creator-panel"),
+  creatorPartIcons: document.getElementById("creator-part-icons"),
   previewStage: document.getElementById("preview-stage"),
   gameStage: document.getElementById("game-stage"),
   stageFloor: document.getElementById("stage-floor"),
@@ -187,6 +189,14 @@ function getEyeColorHex(ojosColorValue) {
   return (opt && opt.swatch) || PET_EYE_COLORS[0].swatch;
 }
 
+// v3.6 (pedido explícito): filtro de imagen para ojos-5/ojos-6 (ver el
+// comentario largo junto a PET_EYE_COLORS en js/manifest.js) — se aplica
+// sobre .ojo-tintable vía --eye-tint-filter, en paralelo a --eye-color.
+function getEyeTintFilter(ojosColorValue) {
+  const opt = PET_EYE_COLORS.find((o) => o.id === ojosColorValue);
+  return (opt && opt.tint) || "none";
+}
+
 function announce(message) {
   if (el.liveStatus) el.liveStatus.textContent = message;
 }
@@ -290,6 +300,7 @@ function renderPetLayers(stageEl, look) {
   const lookKey = JSON.stringify(look);
   stageEl.style.setProperty("--pet-body-color", getBodyColorHex(look.bodyColor));
   stageEl.style.setProperty("--eye-color", getEyeColorHex(look.ojosColor));
+  stageEl.style.setProperty("--eye-tint-filter", getEyeTintFilter(look.ojosColor));
   if (stageEl.dataset.lookKey === lookKey) return;
   stageEl.dataset.lookKey = lookKey;
 
@@ -882,12 +893,13 @@ function buildOjosSubtabs() {
 
 /** Fila de swatches de la pestaña activa. Para "ojos" depende además de la
  * sub-pestaña (forma numerada vs. color de iris, ver buildOjosSubtabs).
- * v3.5: pedido explícito — "cambiar selector de opciones de partes por un
- * slider (menos los de color, mantenerlos)". Los colores (bodyColor y la
- * sub-pestaña "Color" de ojos) siguen siendo la fila de swatches de
- * siempre; todo lo demás (cabeza/orejas/ojos-forma/narices/boca/cejas,
- * las opciones "numeradas") pasa a un slider con flechas ‹ › en vez de
- * mostrar las N opciones todas juntas. */
+ * v3.6: pedido explícito — el slider de v3.5 se saca del todo. Los colores
+ * (bodyColor y la sub-pestaña "Color" de ojos) siguen siendo la fila de
+ * swatches de siempre, en el panel lateral (#creator-swatch-row); todo lo
+ * demás (cabeza/orejas/ojos-forma/narices/boca/cejas, las opciones
+ * "numeradas") pasa a un rectángulo horizontal DENTRO de la escena, abajo
+ * de la mascota (#creator-part-icons, ver renderCreatorPartIcons), con
+ * una miniatura SVG real de cada opción en vez de un número. */
 function renderCreatorSwatchRow() {
   if (!el.creatorSwatchRow) return;
   el.creatorSwatchRow.innerHTML = "";
@@ -898,12 +910,14 @@ function renderCreatorSwatchRow() {
   const options = showingEyeColor ? PET_EYE_COLORS : PET_PARTS_MANIFEST[activeCreatorTab];
   const isNumbered = !showingEyeColor && activeCreatorTab !== "bodyColor";
 
-  el.creatorSwatchRow.classList.toggle("is-slider", isNumbered);
+  if (el.creatorPanel) el.creatorPanel.hidden = isNumbered;
+  if (el.creatorPartIcons) el.creatorPartIcons.hidden = !isNumbered;
 
   if (isNumbered) {
-    renderCreatorPartSlider(category, label, options);
+    renderCreatorPartIcons(category, label, options);
     return;
   }
+  if (el.creatorPartIcons) el.creatorPartIcons.innerHTML = "";
 
   // v3.4: pedido explícito — colores nuevos en bodyColor marcados con
   // `locked: true` ("próximamente se pueden comprar"). Sólo aparecen al
@@ -943,57 +957,127 @@ function renderCreatorSwatchRow() {
   });
 }
 
-/** Slider ‹ N › para las categorías "numeradas" (todo menos los colores) —
- * ver comentario de renderCreatorSwatchRow. Circular: desde la última
- * opción, "siguiente" vuelve a la primera (y viceversa desde la primera
- * con "anterior"), así las flechas nunca quedan deshabilitadas. */
-function renderCreatorPartSlider(category, label, options) {
-  const currentIndex = Math.max(0, options.findIndex((o) => o.id === selectedLook[category]));
-  const current = options[currentIndex] || options[0];
+/* v3.6 (pedido explícito): recorte de encuadre para la miniatura de cada
+ * categoría "numerada". "ojos"/"orejas"/"cejas" recortan sólo el lado
+ * derecho (pedido explícito: "si es un ojo usar sólo un ojo derecho, lo
+ * mismo con las orejas y las cejas") apuntando el viewBox al grupo
+ * "*-der" únicamente — como el lado izquierdo queda fuera del recorte, ni
+ * hace falta sacarlo del dibujo, alcanza con no mostrarlo.
+ *
+ * El recorte de cada opción se calcula EN VIVO (getBBox) en vez de tener
+ * coordenadas fijas a mano: las orejas en particular varían muchísimo de
+ * tamaño entre diseños (una oreja corta y una larga y caída no entran
+ * cómodas en un mismo recorte fijo sin que la corta quede minúscula), así
+ * que cada miniatura usa el encuadre más ajustado a SU propio dibujo, no
+ * uno compartido por categoría — ver iconViewBoxFor().
+ *
+ * "narices" es la única categoría con arte en archivo aparte (<img>, no
+ * inline) — no se puede medir/recortar igual, así que usa un rectángulo
+ * fijo (medido a mano una vez sobre los 10 diseños existentes) aplicado
+ * por transform en vez de viewBox (ver renderNaricesIcon). */
+const ICON_RIGHT_SIDE_ID = { ojos: "ojo-der", orejas: "oreja-der", cejas: "ceja-der" };
+const NARICES_ICON_CROP = { x: 180, y: 160, w: 40, h: 35 };
 
-  const wrap = document.createElement("div");
-  wrap.className = "part-slider";
+/** Mide (getBBox) la parte que va a mostrar la miniatura — sólo el grupo
+ * "*-der" para ojos/orejas/cejas (ver ICON_RIGHT_SIDE_ID), el dibujo
+ * entero para cabeza/boca — y devuelve un viewBox ajustado a ese tamaño
+ * más un margen, para que cada opción se vea lo más grande y legible
+ * posible dentro de su tile sin quedar cortada. */
+function iconViewBoxFor(category, inlineMarkup) {
+  const probe = document.createElementNS(SVG_NS, "svg");
+  probe.setAttribute("viewBox", "0 0 400 400");
+  probe.style.position = "absolute";
+  probe.style.left = "-9999px";
+  probe.style.width = "400px";
+  probe.style.height = "400px";
+  probe.innerHTML = inlineMarkup;
+  document.body.appendChild(probe);
+  const rightId = ICON_RIGHT_SIDE_ID[category];
+  const target = (rightId && probe.querySelector("#" + rightId)) || probe;
+  const bbox = target.getBBox();
+  document.body.removeChild(probe);
+  if (!bbox.width || !bbox.height) return "0 0 400 400";
+  const padX = bbox.width * 0.16 + 3;
+  const padY = bbox.height * 0.16 + 3;
+  return `${bbox.x - padX} ${bbox.y - padY} ${bbox.width + padX * 2} ${bbox.height + padY * 2}`;
+}
 
-  const goTo = (index) => {
-    const opt = options[index];
-    selectedLook[category] = opt.id;
-    renderPetLayers(el.previewStage, selectedLook);
-    renderCreatorSwatchRow();
-    announce(`${label}: ${opt.label}`);
-  };
+/** Miniatura de una opción de "narices" (arte en <img>, no inline como el
+ * resto) — ver comentario de CREATOR_ICON_CROPS. Como no se puede recortar
+ * un <img> con viewBox, se lo agranda y se lo desplaza con transform
+ * (mismo resultado que un viewBox recortado, pero en porcentaje del
+ * tamaño del tile así queda bien en cualquier tamaño de pantalla) dentro
+ * de un contenedor con overflow:hidden. */
+function renderNaricesIcon(fileUrl, altText) {
+  const crop = NARICES_ICON_CROP;
+  const limiting = Math.max(crop.w, crop.h);
+  const sizePct = (400 / limiting) * 100;
+  const xPct = -(crop.x / limiting) * 100;
+  const displayedHPct = (crop.h / limiting) * 100;
+  const displayedWPct = (crop.w / limiting) * 100;
+  const yPct = -(crop.y / limiting) * 100 + Math.max(0, (100 - displayedHPct) / 2);
+  const xOffsetPct = Math.max(0, (100 - displayedWPct) / 2);
+  const holder = document.createElement("span");
+  holder.className = "creator-icon-crop";
+  const img = document.createElement("img");
+  img.src = fileUrl;
+  img.alt = altText;
+  img.style.width = sizePct + "%";
+  img.style.height = sizePct + "%";
+  img.style.left = xPct + xOffsetPct + "%";
+  img.style.top = yPct + "%";
+  holder.appendChild(img);
+  return holder;
+}
 
-  const prevBtn = document.createElement("button");
-  prevBtn.type = "button";
-  prevBtn.className = "part-slider-arrow part-slider-prev";
-  prevBtn.setAttribute("aria-label", `${label}: opción anterior`);
-  prevBtn.innerHTML = "‹";
-  prevBtn.addEventListener("click", () => {
-    goTo((currentIndex - 1 + options.length) % options.length);
+/** Rectángulo horizontal DENTRO de la escena (pedido explícito, ver
+ * comentario de renderCreatorSwatchRow) para las categorías "numeradas".
+ * Reemplaza al slider ‹ › de v3.5: ahora se ven varias opciones a la vez,
+ * cada una con una miniatura SVG real de esa parte (no un número) — para
+ * ojos/orejas/cejas, sólo el lado derecho (ver ICON_RIGHT_SIDE_ID), y
+ * todas pintadas con el color por defecto (el de la primera opción de
+ * color: bodyColor[0] para cabeza/orejas, PET_EYE_COLORS[0] para ojos —
+ * narices/boca/cejas no tienen color propio, se muestran tal cual). */
+function renderCreatorPartIcons(category, label, options) {
+  if (!el.creatorPartIcons) return;
+  el.creatorPartIcons.innerHTML = "";
+  el.creatorPartIcons.setAttribute("aria-label", label);
+
+  const defaultBodyColor = PET_PARTS_MANIFEST.bodyColor[0].swatch;
+  const defaultEyeColor = PET_EYE_COLORS[0].swatch;
+  const defaultEyeTint = PET_EYE_COLORS[0].tint || "none";
+
+  options.forEach((opt) => {
+    const selected = selectedLook[category] === opt.id;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "creator-icon-tile";
+    btn.classList.toggle("selected", selected);
+    btn.title = opt.label;
+    btn.setAttribute("aria-label", `${label}: ${opt.label}`);
+    btn.setAttribute("aria-pressed", selected ? "true" : "false");
+
+    if (category === "narices" && opt.file) {
+      btn.appendChild(renderNaricesIcon(opt.file, label));
+    } else if (opt.inline) {
+      const svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("viewBox", iconViewBoxFor(category, opt.inline));
+      svg.classList.add("creator-icon-svg");
+      svg.style.setProperty("--pet-body-color", defaultBodyColor);
+      svg.style.setProperty("--eye-color", defaultEyeColor);
+      svg.style.setProperty("--eye-tint-filter", defaultEyeTint);
+      svg.innerHTML = opt.inline;
+      btn.appendChild(svg);
+    }
+
+    btn.addEventListener("click", () => {
+      selectedLook[category] = opt.id;
+      renderPetLayers(el.previewStage, selectedLook);
+      renderCreatorPartIcons(category, label, options);
+      announce(`${label}: ${opt.label}`);
+    });
+    el.creatorPartIcons.appendChild(btn);
   });
-
-  const currentTile = document.createElement("span");
-  currentTile.className = "swatch swatch-number selected part-slider-current";
-  currentTile.textContent = current.label;
-  currentTile.setAttribute("aria-live", "polite");
-
-  const count = document.createElement("span");
-  count.className = "part-slider-count";
-  count.textContent = `${currentIndex + 1} / ${options.length}`;
-
-  const nextBtn = document.createElement("button");
-  nextBtn.type = "button";
-  nextBtn.className = "part-slider-arrow part-slider-next";
-  nextBtn.setAttribute("aria-label", `${label}: opción siguiente`);
-  nextBtn.innerHTML = "›";
-  nextBtn.addEventListener("click", () => {
-    goTo((currentIndex + 1) % options.length);
-  });
-
-  wrap.appendChild(prevBtn);
-  wrap.appendChild(currentTile);
-  wrap.appendChild(nextBtn);
-  el.creatorSwatchRow.appendChild(wrap);
-  el.creatorSwatchRow.appendChild(count);
 }
 
 function renderCreatorPanel() {
@@ -2050,17 +2134,13 @@ let minigame = null;
 let minigameInterval = null;
 let minigameSpawnTimer = null;
 
+// v3.6, pedido explícito: "quitar juego de pelota traviesa" — se saca su
+// entrada de este array (de acá sale sola la tarjeta del selector, ver
+// setupGameSelector() más abajo, que arma #game-choices recorriendo
+// MINIGAMES). Pesca y Luciérnagas quedan sin cambios; son genéricas
+// (parametrizadas por game.id) así que no dependían de la de Pelota.
 const MINIGAMES = [
   { id: "pesca", title: "Pesca", instructions: "Esperá a que pique y tocá ¡Tirar! Cada captura suma un pescado al terminar. Hasta 3 por partida.", symbol: "🎣", duration: 20, goal: 3, targetLife: 0 },
-  {
-    id: "pelota",
-    title: "Pelota traviesa",
-    instructions: "Atrapá la pelota 6 veces antes de que termine el tiempo.",
-    symbol: "●",
-    duration: 15,
-    goal: 6,
-    targetLife: 0,
-  },
   {
     id: "luciernagas",
     title: "Caza de luciérnagas",
@@ -2601,10 +2681,22 @@ function setupDeleteAccountUI() {
 function updateFooterText() {
   if (!el.footerText) return;
   if (window.Cloud && window.Cloud.enabled && currentUsername) {
-    el.footerText.textContent = `Hecho por Jony · Mascotito Alpha v3.3 · sesión: ${currentDisplayName} · guardado en la nube y en este navegador`;
+    el.footerText.textContent = `Hecho por Jony · Mascotito Alpha v${APP_VERSION} · sesión: ${currentDisplayName} · guardado en la nube y en este navegador`;
   } else {
-    el.footerText.textContent = "Hecho por Jony · Mascotito Alpha v3.3 · guardado localmente en este navegador";
+    el.footerText.textContent = `Hecho por Jony · Mascotito Alpha v${APP_VERSION} · guardado localmente en este navegador`;
   }
+}
+
+/** v3.6: pinta el número de versión (APP_CONFIG.js → APP_VERSION, fuente
+ * única) en el título de la pestaña y en el badge del encabezado — el HTML
+ * trae un valor "de arranque" hardcodeado (por si este script tarda en
+ * correr), pero esta función lo deja siempre sincronizado con la
+ * constante real, así alcanza con cambiar APP_VERSION en config.js para
+ * la próxima versión sin tener que buscar cada lugar donde se mostraba. */
+function applyAppVersion() {
+  document.title = `Mascotito — Alpha v${APP_VERSION}`;
+  const badge = document.getElementById("app-version-badge");
+  if (badge) badge.textContent = `Alpha v${APP_VERSION}`;
 }
 
 function setupOptionsMenu() {
@@ -2841,15 +2933,28 @@ function syncHudLayout() {
   // en 0) las notificaciones terminaban pegadas contra "Estado" en vez de
   // debajo — este es justamente el bug que se pidió arreglar.
   const notif=document.getElementById("notification-card");
-  notif.style.top=(hud.offsetTop+hud.offsetHeight+12)+"px";
-  // v3.2: #sleep-notice-card y #system-notice-card se encadenan debajo de
-  // las alertas de bienestar, en ese orden — cuando alguna está hidden
-  // (display:none) su offsetHeight da 0 y la siguiente sube sola a
-  // ocupar su lugar, sin dejar huecos.
   const sleepCard=document.getElementById("sleep-notice-card");
-  sleepCard.style.top=(notif.offsetTop+notif.offsetHeight+12)+"px";
   const sysCard=document.getElementById("system-notice-card");
-  sysCard.style.top=(sleepCard.offsetTop+sleepCard.offsetHeight+12)+"px";
+  // v3.6 — fix real del reporte "las notificaciones se siguen
+  // superponiendo en el cuadro de estado": el encadenado usaba
+  // notif.offsetTop/sleepCard.offsetTop (la posición YA aplicada de la
+  // tarjeta anterior) para ubicar a la siguiente. Eso funciona si esa
+  // tarjeta anterior está VISIBLE, pero un elemento con `hidden`
+  // (display:none) no tiene caja — su offsetTop vuelve a 0 (no "donde
+  // estaba"), no sólo su offsetHeight. Entonces, cada vez que
+  // #notification-card estaba oculta (sin alertas de bienestar activas)
+  // pero #sleep-notice-card o #system-notice-card sí tenían algo para
+  // mostrar, esa siguiente tarjeta se pegaba contra top:12px — adentro
+  // del propio #wellbeing-widget — en vez de debajo. Ahora se lleva un
+  // cursor propio en JS (nextTop) que sólo avanza con la altura real de
+  // una tarjeta cuando esa tarjeta está VISIBLE, sin depender de leer la
+  // posición de vuelta desde una caja que puede no existir.
+  let nextTop = hud.offsetTop + hud.offsetHeight + 12;
+  notif.style.top = nextTop + "px";
+  if (!notif.hidden) nextTop += notif.offsetHeight + 12;
+  sleepCard.style.top = nextTop + "px";
+  if (!sleepCard.hidden) nextTop += sleepCard.offsetHeight + 12;
+  sysCard.style.top = nextTop + "px";
   const dock=document.getElementById("stage-actions-row");
   el.feedMenu.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+12)+"px";
   computeWalkBounds();
@@ -2866,6 +2971,7 @@ document.addEventListener("keydown", ev => {
 // ---------- Arranque ----------
 
 (function init() {
+  applyAppVersion();
   // Iconos estáticos que no cambian durante la sesión.
   // v3.5: el botón "Salir al jardín" (#btn-nav, antes con el ícono de
   // puerta acá) se sacó del todo — ya no hay nada que inicializar acá.

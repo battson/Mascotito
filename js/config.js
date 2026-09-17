@@ -1,4 +1,16 @@
 /**
+ * v3.6 (pedido explícito): "esta versión sería la v3.6... cambiar eso en
+ * los códigos ya que sigue marcando v3.3 (tener en cuenta para versiones
+ * futuras también)". Antes el número de versión estaba escrito a mano en
+ * varios lugares (título de la pestaña, el badge del encabezado y el pie
+ * de página) y ninguno se había actualizado desde v3.3 — de ahí el bug.
+ * Ahora es UNA sola constante acá: para la próxima versión sólo hace
+ * falta cambiar este string, todo lo demás (título, badge, pie de
+ * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
+ */
+const APP_VERSION = "3.6";
+
+/**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
  * balancear la Fase 2 (Cuidado — ALPHA v2 · Tamagotchi) vive acá: cuánto
  * baja cada necesidad, cuánto suma cada acción, ventanas de tiempo,

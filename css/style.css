@@ -848,17 +848,40 @@ body {
    necesitar un SVG por color — sólo la capa base de cabeza/orejas
    (class="cabeza-base"/"oreja-base") toma este color; el contorno/
    sombreado y el interior rosado de las orejas quedan fijos. */
-.pet-stage .brazo path { fill: var(--pet-body-color, #6cb9dd); }
-.pet-stage .pierna path { fill: var(--pet-body-color, #6cb9dd); }
-.pet-stage .cabeza-base { fill: var(--pet-body-color, #6cb9dd); }
-.pet-stage .oreja-base { fill: var(--pet-body-color, #6cb9dd); }
-.pet-stage .cuerpo-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .brazo path, .creator-icon-svg .brazo path { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .pierna path, .creator-icon-svg .pierna path { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .cabeza-base, .creator-icon-svg .cabeza-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .oreja-base, .creator-icon-svg .oreja-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .cuerpo-base, .creator-icon-svg .cuerpo-base { fill: var(--pet-body-color, #6cb9dd); }
 
 /* Color de ojos (pedido explícito) — mismo mecanismo que el color de
-   cuerpo de arriba, pero sólo en las opciones de ojos con pupila propia. */
-.pet-stage .iris-main { fill: var(--eye-color, #4c4c4c); }
-.pet-stage .iris-shadow { fill: color-mix(in srgb, var(--eye-color, #4c4c4c) 70%, black); }
-.pet-stage .iris-highlight { stroke: color-mix(in srgb, var(--eye-color, #4c4c4c) 55%, white); }
+   cuerpo de arriba, pero sólo en las opciones de ojos con pupila propia.
+   v3.6: también se aplica dentro de .creator-icon-svg (miniaturas del
+   selector de partes en la escena del creador, ver renderCreatorPartIcons
+   en js/app.js), que no está anidado dentro de un .pet-stage real. */
+.pet-stage .iris-main, .creator-icon-svg .iris-main { fill: var(--eye-color, #4c4c4c); }
+.pet-stage .iris-shadow, .creator-icon-svg .iris-shadow { fill: color-mix(in srgb, var(--eye-color, #4c4c4c) 70%, black); }
+.pet-stage .iris-highlight, .creator-icon-svg .iris-highlight { stroke: color-mix(in srgb, var(--eye-color, #4c4c4c) 55%, white); }
+/* v3.6 (pedido explícito): "arreglar color de ojos: 4 (mantiene un marrón
+ * claro que debería cambiar por el color seleccionado pero un poco más
+ * claro)". Ese resalto de ojos-4 (antes fill fijo #ba8b58) era la ÚNICA
+ * forma de la pupila sin clase de recoloreo — se le agrega esta, con la
+ * MISMA mezcla que .iris-highlight de arriba (55% color + 45% blanco:
+ * "un poco más claro" que el color principal), sólo que como fill en vez
+ * de stroke porque acá es una forma rellena, no un trazo. */
+.pet-stage .iris-highlight-fill, .creator-icon-svg .iris-highlight-fill { fill: color-mix(in srgb, var(--eye-color, #4c4c4c) 55%, white); }
+/* v3.6 (pedido explícito): ojos-5 y ojos-6 son ilustraciones multi-tono
+ * (no un iris simple de 2-3 colores) dibujadas enteramente en tonos de
+ * violeta — pasan a responder al selector de color aplicando un filtro
+ * de imagen (hue-rotate + saturate + brightness) sobre todo el grupo del
+ * ojo, calculado en JS (ver getEyeTintFilter en js/app.js) a partir de la
+ * relación entre el violeta original del dibujo y el color elegido. Esto
+ * preserva la MISMA estructura de tonos claros/oscuros que ya tiene el
+ * dibujo en violeta (pedido explícito: "tener en cuenta los tonos del
+ * violeta para definir los tonos claros y oscuros de los otros colores")
+ * en vez de recolorear path por path. Con violeta elegido el filtro queda
+ * en "none" (el dibujo ya está en violeta, no hace falta tocarlo). */
+.pet-stage .ojo-tintable, .creator-icon-svg .ojo-tintable { filter: var(--eye-tint-filter, none); }
 
 /* La cabeza (y todo lo que va montado sobre ella: orejas, cejas, ojos,
    nariz, boca) se escala como grupo para que quede grande respecto al
@@ -1191,6 +1214,51 @@ body {
   align-items: center;
   gap: 6px;
 }
+/* v3.6 (pedido explícito): "los selectores estén ubicados en un
+ * rectángulo horizontal DENTRO de la escena donde está la mascota... en
+ * la parte de abajo" — mismo lenguaje visual que .stage-actions-row en el
+ * juego (degradé oscuro + scroll horizontal si no entran todas las
+ * opciones). Ancla a #creator-stage-wrap (position:relative de siempre,
+ * ver arriba) en vez de a .creator-controls, así queda DENTRO de la
+ * escena y no del panel lateral — el "right" se ajusta por breakpoint
+ * para no meterse debajo del panel lateral, igual que ya hace
+ * .creator-random-btn más arriba (ver sus mismos anchos de panel en los
+ * media queries de más abajo). */
+.creator-part-icons {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  justify-content: safe center;
+  gap: 8px;
+  padding: 10px 8px;
+  background: linear-gradient(to top, rgba(69, 35, 15, 0.55) 0%, rgba(69, 35, 15, 0.16) 70%, transparent 100%);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.creator-icon-tile {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  padding: 4px;
+  background: #fff8e8;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 6px rgba(35, 25, 18, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.creator-icon-tile.selected { border-color: #d98226; background: #ffedcf; }
+.creator-icon-svg, .creator-icon-crop { width: 100%; height: 100%; }
+.creator-icon-crop { position: relative; overflow: hidden; display: block; }
+.creator-icon-crop img { position: absolute; max-width: none; }
 /* v2.6: agrupa TODO lo que se pidió meter dentro del escenario — pestañas,
    panel de opciones/colores y los botones de Guardar/Cancelar — anclado
    abajo con un degradé oscuro (mismo criterio que .stage-actions-row en
@@ -2716,7 +2784,10 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .app-header { grid-template-columns:minmax(150px,1fr) auto minmax(44px,1fr); }
 .header-edit-btn { display:flex; width:auto; gap:7px; padding:8px 10px; white-space:nowrap; font:700 .85rem "Baloo 2",sans-serif; }
 .daily-card { top:18px; }
-.walker { width:clamp(340px,31vw,440px); bottom:110px; }
+/* v3.6: pedido explícito "que camine un poco más abajo... ahora estaría muy
+   arriba" — se baja el ancla de #walker (pero sin llegar a superponerse con
+   .stage-actions-row, ver el mismo ajuste más abajo en @media(max-width:640px)). */
+.walker { width:clamp(340px,31vw,440px); bottom:55px; }
 .walker .game-stage { width:100%; height:auto; aspect-ratio:1; cursor:pointer; touch-action:manipulation; }
 .speech-bubble { top:auto; bottom:88%; height:auto; padding:16px 20px 20px; max-width:min(300px,80vw); overflow-wrap:anywhere; }
 .flies,.bath-fx,.zzz-fx,.heart-pop,.pet-shadow { pointer-events:none; }
@@ -2780,7 +2851,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
  .daily-card-header strong { padding:3px; white-space:nowrap; }
  .daily-list li { font-size:.7rem; }
  .daily-reward { display:block; font-size:.65rem; }
- .walker { width:min(330px,calc(100% - 32px)); bottom:110px; }
+ .walker { width:min(330px,calc(100% - 32px)); bottom:55px; }
  .minigame-panel { inset:18% 3% 15%; }
  .screen.onboarding,.screen.onboarding.is-editing { padding:12px; gap:8px 12px; }
  #brand-emblem { width:64px; height:64px; }
