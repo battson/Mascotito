@@ -359,6 +359,67 @@ async function removeFriend(meLower, otherLower) {
   }
 }
 
+/** v3.4: eliminar la cuenta actual para siempre. Antes de borrar el
+ * documento propio, intenta limpiar las referencias en las cuentas de
+ * amigos/solicitudes (mismo "escritura social" que ya usan sendFriend-
+ * Request/acceptFriendRequest — cualquier autenticado puede tocar esos dos
+ * campos en la cuenta de cualquier otro). Cada limpieza es best-effort: si
+ * una falla (la otra cuenta ya no existe, red caída puntual) no aborta el
+ * borrado de la cuenta propia, que es la operación que de verdad importa
+ * acá — un amigo con una referencia vieja a un usuario borrado ya se
+ * maneja hoy en la UI (mismo caso que "la otra cuenta puede no existir
+ * más" en rejectFriendRequest/cancelFriendRequest/removeFriend). */
+async function deleteAccount(usernameLower) {
+  const gate = await ensureReady();
+  if (!gate.ok) return gate;
+  const { getDoc, updateDoc, deleteDoc, deleteField } = window.__cloudFns;
+  const meRef = playerRef(usernameLower);
+  let data = null;
+  try {
+    const snap = await getDoc(meRef);
+    if (!snap.exists()) return { ok: false, error: "not_found" };
+    data = snap.data();
+  } catch (err) {
+    return { ok: false, error: "network" };
+  }
+
+  const friendKeys = Object.keys(data.friends || {});
+  const incomingKeys = Object.keys(data.friendRequests?.incoming || {});
+  const outgoingKeys = Object.keys(data.friendRequests?.outgoing || {});
+  await Promise.all([
+    ...friendKeys.map((k) =>
+      updateDoc(playerRef(k), { [`friends.${usernameLower}`]: deleteField() }).catch(() => {})
+    ),
+    ...incomingKeys.map((k) =>
+      // Alguien me mandó una solicitud a mí: para esa persona, yo soy su
+      // "outgoing".
+      updateDoc(playerRef(k), { [`friendRequests.outgoing.${usernameLower}`]: deleteField() }).catch(() => {})
+    ),
+    ...outgoingKeys.map((k) =>
+      // Yo le mandé una solicitud a esa persona: para ella, yo soy su
+      // "incoming".
+      updateDoc(playerRef(k), { [`friendRequests.incoming.${usernameLower}`]: deleteField() }).catch(() => {})
+    ),
+  ]);
+
+  if (data.ownerUid) {
+    try {
+      await deleteDoc(googleLinkRef(data.ownerUid));
+    } catch (e) {
+      // no es grave si falla — el vínculo huérfano ya se maneja en
+      // loginWithGoogle() (needsUsername: true si el doc no existe más)
+    }
+  }
+
+  try {
+    await deleteDoc(meRef);
+    return { ok: true };
+  } catch (err) {
+    console.warn("[Mascotito] Error al eliminar la cuenta.", err);
+    return { ok: false, error: "network" };
+  }
+}
+
 /** Dispara el popup de Google y devuelve o bien la cuenta ya vinculada a
  * ese usuario de Google, o `needsUsername: true` si es la primera vez que
  * esa cuenta de Google entra a Mascotito (todavía no eligió nombre). */
@@ -480,6 +541,7 @@ window.Cloud = {
   rejectFriendRequest,
   cancelFriendRequest,
   removeFriend,
+  deleteAccount,
   subscribeToPlayer,
   get lastInitError() {
     return initError;

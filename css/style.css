@@ -457,24 +457,30 @@ body {
   inset: 0;
   pointer-events: none;
 }
-/* v2.5: la Casa ya no arma su ventana/alfombra/cuadro con gradientes CSS
-   (::before/::after/.wall-deco) — vienen del SVG real inyectado adentro
-   de #location-deco (ver HOME_SCENE_INLINE, js/manifest.js). El vidrio de
-   la ventana usa fill="var(--ventana-color, #cdeaf6)" así que de noche
-   sólo hace falta pisar esa variable (pedido explícito: "el fondo... de
-   la ventana... debería cambiar de color según si es de día o de
-   noche") — mismo mecanismo is-night que ya prendía sol/luna en el
-   Jardín. La puerta (#scene-puerta, dentro del mismo SVG) es clickeable
-   — pedido explícito, mismo efecto que "Salir al jardín" (ver
-   setupNavigation() en js/app.js). */
-.stage-floor.location-casa.is-night {
-  --ventana-color: #1c2a4d;
+/* v2.5→v3.4: la Casa arma su fondo desde el SVG real inyectado adentro de
+   #location-deco (ver HOME_SCENE_INLINE, js/manifest.js). La escena v3.4
+   (home-scenev2.0.ai) no tiene ventana, así que el mecanismo de noche
+   cambió: en vez de pisar --ventana-color se sube la opacidad de
+   #scene-noche-overlay, un <rect> que cubre toda la escena (mismo
+   mecanismo is-night que ya prendía sol/luna en el Jardín, sólo cambió
+   QUÉ se pisa). #scene-puerta ahora es un <rect> invisible del tamaño de
+   la puerta dibujada (no una capa identificable dentro del SVG
+   reconstruido) — sigue siendo clickeable con el mismo efecto que "Salir
+   al jardín" (ver setupNavigation() en js/app.js) y ahora muestra un
+   resalte suave al pasar el mouse, ya que de por sí no se ve. */
+#scene-noche-overlay {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.stage-floor.location-casa.is-night #scene-noche-overlay {
+  opacity: 0.4;
 }
 #scene-puerta {
   cursor: pointer;
   pointer-events: auto;
+  transition: fill-opacity 0.15s ease;
 }
-#scene-puerta:hover { opacity: 0.92; }
+#scene-puerta:hover { fill-opacity: 0.14; }
 /* v2.2: se sacó la puerta dibujada (y su zona interactiva #door-hotspot) —
    pedido explícito: "que sólo se entre y salga de su casa a través del
    botón Salir a...". La navegación Casa↔Jardín ahora depende únicamente
@@ -1306,6 +1312,27 @@ body {
   background-position: center;
   background-size: 60%;
   box-shadow: 0 0 0 2px var(--panel);
+}
+
+/* v3.4: colores "próximamente" (bodyColor con locked:true) — mismo swatch
+   de color pero atenuado, con un candado encima y sin cursor de selección;
+   sólo se ven al EDITAR una mascota ya creada, nunca al crearla, salvo
+   para el Administrador (ver renderCreatorSwatchRow en js/app.js). */
+.swatch-locked {
+  cursor: not-allowed;
+  opacity: 0.45;
+  filter: grayscale(0.35);
+}
+.swatch-locked:hover { transform: none; }
+.swatch-lock-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 
 /* Círculos numerados para elegir la forma del cuerpo (1, 2, ...) en vez
@@ -2921,40 +2948,21 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   mix-blend-mode: screen;
 }
 
-/* Cama */
+/* v3.4: Cama/Sillón/Lámpara ahora son placeholders en <svg> (ver
+   worldObjectArt(), js/app.js) en vez de formas armadas con CSS — plato/
+   bebedero/pelota se sacaron de la habitación (pedido explícito, "por
+   ahora no los usaremos"; alimentar/beber/jugar se hacen desde el dock de
+   acciones igual que siempre). Cada <svg> llena el botón entero; sólo la
+   lámpara necesita CSS propio, para el resplandor (.wo-lamp-glow, un
+   <i> aparte del dibujo) y el brillo del velador cuando está prendida. */
 .world-object-bed { aspect-ratio: 1.85 / 1; }
-.wo-bed, .wo-sofa, .wo-lamp, .wo-bowl, .wo-toy { position:absolute; inset:0; display:block; }
-.wo-bed { border-radius: 12% 12% 16% 16%; background:#9b6b4d; border:3px solid rgba(74,47,31,.65); overflow:hidden; }
-.wo-bed-head { position:absolute; left:0; top:0; width:18%; height:100%; background:#7a5039; border-right:3px solid rgba(74,47,31,.5); }
-.wo-bed-pillow { position:absolute; left:22%; top:12%; width:24%; height:36%; border-radius:35%; background:#f7ead4; box-shadow:inset 0 -3px rgba(0,0,0,.06); }
-.wo-bed-blanket { position:absolute; right:0; bottom:0; width:58%; height:62%; border-radius:28% 0 12% 0; background:#6fa9ad; box-shadow:inset 0 6px rgba(255,255,255,.12); }
-
-/* Sillón */
 .world-object-sofa { aspect-ratio: 1.55 / 1; }
-.wo-sofa-back { position:absolute; left:10%; right:10%; top:8%; height:52%; border-radius:24% 24% 13% 13%; background:#b87968; border:3px solid rgba(99,55,48,.55); }
-.wo-sofa-seat { position:absolute; left:13%; right:13%; bottom:10%; height:42%; border-radius:14% 14% 20% 20%; background:#c98c79; border:3px solid rgba(99,55,48,.5); }
-.wo-sofa-arm { position:absolute; bottom:13%; width:18%; height:50%; border-radius:30%; background:#ad6e60; border:3px solid rgba(99,55,48,.45); }
-.wo-sofa-arm.wo-left { left:0; } .wo-sofa-arm.wo-right { right:0; }
-
-/* Platos */
-.world-object-food_bowl, .world-object-water_bowl { aspect-ratio: 1.45 / 1; }
-.wo-bowl { top:20%; height:70%; border-radius:15% 15% 48% 48%; background:#e3c06c; border:3px solid rgba(91,65,32,.55); box-shadow:inset 0 7px rgba(255,255,255,.24); }
-.wo-bowl::before { content:""; position:absolute; left:8%; right:8%; top:-10%; height:34%; border-radius:50%; background:#7a5633; border:3px solid rgba(91,65,32,.55); }
-.wo-food::after { content:""; position:absolute; left:22%; right:22%; top:-4%; height:20%; border-radius:50%; background:repeating-radial-gradient(circle at 40% 45%, #946133 0 5px, #b47a42 6px 10px); }
-.wo-water { background:#8fc7d2; }
-.wo-water::before { background:#79bcd2; box-shadow:inset 0 3px rgba(255,255,255,.55); }
-
-/* Pelota */
-.world-object-toy { aspect-ratio:1; }
-.wo-toy { border-radius:50%; background:radial-gradient(circle at 35% 30%, #f8de63 0 28%, #e3b93a 30% 100%); border:3px solid rgba(100,72,24,.48); overflow:hidden; }
-.wo-toy::before, .wo-toy::after { content:""; position:absolute; width:120%; height:22%; left:-10%; top:39%; border:3px solid rgba(255,255,255,.75); border-left:0; border-right:0; border-radius:50%; transform:rotate(48deg); }
-.wo-toy::after { transform:rotate(-48deg); }
+.wo-bed-svg, .wo-sofa-svg { position:absolute; inset:0; width:100%; height:100%; display:block; }
 
 /* Lámpara */
 .world-object-lamp { aspect-ratio:.62 / 1; }
-.wo-lamp-shade { position:absolute; top:6%; left:10%; width:80%; height:38%; clip-path:polygon(22% 0,78% 0,100% 100%,0 100%); background:#e5b36d; border-radius:10% 10% 4% 4%; z-index:3; }
-.wo-lamp-stem { position:absolute; top:40%; left:46%; width:8%; height:43%; border-radius:999px; background:#705442; z-index:2; }
-.wo-lamp-base { position:absolute; bottom:5%; left:22%; width:56%; height:12%; border-radius:50%; background:#705442; z-index:2; }
+.wo-lamp { position:absolute; inset:0; display:block; }
+.wo-lamp-svg { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:2; }
 .wo-lamp-glow { position:absolute; left:-50%; top:-20%; width:200%; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle, rgba(255,223,140,.55), transparent 65%); opacity:0; transform:scale(.55); transition:opacity .2s ease, transform .2s ease; z-index:1; }
 .world-object-lamp.is-on .wo-lamp-shade { filter:brightness(1.16); }
 .world-object-lamp.is-on .wo-lamp-glow { opacity:1; transform:scale(1); }
@@ -2962,9 +2970,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 @media (max-width: 640px) {
   .world-object-bed { width:27% !important; }
   .world-object-sofa { width:25% !important; }
-  .world-object-lamp { width:11% !important; }
-  .world-object-food_bowl, .world-object-water_bowl { width:9% !important; }
-  .world-object-toy { width:7% !important; }
+  .world-object-lamp { width:9% !important; }
   .world-object:hover::after { display:none; }
 }
 
@@ -3066,6 +3072,17 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .google-btn .google-icon { flex-shrink: 0; }
 #google-username-form { margin-top: 14px; }
 
+/* ---------- v3.4: confirmación de "Eliminar cuenta" ---------- */
+#delete-account-panel .login-hint { text-align: left; }
+#delete-account-panel #delete-account-username-hint { color: var(--danger); }
+.options-menu-danger-btn {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  text-shadow: none;
+}
+.options-menu-danger-btn:hover { filter: brightness(1.08); }
+
 /* ---------- Modal genérico (Amigos) ---------- */
 .modal-overlay {
   position: fixed;
@@ -3130,8 +3147,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   cursor: pointer;
 }
 .friend-btn-accept { background: var(--ui-green, #43a957); color: #fff; }
+.friend-btn-visit { background: var(--ui-blue, #48a9df); color: #fff; }
 .friend-btn-reject, .friend-btn-remove, .friend-btn-cancel { background: #ecdcc4; color: var(--ui-navy, #17233f); }
-.friend-btn-accept:hover { filter: brightness(1.06); }
+.friend-btn-accept:hover, .friend-btn-visit:hover { filter: brightness(1.06); }
 .friend-btn-reject:hover, .friend-btn-remove:hover, .friend-btn-cancel:hover { background: #e2cfae; }
 #add-friend-form { display: flex; align-items: flex-end; gap: 10px; }
 #add-friend-form .name-field { flex: 1; margin: 0; }
@@ -3140,4 +3158,75 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 @media (max-width: 640px) {
   .modal-window { border-radius: 16px; }
   #add-friend-form { flex-direction: column; align-items: stretch; }
+}
+
+/* ---------- v3.4: Visita a la casa de un amigo (sólo lectura) ----------
+   Reutiliza el modal genérico de arriba (.modal-overlay/.modal-window) y
+   las mismas clases de escenario (.stage-floor/.location-casa/
+   .location-jardin/.walker/.pet-stage/.world-object-*) que ya arma el
+   estilo del juego real, para que la casa visitada se vea igual — pero
+   todo dentro de #visit-* queda con pointer-events:none (ver más abajo):
+   es sólo una foto en vivo, nunca se puede interactuar con nada de acá. */
+.modal-window.visit-window { width: min(560px, 100%); }
+.visit-status-line {
+  margin: 0 0 10px;
+  font: 700 0.92rem/1.3 "Baloo 2", sans-serif;
+  color: var(--ui-navy, #17233f);
+}
+/* .stage-floor/.walker traen un montón de reglas de altura/ancho por
+   media query pensadas SÓLO para el escenario real a pantalla completa
+   (ver más arriba en este archivo: .stage-floor{height:calc(100dvh...)},
+   .walker{width:clamp(...),bottom:110px}, etc.) — todas son selectores de
+   una sola clase, así que estos combinados de dos clases (más
+   específicos, ganan siempre, en cualquier ancho) las neutralizan y fijan
+   un tamaño fijo acorde al modal en vez de a la ventana completa. */
+.visit-stage-floor.stage-floor {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  max-height: none;
+  margin-top: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.visit-world-layer.world-layer { position: absolute; inset: 0; pointer-events: none; }
+.visit-world-layer .world-object { pointer-events: none; cursor: default; filter: none; }
+.visit-hint {
+  margin: 10px 2px 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+/* La puerta de una visita no lleva a ningún lado (ver visitDecoMarkup en
+   js/app.js, que le cambia el id a #scene-puerta para evitar que la casa
+   real y la visitada, abiertas al mismo tiempo, repitan ids). */
+#visit-scene-puerta { pointer-events: none; cursor: default; }
+#visit-scene-noche-overlay { opacity: 0; transition: opacity 0.4s ease; }
+.visit-stage-floor.location-casa.is-night #visit-scene-noche-overlay { opacity: 0.4; }
+
+/* Reposo centrado por defecto, tamaño fijo acorde al modal (nunca corre
+   el loop de caminata real acá, ver openVisit/renderVisit) —
+   .is-wandering agrega un ida-y-vuelta lento para representar "anda por
+   ahí sin hacer nada" cuando el amigo no está conectado (pedido
+   explícito: mismo criterio que el idle de la propia mascota al dejarla
+   sola). */
+.visit-walker.walker {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: 0;
+  width: 46%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  transform: translateX(-50%);
+}
+.visit-walker.is-wandering { animation: visitWander 10s ease-in-out infinite; }
+@keyframes visitWander {
+  0%, 100% { left: 26%; }
+  50% { left: 74%; }
+}
+#visit-pet-stage.pet-stage { width: 100%; height: 100%; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .visit-walker.is-wandering { animation: none; }
 }

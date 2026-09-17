@@ -73,13 +73,44 @@
       <svg class="icon gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.6 3.7 10.2 2h3.6l.6 1.7 1.8.8 1.6-.8 2.5 2.5-.8 1.6.8 1.8 1.7.6v3.6l-1.7.6-.8 1.8.8 1.6-2.5 2.5-1.6-.8-1.8.8-.6 1.7h-3.6l-.6-1.7-1.8-.8-1.6.8-2.5-2.5.8-1.6-.8-1.8-1.7-.6v-3.6l1.7-.6.8-1.8-.8-1.6 2.5-2.5 1.6.8 1.8-.8Z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
     <div id="options-menu" class="options-menu" hidden role="menu" aria-label="Opciones">
-      <button id="opt-debug" class="options-menu-item" role="menuitem" type="button">Modo prueba</button>
+      <!-- v3.4: pedido explícito — "Modo prueba" queda reservado sólo al
+           Administrador (usuario "jony"); arranca oculto y updateAdminUI()
+           en js/app.js lo muestra únicamente para esa cuenta. -->
+      <button id="opt-debug" class="options-menu-item" role="menuitem" type="button" hidden>Modo prueba</button>
       <hr class="options-menu-sep" />
       <!-- v3.3: sólo visible si hay nube activada y hay sesión iniciada. -->
       <button id="opt-cambiar-usuario" class="options-menu-item" role="menuitem" type="button" hidden>Cambiar de usuario</button>
       <button id="opt-reiniciar" class="options-menu-item options-menu-danger" role="menuitem" type="button">Reiniciar progreso</button>
+      <!-- v3.4: sólo visible con nube activada y sesión iniciada (misma
+           condición que "Cambiar de usuario"), ver updateOptCambiarUsuario
+           en js/app.js. Pide escribir el nombre de usuario para confirmar
+           (#delete-account-overlay más abajo) antes de borrar de verdad. -->
+      <button id="opt-eliminar-cuenta" class="options-menu-item options-menu-danger" role="menuitem" type="button" hidden>Eliminar cuenta</button>
     </div>
   </header>
+
+  <!-- v3.4: confirmación para eliminar la cuenta — pedido explícito, "que
+       deje eliminar una cuenta con su nombre de usuario incluido". Borra
+       para siempre el documento de Firestore (petState, amigos, PIN u
+       ownerUid) — ver Cloud.deleteAccount en js/cloud.js. -->
+  <div id="delete-account-overlay" class="modal-overlay" hidden>
+    <section id="delete-account-panel" class="modal-window" role="dialog" aria-modal="true" aria-label="Eliminar cuenta">
+      <div class="modal-topbar">
+        <h2>Eliminar cuenta</h2>
+        <button id="delete-account-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button>
+      </div>
+      <p class="login-hint">Esto borra tu mascota, tus amigos y tu cuenta de la nube <strong>para siempre</strong> — no se puede deshacer. Para confirmar, escribí tu nombre de usuario (<strong id="delete-account-username-hint"></strong>) tal cual.</p>
+      <form id="delete-account-form" class="login-form" autocomplete="off">
+        <div class="name-field">
+          <label class="name-label" for="delete-account-input">Nombre de usuario</label>
+          <input id="delete-account-input" class="name-input" type="text" maxlength="16" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        </div>
+        <p id="delete-account-error" class="field-error" role="alert" hidden></p>
+        <button id="delete-account-submit" type="submit" class="primary-btn options-menu-danger-btn">Eliminar para siempre</button>
+        <button id="delete-account-cancel" type="button" class="secondary-btn">Cancelar</button>
+      </form>
+    </section>
+  </div>
 
   <!-- ---------- v3.3: pantalla de login (usuario + PIN) ----------
        Sólo se muestra si hay un proyecto de Firebase configurado
@@ -94,7 +125,7 @@
     <form id="login-form" class="login-form" autocomplete="off">
       <div class="name-field">
         <label class="name-label" for="login-username">Usuario</label>
-        <input id="login-username" class="name-input" type="text" maxlength="16" placeholder="Ej: jony" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        <input id="login-username" class="name-input" type="text" maxlength="16" placeholder="Ej: Bernardo" autocapitalize="none" autocorrect="off" spellcheck="false" />
       </div>
       <div class="name-field">
         <label class="name-label" for="login-pin">PIN (4 dígitos)</label>
@@ -128,7 +159,7 @@
       <p class="login-hint">¡Hola! Es la primera vez que entrás con esta cuenta de Google. Elegí tu nombre de usuario para Mascotito.</p>
       <div class="name-field">
         <label class="name-label" for="google-username">Usuario</label>
-        <input id="google-username" class="name-input" type="text" maxlength="16" placeholder="Ej: jony" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        <input id="google-username" class="name-input" type="text" maxlength="16" placeholder="Ej: Bernardo" autocapitalize="none" autocorrect="off" spellcheck="false" />
       </div>
       <p id="google-username-error" class="field-error" role="alert" hidden></p>
       <button id="google-username-submit" type="submit" class="primary-btn">Crear mi cuenta</button>
@@ -165,12 +196,37 @@
           <form id="add-friend-form" class="login-form" autocomplete="off">
             <div class="name-field">
               <label class="name-label" for="add-friend-input">Nombre de usuario</label>
-              <input id="add-friend-input" class="name-input" type="text" maxlength="16" placeholder="Ej: ana" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              <input id="add-friend-input" class="name-input" type="text" maxlength="16" placeholder="Ej: Bernardo" autocapitalize="none" autocorrect="off" spellcheck="false" />
             </div>
             <button type="submit" class="secondary-btn">Buscar</button>
           </form>
           <p id="add-friend-result" class="friends-empty" hidden></p>
         </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ---------- v3.4: Visita a la casa de un amigo (modal, sólo lectura) ----------
+       Escenario propio (#visit-*), aparte del de la propia mascota (#stage-floor):
+       nada acá tiene manejador de click, sólo muestra el estado del amigo en
+       vivo (ver Cloud.subscribeToPlayer / openVisit·renderVisit en js/app.js). -->
+  <div id="visit-overlay" class="modal-overlay" hidden>
+    <section id="visit-panel" class="modal-window visit-window" role="dialog" aria-modal="true" aria-label="Visita a la casa de un amigo">
+      <div class="modal-topbar">
+        <h2 id="visit-title">Casa de...</h2>
+        <button id="visit-close" type="button" class="notice-close-btn" aria-label="Volver a tu mascota">×</button>
+      </div>
+      <div class="modal-body visit-body">
+        <p id="visit-status-line" class="visit-status-line" aria-live="polite"></p>
+        <div id="visit-stage-floor" class="stage-floor visit-stage-floor" aria-hidden="true">
+          <div id="visit-location-deco" class="location-deco"></div>
+          <div id="visit-world-layer" class="world-layer visit-world-layer"></div>
+          <div id="visit-walker" class="walker visit-walker">
+            <div class="pet-shadow" aria-hidden="true"></div>
+            <div id="visit-pet-stage" class="pet-stage" role="img" aria-label="Mascota de tu amigo"></div>
+          </div>
+        </div>
+        <p class="visit-hint">Estás de visita: sólo podés mirar, no podés alimentar, jugar ni tocar nada de esta casa.</p>
       </div>
     </section>
   </div>

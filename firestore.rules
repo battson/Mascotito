@@ -24,6 +24,10 @@ rules_version = '2';
 // campos de la cuenta de cualquier otro (nunca en su mascota, su PIN o
 // su ownerUid) — es el mismo nivel de confianza liviano para las dos
 // clases de cuenta, documentado en README.md.
+//
+// v3.4: se agregó "Eliminar cuenta" (allow delete, antes false siempre) —
+// ver el comentario junto a esa regla más abajo para el detalle de qué
+// tan protegida está cada tipo de cuenta contra un borrado.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /players/{playerId} {
@@ -66,7 +70,19 @@ service cloud.firestore {
         )
       );
 
-      allow delete: if false;
+      // v3.4: "Eliminar cuenta" (Opciones → Eliminar cuenta, pide escribir
+      // el nombre de usuario para confirmar). Mismo nivel de protección
+      // que el resto de cada tipo de cuenta: una cuenta de Google sólo la
+      // puede borrar su uid real (verificado por Firebase, no falsificable
+      // desde el cliente); una cuenta con PIN, cualquier autenticado —
+      // Firestore no tiene forma de verificar que quien pide el borrado
+      // conoce el PIN sin un backend propio (misma limitación ya
+      // documentada para "update" más arriba y en js/cloud.js). El "escribí
+      // tu usuario para confirmar" de la app es una salvaguarda de UX
+      // contra un borrado accidental, no una medida de seguridad.
+      allow delete: if request.auth != null && (
+        !('ownerUid' in resource.data) || request.auth.uid == resource.data.ownerUid
+      );
     }
 
     // Mapa privado "uid de Google -> nombre de usuario", para poder
@@ -74,12 +90,15 @@ service cloud.firestore {
     // necesitar una consulta abierta sobre toda la colección de arriba.
     // Cada quien sólo puede leer/crear el suyo propio, y nunca se puede
     // reescribir una vez creado (evita que alguien le "robe" el usuario
-    // a otra cuenta de Google cambiando el vínculo).
+    // a otra cuenta de Google cambiando el vínculo). Sí se puede BORRAR
+    // (v3.4, eliminación de cuenta) — sólo el propio uid puede borrar su
+    // propio vínculo, ver deleteAccount() en js/cloud.js.
     match /googleLinks/{uid} {
       allow get: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null && request.auth.uid == uid
         && request.resource.data.usernameLower is string;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }

@@ -124,6 +124,15 @@ const el = {
   googleUsernameSubmit: document.getElementById("google-username-submit"),
   googleUsernameCancel: document.getElementById("google-username-cancel"),
   optCambiarUsuario: document.getElementById("opt-cambiar-usuario"),
+  optEliminarCuenta: document.getElementById("opt-eliminar-cuenta"),
+  deleteAccountOverlay: document.getElementById("delete-account-overlay"),
+  deleteAccountForm: document.getElementById("delete-account-form"),
+  deleteAccountInput: document.getElementById("delete-account-input"),
+  deleteAccountError: document.getElementById("delete-account-error"),
+  deleteAccountSubmit: document.getElementById("delete-account-submit"),
+  deleteAccountCancel: document.getElementById("delete-account-cancel"),
+  deleteAccountClose: document.getElementById("delete-account-close"),
+  deleteAccountUsernameHint: document.getElementById("delete-account-username-hint"),
   btnAmigos: document.getElementById("btn-amigos"),
   friendsBadge: document.getElementById("friends-badge"),
   friendsOverlay: document.getElementById("friends-overlay"),
@@ -143,6 +152,18 @@ const el = {
   addFriendForm: document.getElementById("add-friend-form"),
   addFriendInput: document.getElementById("add-friend-input"),
   addFriendResult: document.getElementById("add-friend-result"),
+  // v3.4: visita a la casa de un amigo (sólo lectura) — ver openVisit()/
+  // renderVisit() más abajo.
+  visitOverlay: document.getElementById("visit-overlay"),
+  visitPanel: document.getElementById("visit-panel"),
+  visitClose: document.getElementById("visit-close"),
+  visitTitle: document.getElementById("visit-title"),
+  visitStatusLine: document.getElementById("visit-status-line"),
+  visitStageFloor: document.getElementById("visit-stage-floor"),
+  visitLocationDeco: document.getElementById("visit-location-deco"),
+  visitWorldLayer: document.getElementById("visit-world-layer"),
+  visitWalker: document.getElementById("visit-walker"),
+  visitPetStage: document.getElementById("visit-pet-stage"),
 };
 
 // ---------- Render de la mascota (capas de SVG apiladas) ----------
@@ -642,14 +663,40 @@ function setLocationVisuals(locationId) {
 
 // ---------- Fase 1: objetos interactivos de la Casa ----------
 
+/* v3.4: placeholders de Cama/Sillón/Lámpara (pedido explícito: "armá vos
+ * unos svg, que simulen..." hasta que el usuario mande los .ai
+ * definitivos) — antes eran formas armadas con CSS (spans con
+ * background/border-radius), ahora cada uno es un <svg> simple e inline
+ * con el mismo tono de madera/tela cálido del resto de la app. La lámpara
+ * conserva el <i class="wo-lamp-glow"> aparte (no es parte del dibujo,
+ * es el resplandor que css/style.css prende/apaga con .is-on). */
 function worldObjectArt(kind) {
   const art = {
-    bed: '<span class="wo-bed"><i class="wo-bed-head"></i><i class="wo-bed-pillow"></i><i class="wo-bed-blanket"></i></span>',
-    sofa: '<span class="wo-sofa"><i class="wo-sofa-back"></i><i class="wo-sofa-seat"></i><i class="wo-sofa-arm wo-left"></i><i class="wo-sofa-arm wo-right"></i></span>',
-    "food-bowl": '<span class="wo-bowl wo-food"><i></i></span>',
-    "water-bowl": '<span class="wo-bowl wo-water"><i></i></span>',
-    toy: '<span class="wo-toy"><i></i></span>',
-    lamp: '<span class="wo-lamp"><i class="wo-lamp-shade"></i><i class="wo-lamp-stem"></i><i class="wo-lamp-base"></i><i class="wo-lamp-glow"></i></span>',
+    bed:
+      '<svg viewBox="0 0 200 108" class="wo-bed-svg" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+      '<rect x="2" y="2" width="196" height="104" rx="16" fill="#9b6b4d" stroke="#4a2f1f" stroke-width="4"/>' +
+      '<rect x="2" y="2" width="42" height="104" rx="16" fill="#7a5039" stroke="#4a2f1f" stroke-width="4"/>' +
+      '<rect x="55" y="16" width="52" height="38" rx="13" fill="#f7ead4"/>' +
+      '<rect x="100" y="32" width="98" height="72" rx="16" fill="#6fa9ad"/>' +
+      '<rect x="100" y="32" width="98" height="12" rx="6" fill="#ffffff" opacity=".22"/>' +
+      "</svg>",
+    sofa:
+      '<svg viewBox="0 0 200 129" class="wo-sofa-svg" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+      '<rect x="16" y="10" width="168" height="66" rx="22" fill="#b87968" stroke="#63372f" stroke-width="4"/>' +
+      '<rect x="10" y="70" width="180" height="50" rx="18" fill="#c98c79" stroke="#63372f" stroke-width="4"/>' +
+      '<rect x="0" y="46" width="34" height="76" rx="16" fill="#ad6e60" stroke="#63372f" stroke-width="4"/>' +
+      '<rect x="166" y="46" width="34" height="76" rx="16" fill="#ad6e60" stroke="#63372f" stroke-width="4"/>' +
+      '<line x1="100" y1="78" x2="100" y2="116" stroke="rgba(99,55,48,.35)" stroke-width="3"/>' +
+      "</svg>",
+    lamp:
+      '<span class="wo-lamp">' +
+      '<svg viewBox="0 0 100 161" class="wo-lamp-svg" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+      '<g class="wo-lamp-shade"><path d="M18 8 L82 8 L94 50 L6 50 Z" fill="#e5b36d" stroke="#a6763f" stroke-width="3" stroke-linejoin="round"/></g>' +
+      '<rect class="wo-lamp-stem" x="44" y="50" width="12" height="68" rx="6" fill="#705442"/>' +
+      '<ellipse class="wo-lamp-base" cx="50" cy="148" rx="32" ry="10" fill="#705442"/>' +
+      "</svg>" +
+      '<i class="wo-lamp-glow"></i>' +
+      "</span>",
   };
   return art[kind] || '<span class="wo-placeholder"></span>';
 }
@@ -964,16 +1011,34 @@ function renderCreatorSwatchRow() {
   const options = showingEyeColor ? PET_EYE_COLORS : PET_PARTS_MANIFEST[activeCreatorTab];
   const isNumbered = !showingEyeColor && activeCreatorTab !== "bodyColor";
 
+  // v3.4: pedido explícito — colores nuevos en bodyColor marcados con
+  // `locked: true` ("próximamente se pueden comprar"). Sólo aparecen al
+  // EDITAR una mascota ya creada (no al crearla por primera vez), salvo
+  // para el Administrador ("jony"), que los ve desbloqueados desde el
+  // principio (creación incluida). Ver PET_PARTS_MANIFEST.bodyColor.
+  const admin = typeof isAdmin === "function" && isAdmin();
+  const editing = !!(el.onboarding && el.onboarding.classList.contains("is-editing"));
+  const showLocked = category === "bodyColor" ? admin || editing : true;
+
   options.forEach((opt) => {
+    const isLocked = category === "bodyColor" && opt.locked && !admin;
+    if (opt.locked && category === "bodyColor" && !showLocked) return; // ni siquiera se muestra al crear
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = isNumbered ? "swatch swatch-number" : "swatch";
-    btn.title = opt.label;
-    btn.setAttribute("aria-label", `${label}: ${opt.label}`);
+    btn.title = isLocked ? `${opt.label} (Próximamente)` : opt.label;
+    btn.setAttribute("aria-label", isLocked ? `${label}: ${opt.label}, próximamente` : `${label}: ${opt.label}`);
     if (isNumbered) {
       btn.textContent = opt.label;
     } else {
       btn.style.background = opt.swatch;
+    }
+    if (isLocked) {
+      btn.classList.add("swatch-locked");
+      btn.disabled = true;
+      btn.innerHTML += '<span class="swatch-lock-icon" aria-hidden="true">🔒</span>';
+      el.creatorSwatchRow.appendChild(btn);
+      return;
     }
     const selected = selectedLook[category] === opt.id;
     btn.classList.toggle("selected", selected);
@@ -1000,8 +1065,12 @@ function renderCreatorPanel() {
 }
 
 function randomizeLook() {
+  const admin = typeof isAdmin === "function" && isAdmin();
   Object.keys(PET_PARTS_MANIFEST).forEach((category) => {
-    const opts = PET_PARTS_MANIFEST[category];
+    // v3.4: "Aleatorio" nunca sortea un color todavía bloqueado para
+    // alguien que no sea el Administrador (serían colores "próximamente").
+    const allOpts = PET_PARTS_MANIFEST[category];
+    const opts = admin ? allOpts : allOpts.filter((o) => !o.locked);
     selectedLook[category] = opts[Math.floor(Math.random() * opts.length)].id;
   });
   selectedLook.ojosColor = PET_EYE_COLORS[Math.floor(Math.random() * PET_EYE_COLORS.length)].id;
@@ -1717,6 +1786,26 @@ function startCooldown(key) {
   state.cooldowns[key] = Date.now() + (PET_CONFIG.cooldownsMs[key] || PET_CONFIG.cooldownMs);
 }
 
+// v3.4: bug reportado — el cooldown mostraba siempre segundos crudos (ej.
+// "873s" para la pesca, que tiene 15 minutos de espera), sin convertir a
+// minutos. formatCooldownLabel() es para el numerito corto sobre el botón
+// (mm:ss una vez pasa el minuto); formatCooldownPhrase() es para las
+// frases tipo "Podés volver a alimentar en ___." (minutos redondeados
+// hacia arriba, más fácil de leer que "873 s").
+function formatCooldownLabel(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatCooldownPhrase(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  if (totalSeconds < 60) return `${totalSeconds} s`;
+  return `${Math.ceil(totalSeconds / 60)} min`;
+}
+
 // Registro de botones de acción con cooldown (se llena en buildActionsDock).
 const actionRegistry = {};
 
@@ -1740,7 +1829,7 @@ function updateCooldownButtons() {
       const pct = clamp(((total - remainingMs) / total) * 100, 0, 100);
       if (ringEl) ringEl.style.setProperty("--pct", pct.toFixed(1));
       if (ringEl) ringEl.style.setProperty("--pct-css", pct.toFixed(1) + "%");
-      if (labelEl) labelEl.textContent = `${Math.ceil(remainingMs / 1000)}s`;
+      if (labelEl) labelEl.textContent = formatCooldownLabel(remainingMs);
     } else {
       btnEl.disabled = blockedByState || (isFull ? isFull() : false);
       if (ringEl) ringEl.style.setProperty("--pct", 0);
@@ -1873,7 +1962,7 @@ function buildFeedMenu() {
     item.className = "feed-item";
     item.id = "feed-item-" + key;
     item.setAttribute("role", "menuitem");
-    item.innerHTML = `<span class="feed-item-icon"><img src="assets/items/fish.svg" alt="" /></span><span>${food.label} <strong id="fish-quantity">×0</strong></span><span class="feed-item-desc">${FOOD_DESCRIPTIONS[key] || ""}</span>`;
+    item.innerHTML = `<span class="feed-item-icon"><img src="assets/items/fish-item.svg" alt="" /></span><span>${food.label} <strong id="fish-quantity">×0</strong></span><span class="feed-item-desc">${FOOD_DESCRIPTIONS[key] || ""}</span>`;
     item.addEventListener("click", () => doComer(key));
     el.feedMenu.appendChild(item);
   });
@@ -1901,7 +1990,7 @@ function refreshFeedMenuState() {
   // v3.2, pedido explícito: "No quedan pescados" -> "No te queda más
   // comida", y agrega (sólo texto, sin el botón de antes) la sugerencia
   // de ir a pescar cuando no hay stock.
-  document.getElementById("food-stock").textContent = state.inventory.pescado === 0 ? `No te queda más comida. Jugá con ${state.name} para conseguir más comida.` : state.stats.saciedad >= PET_CONFIG.llenaUmbral ? `${state.name} no tiene hambre.` : state.sleep.dormida ? `${state.name} está durmiendo.` : isOnCooldown("pescado") ? `Podés volver a alimentar en ${Math.ceil((state.cooldowns.pescado-Date.now())/1000)} s.` : "Elegí el pescado para alimentar.";
+  document.getElementById("food-stock").textContent = state.inventory.pescado === 0 ? `No te queda más comida. Jugá con ${state.name} para conseguir más comida.` : state.stats.saciedad >= PET_CONFIG.llenaUmbral ? `${state.name} no tiene hambre.` : state.sleep.dormida ? `${state.name} está durmiendo.` : isOnCooldown("pescado") ? `Podés volver a alimentar en ${formatCooldownPhrase(state.cooldowns.pescado-Date.now())}.` : "Elegí el pescado para alimentar.";
   Object.keys(PET_CONFIG.feeding).forEach((key) => {
     const item = document.getElementById("feed-item-" + key);
     if (!item) return;
@@ -2197,7 +2286,7 @@ function closeGameSelector() {
 }
 function setupGameSelector() {
   const panel = document.getElementById("game-selector");
-  document.getElementById("game-choices").innerHTML = MINIGAMES.map(game => `<article class="game-choice" data-game="${game.id}"><div class="game-art">${game.id === "pesca" ? '<img src="assets/items/fish.svg" alt="" />' : '<span>'+game.symbol+'</span>'}</div><div class="game-details" id="details-${game.id}"><p>${game.instructions}</p><button type="button" class="card-play" data-play="${game.id}">▶ Play</button></div><button type="button" class="game-title" aria-expanded="false" aria-controls="details-${game.id}">${game.title}</button></article>`).join("");
+  document.getElementById("game-choices").innerHTML = MINIGAMES.map(game => `<article class="game-choice" data-game="${game.id}"><div class="game-art">${game.id === "pesca" ? '<img src="assets/items/fish-item.svg" alt="" />' : '<span>'+game.symbol+'</span>'}</div><div class="game-details" id="details-${game.id}"><p>${game.instructions}</p><button type="button" class="card-play" data-play="${game.id}">▶ Play</button></div><button type="button" class="game-title" aria-expanded="false" aria-controls="details-${game.id}">${game.title}</button></article>`).join("");
   panel.querySelectorAll(".game-title").forEach(btn => btn.addEventListener("click", () => {
     const card=btn.closest(".game-choice"); const open=!card.classList.contains("is-open");
     panel.querySelectorAll(".game-choice").forEach(c=>{c.classList.remove("is-open");c.querySelector(".game-title").setAttribute("aria-expanded","false")});
@@ -2214,7 +2303,7 @@ function setupGameSelector() {
     // 15min más largo — ver cooldownsMs.pesca en js/config.js), separado
     // del cooldown genérico "jugar" que siguen usando Pelota/Luciérnagas.
     const cooldownKey = selectedMinigame === "pesca" ? "pesca" : "jugar";
-    if (isOnCooldown(cooldownKey)) { note.textContent = `Podés jugar de nuevo en ${Math.ceil((state.cooldowns[cooldownKey]-Date.now())/1000)} s.`; return; }
+    if (isOnCooldown(cooldownKey)) { note.textContent = `Podés jugar de nuevo en ${formatCooldownPhrase(state.cooldowns[cooldownKey]-Date.now())}.`; return; }
     registerInteraction(); startCooldown(cooldownKey); updateCooldownButtons();
     launchMinigame(MINIGAMES.find(game => game.id === selectedMinigame));
   });
@@ -2434,6 +2523,7 @@ async function doCambiarUsuario() {
   el.onboarding.hidden = true;
   updateFooterText();
   updateOptCambiarUsuario();
+  updateAdminUI();
   // Si la sesión actual era de Google, hay que cerrarla de verdad (si no,
   // Firebase Auth la restauraría sola en el próximo boot() y saltearía la
   // pantalla de login). Vuelve a entrar anónimo para que el login de
@@ -2445,8 +2535,113 @@ async function doCambiarUsuario() {
 }
 
 function updateOptCambiarUsuario() {
+  const showCloudAccountOptions = !!(window.Cloud && window.Cloud.enabled && currentUsername);
   if (el.optCambiarUsuario) {
-    el.optCambiarUsuario.hidden = !(window.Cloud && window.Cloud.enabled && currentUsername);
+    el.optCambiarUsuario.hidden = !showCloudAccountOptions;
+  }
+  // v3.4: "Eliminar cuenta" sigue la misma condición que "Cambiar de
+  // usuario" — sólo tiene sentido con una cuenta de nube real detrás.
+  if (el.optEliminarCuenta) {
+    el.optEliminarCuenta.hidden = !showCloudAccountOptions;
+  }
+}
+
+// v3.4: pedido explícito — "jony" es el único usuario Administrador, con
+// opciones extra dentro de ese rol (por ahora: ver "Modo prueba", y tener
+// todos los colores de personalización desbloqueados desde el principio,
+// ver PET_PARTS_MANIFEST.bodyColor / creator). Sin cuenta en la nube (modo
+// local) nunca hay Administrador — currentUsername queda null.
+function isAdmin() {
+  return !!(currentUsername && currentUsername === "jony");
+}
+
+function updateAdminUI() {
+  if (el.optDebug) el.optDebug.hidden = !isAdmin();
+}
+
+// ---------- v3.4: eliminar cuenta ----------
+
+function openDeleteAccountModal() {
+  if (!el.deleteAccountOverlay || !currentUsername) return;
+  if (el.deleteAccountUsernameHint) el.deleteAccountUsernameHint.textContent = currentDisplayName || currentUsername;
+  if (el.deleteAccountInput) el.deleteAccountInput.value = "";
+  if (el.deleteAccountError) el.deleteAccountError.hidden = true;
+  el.deleteAccountOverlay.hidden = false;
+  setTimeout(() => el.deleteAccountInput && el.deleteAccountInput.focus(), 50);
+}
+
+function closeDeleteAccountModal() {
+  if (el.deleteAccountOverlay) el.deleteAccountOverlay.hidden = true;
+}
+
+function showDeleteAccountError(msg) {
+  if (!el.deleteAccountError) return;
+  el.deleteAccountError.textContent = msg;
+  el.deleteAccountError.hidden = false;
+}
+
+async function handleDeleteAccountSubmit() {
+  if (!window.Cloud || !currentUsername) return;
+  const typed = (el.deleteAccountInput && el.deleteAccountInput.value.trim().toLowerCase()) || "";
+  if (typed !== currentUsername) {
+    showDeleteAccountError("Ese no es tu nombre de usuario — escribilo tal cual para confirmar.");
+    return;
+  }
+  el.deleteAccountSubmit.disabled = true;
+  const originalLabel = el.deleteAccountSubmit.textContent;
+  el.deleteAccountSubmit.textContent = "Eliminando...";
+  try {
+    const result = await window.Cloud.deleteAccount(currentUsername);
+    if (!result.ok) {
+      showDeleteAccountError(
+        result.error === "network" || result.error === "disabled"
+          ? "No se pudo conectar con la nube ahora mismo. Probá de nuevo en un momento."
+          : "No se pudo eliminar la cuenta."
+      );
+      return;
+    }
+    closeDeleteAccountModal();
+    // Misma limpieza de sesión que "Cambiar de usuario" (doCambiarUsuario)
+    // pero sin la sesión de nube que borrar — la cuenta ya no existe.
+    if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+    if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
+    if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
+    if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+    currentUsername = null;
+    currentDisplayName = null;
+    myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
+    rememberUsername(null);
+    state = null;
+    closeFriendsPanel();
+    if (el.btnAmigos) el.btnAmigos.hidden = true;
+    el.game.hidden = true;
+    el.onboarding.hidden = true;
+    updateFooterText();
+    updateOptCambiarUsuario();
+    updateAdminUI();
+    if (window.Cloud.enabled && typeof window.Cloud.signOutCloud === "function") {
+      try { await window.Cloud.signOutCloud(); } catch (e) { /* no es grave */ }
+    }
+    showLoginScreen();
+    showLoginError("Tu cuenta se eliminó. Podés crear una nueva cuando quieras.");
+  } finally {
+    el.deleteAccountSubmit.disabled = false;
+    el.deleteAccountSubmit.textContent = originalLabel;
+  }
+}
+
+function setupDeleteAccountUI() {
+  if (!el.deleteAccountForm) return;
+  el.deleteAccountForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    handleDeleteAccountSubmit();
+  });
+  if (el.deleteAccountCancel) el.deleteAccountCancel.addEventListener("click", closeDeleteAccountModal);
+  if (el.deleteAccountClose) el.deleteAccountClose.addEventListener("click", closeDeleteAccountModal);
+  if (el.deleteAccountOverlay) {
+    el.deleteAccountOverlay.addEventListener("click", (ev) => {
+      if (ev.target === el.deleteAccountOverlay) closeDeleteAccountModal();
+    });
   }
 }
 
@@ -2479,6 +2674,12 @@ function setupOptionsMenu() {
     closeOptionsMenu();
     doReiniciar();
   });
+  if (el.optEliminarCuenta) {
+    el.optEliminarCuenta.addEventListener("click", () => {
+      closeOptionsMenu();
+      openDeleteAccountModal();
+    });
+  }
   // Cerrar con click afuera.
   document.addEventListener("click", (ev) => {
     if (el.optionsMenu.hidden) return;
@@ -2730,6 +2931,8 @@ document.addEventListener("keydown", ev => {
   setupClock();
   setupLoginUI();
   setupFriendsUI();
+  setupVisitUI();
+  setupDeleteAccountUI();
   boot();
 })();
 
@@ -2809,6 +3012,7 @@ function startSessionWithData(data) {
   if (el.btnAmigos) el.btnAmigos.hidden = false;
   updateFooterText();
   updateOptCambiarUsuario();
+  updateAdminUI();
   subscribeFriendsLive();
   const cloudPet = data && data.petState ? normalizeState(data.petState) : null;
   if (cloudPet) {
@@ -3111,7 +3315,10 @@ function renderFriendsPanel() {
   friendKeys.forEach((k) => {
     const display = (friends[k] && friends[k].displayName) || k;
     el.friendsList.appendChild(
-      friendRow(display, `<button type="button" class="friend-btn-remove" data-user="${k}">Quitar</button>`)
+      friendRow(
+        display,
+        `<button type="button" class="friend-btn-visit" data-user="${k}" data-display="${display}">Visitar</button><button type="button" class="friend-btn-remove" data-user="${k}">Quitar</button>`
+      )
     );
   });
 
@@ -3232,7 +3439,12 @@ function setupFriendsUI() {
   });
   el.friendsList.addEventListener("click", async (ev) => {
     const btn = ev.target.closest("button[data-user]");
-    if (!btn || !btn.classList.contains("friend-btn-remove")) return;
+    if (!btn) return;
+    if (btn.classList.contains("friend-btn-visit")) {
+      openVisit(btn.dataset.user, btn.dataset.display || btn.dataset.user);
+      return;
+    }
+    if (!btn.classList.contains("friend-btn-remove")) return;
     btn.disabled = true;
     await window.Cloud.removeFriend(currentUsername, btn.dataset.user);
   });
@@ -3257,5 +3469,154 @@ function setupFriendsUI() {
   el.addFriendForm.addEventListener("submit", (ev) => {
     ev.preventDefault();
     handleAddFriendSearch();
+  });
+}
+
+// ---------- v3.4: Visita a la casa de un amigo (sólo lectura) ----------
+// Pedido explícito: "Visita a amigos. Cuando añadís un amigo te da la
+// opción de visitar su casa y si esa persona está activa ves lo que hace
+// en ese momento, sino su personaje anda por ahí como cuando dejás al
+// personaje sin hacer nada idle." Se implementa como un modal aparte
+// (#visit-overlay) con su PROPIO escenario/mascota (#visit-*): reutiliza
+// las piezas puras de render que ya usa la mascota propia (renderPetLayers
+// + manifest, computeEyeScale/moodFromStats de js/state.js, isNightNow,
+// HOME_SCENE_INLINE/LOCATION_DECO_HTML/worldObjectArt) pero nunca toca
+// `state` ni el loop de juego real ni guarda nada — así no hay forma de
+// que visitar interfiera con la propia partida. Nada del escenario de
+// visita tiene manejadores de click (mundo y mascota son decorativos).
+//
+// "Activa" = guardó su estado en la nube hace poco. El guardado normal
+// tiene como máximo CLOUD_SAVE_DEBOUNCE_MS (20s) de demora mientras juega,
+// y se fuerza un guardado inmediato al cambiar de pestaña/cerrar
+// (flushCloudSaveNow) — se deja un margen extra acá para conexiones
+// lentas antes de considerarla desconectada.
+const VISIT_ACTIVE_THRESHOLD_MS = 45000;
+
+let visitUnsubscribe = null;
+let visitHomeSceneMarkupCache = null;
+
+/* Mismo arte que HOME_SCENE_INLINE (ver js/manifest.js), pero con sus dos
+ * ids únicos (scene-noche-overlay/scene-puerta) renombrados: la visita
+ * puede estar abierta AL MISMO TIEMPO que la casa real del jugador queda
+ * detrás, así que no puede repetir esos ids. Los ids nuevos (visit-*) no
+ * tienen manejador de click propio (ver css/style.css, #visit-scene-puerta
+ * queda con pointer-events:none — la puerta de una visita no lleva a
+ * ningún lado). */
+function visitDecoMarkup(locationId) {
+  if (locationId === "casa") {
+    if (visitHomeSceneMarkupCache === null) {
+      visitHomeSceneMarkupCache = HOME_SCENE_INLINE
+        .replace('id="scene-noche-overlay"', 'id="visit-scene-noche-overlay"')
+        .replace('id="scene-puerta"', 'id="visit-scene-puerta"');
+    }
+    return visitHomeSceneMarkupCache;
+  }
+  return LOCATION_DECO_HTML.jardin || "";
+}
+
+function renderVisitWorldObjects(locationId, lampOn) {
+  if (!el.visitWorldLayer) return;
+  el.visitWorldLayer.innerHTML = "";
+  if (locationId !== "casa") return;
+  getRoomObjects(locationId).forEach((obj) => {
+    const box = document.createElement("div");
+    box.className = `world-object world-object-${obj.type}`;
+    box.style.left = `${obj.x}%`;
+    box.style.top = `${obj.y}%`;
+    box.style.width = `${obj.width}%`;
+    box.style.zIndex = String(obj.depth || 1);
+    box.innerHTML = worldObjectArt(obj.art);
+    if (obj.id === "lamp_01") box.classList.toggle("is-on", !!lampOn);
+    el.visitWorldLayer.appendChild(box);
+  });
+}
+
+function renderVisit(displayName, data) {
+  if (!el.visitStageFloor || el.visitOverlay.hidden) return;
+  if (!data || !data.petState) {
+    el.visitStatusLine.textContent = `No se pudo cargar la casa de ${displayName} ahora mismo.`;
+    delete el.visitPetStage.dataset.lookKey;
+    el.visitPetStage.innerHTML = "";
+    el.visitWorldLayer.innerHTML = "";
+    el.visitLocationDeco.innerHTML = "";
+    return;
+  }
+  const petState = data.petState;
+  const petName = petState.name || displayName;
+  const active = typeof data.lastActive === "number" && Date.now() - data.lastActive < VISIT_ACTIVE_THRESHOLD_MS;
+  // Sin conexión reciente: se ignoran location/sleep guardados y se la
+  // muestra en la Casa, deambulando sola (mismo criterio que el idle
+  // autónomo de la propia mascota cuando se la deja sin hacer nada).
+  const locationId = active && petState.location === "jardin" ? "jardin" : "casa";
+  const asleep = active && !!(petState.sleep && petState.sleep.dormida);
+  const lampOn = active && !!(petState.world && petState.world.objects && petState.world.objects.lamp_01 && petState.world.objects.lamp_01.on);
+
+  el.visitStageFloor.classList.remove(...PET_LOCATIONS.map((l) => "location-" + l.id));
+  el.visitStageFloor.classList.add("location-" + locationId);
+  el.visitStageFloor.classList.toggle("is-night", isNightNow(new Date()));
+  el.visitLocationDeco.innerHTML = visitDecoMarkup(locationId);
+  renderVisitWorldObjects(locationId, lampOn);
+
+  renderPetLayers(el.visitPetStage, petState.look || defaultLook());
+  const mood = petState.health && petState.health.enferma ? "triste" : moodFromStats(petState.stats || {});
+  el.visitPetStage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
+  el.visitPetStage.classList.add("mood-" + mood);
+  el.visitPetStage.classList.toggle("sleeping", asleep);
+  el.visitPetStage.classList.toggle("sick", !!(petState.health && petState.health.enferma));
+  el.visitPetStage.style.setProperty(
+    "--eye-scale",
+    asleep ? 0.04 : computeEyeScale(petState.stats || {}, petState.health || {})
+  );
+  el.visitWalker.classList.toggle("is-sleeping", asleep);
+  el.visitWalker.classList.toggle("is-wandering", !active);
+
+  if (!active) {
+    el.visitStatusLine.textContent = `${displayName} no está conectada ahora — ${petName} anda por ahí, sin hacer nada en particular.`;
+  } else if (asleep) {
+    el.visitStatusLine.textContent = `${petName} está durmiendo.`;
+  } else if (locationId === "jardin") {
+    el.visitStatusLine.textContent = `${petName} está en el jardín ahora mismo.`;
+  } else {
+    el.visitStatusLine.textContent = `${petName} está en casa ahora mismo.`;
+  }
+}
+
+function openVisit(usernameLower, displayName) {
+  if (!window.Cloud || !window.Cloud.enabled || !usernameLower) return;
+  closeVisit();
+  closeFriendsPanel();
+  el.visitTitle.textContent = `Casa de ${displayName}`;
+  el.visitStatusLine.textContent = "Conectando...";
+  delete el.visitPetStage.dataset.lookKey;
+  el.visitPetStage.innerHTML = "";
+  // "game-stage" (además de "pet-stage") es lo que le da a este escenario
+  // la respiración/expresión de ánimo real (ver .game-stage en
+  // css/style.css) — #visit-pet-stage.pet-stage más abajo en ese mismo
+  // archivo le saca el cursor de "acariciable" que trae esa clase, ya que
+  // acá no se puede interactuar con nada.
+  el.visitPetStage.className = "pet-stage game-stage";
+  el.visitWorldLayer.innerHTML = "";
+  el.visitLocationDeco.innerHTML = "";
+  el.visitWalker.classList.remove("is-sleeping", "is-wandering");
+  el.visitOverlay.hidden = false;
+  visitUnsubscribe = window.Cloud.subscribeToPlayer(usernameLower, (data) => renderVisit(displayName, data));
+}
+
+function closeVisit() {
+  if (visitUnsubscribe) {
+    visitUnsubscribe();
+    visitUnsubscribe = null;
+  }
+  if (el.visitOverlay) el.visitOverlay.hidden = true;
+}
+
+function setupVisitUI() {
+  if (!el.visitOverlay || !el.visitClose) return;
+  el.visitClose.addEventListener("click", closeVisit);
+  el.visitOverlay.addEventListener("click", (ev) => {
+    if (ev.target === el.visitOverlay) closeVisit();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && !el.visitOverlay.hidden) closeVisit();
   });
 }
