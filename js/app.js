@@ -12,6 +12,31 @@ let tickTimer = null;
 let cooldownTimer = null;
 let requestsTimer = null;
 
+// ---------- v3.3: sesión en la nube (cuenta + amigos) ----------
+let currentUsername = null; // usernameLower, o null en modo sin nube/sin login
+let currentDisplayName = null;
+let cloudUnsub = null; // desuscribe el onSnapshot de amigos/solicitudes de la cuenta actual
+let myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
+let friendsTabActive = "lista";
+const SESSION_KEY = PET_CONFIG.storageKey + ".session";
+
+function getRememberedUsername() {
+  try {
+    return localStorage.getItem(SESSION_KEY) || null;
+  } catch (e) {
+    return null;
+  }
+}
+function rememberUsername(usernameLower) {
+  try {
+    if (usernameLower) localStorage.setItem(SESSION_KEY, usernameLower);
+    else localStorage.removeItem(SESSION_KEY);
+  } catch (e) {
+    // si no se puede guardar la sesión recordada, no es grave: la próxima
+    // vez simplemente vuelve a pedir el login.
+  }
+}
+
 const el = {
   onboarding: document.getElementById("onboarding"),
   game: document.getElementById("game"),
@@ -76,9 +101,39 @@ const el = {
   optReiniciar: document.getElementById("opt-reiniciar"),
   btnAleatorio: document.getElementById("btn-aleatorio"),
   locationDeco: document.getElementById("location-deco"),
+  worldLayer: document.getElementById("world-layer"),
   navBtn: document.getElementById("btn-nav"),
   navBtnLabel: document.getElementById("nav-btn-label"),
   headerClock: document.getElementById("header-clock"),
+  footerText: document.getElementById("footer-text"),
+  // v3.3: cuenta en la nube + amigos.
+  loginScreen: document.getElementById("login-screen"),
+  loginForm: document.getElementById("login-form"),
+  loginUsername: document.getElementById("login-username"),
+  loginPin: document.getElementById("login-pin"),
+  loginError: document.getElementById("login-error"),
+  loginSubmit: document.getElementById("login-submit"),
+  loginOffline: document.getElementById("login-offline"),
+  optCambiarUsuario: document.getElementById("opt-cambiar-usuario"),
+  btnAmigos: document.getElementById("btn-amigos"),
+  friendsBadge: document.getElementById("friends-badge"),
+  friendsOverlay: document.getElementById("friends-overlay"),
+  friendsPanel: document.getElementById("friends-panel"),
+  friendsClose: document.getElementById("friends-close"),
+  friendsTabs: document.getElementById("friends-tabs"),
+  requestsTabBadge: document.getElementById("requests-tab-badge"),
+  friendsTabLista: document.getElementById("friends-tab-lista"),
+  friendsTabSolicitudes: document.getElementById("friends-tab-solicitudes"),
+  friendsTabAgregar: document.getElementById("friends-tab-agregar"),
+  friendsList: document.getElementById("friends-list"),
+  friendsEmpty: document.getElementById("friends-empty"),
+  requestsIncomingList: document.getElementById("requests-incoming-list"),
+  requestsIncomingEmpty: document.getElementById("requests-incoming-empty"),
+  requestsOutgoingList: document.getElementById("requests-outgoing-list"),
+  requestsOutgoingEmpty: document.getElementById("requests-outgoing-empty"),
+  addFriendForm: document.getElementById("add-friend-form"),
+  addFriendInput: document.getElementById("add-friend-input"),
+  addFriendResult: document.getElementById("add-friend-result"),
 };
 
 // ---------- Render de la mascota (capas de SVG apiladas) ----------
@@ -130,8 +185,47 @@ function trySave(s) {
     if (el.storageNotice) el.storageNotice.hidden = true;
     announce("El guardado se restableció, tu mascota se está guardando de nuevo.");
   }
+  scheduleCloudSave(s);
   return ok;
 }
+
+// ---------- v3.3: guardado en la nube (Firestore), con demora ----------
+// El guardado local (arriba) pasa muchas veces por minuto (cada tick,
+// cada acción). Empujar eso mismo a la nube en cada llamada gastaría
+// escrituras de Firestore sin necesidad — así que acá se junta en una
+// sola escritura cada CLOUD_SAVE_DEBOUNCE_MS como máximo, y se fuerza un
+// envío inmediato al cambiar de pestaña/cerrar (flushCloudSaveNow) para
+// no perder los últimos segundos de progreso.
+const CLOUD_SAVE_DEBOUNCE_MS = 20000;
+let cloudSaveTimer = null;
+let cloudSavePending = false;
+
+function scheduleCloudSave(s) {
+  if (!window.Cloud || !window.Cloud.enabled || !currentUsername) return;
+  cloudSavePending = true;
+  if (cloudSaveTimer) return;
+  cloudSaveTimer = setTimeout(() => {
+    cloudSaveTimer = null;
+    if (!cloudSavePending || !currentUsername) return;
+    cloudSavePending = false;
+    window.Cloud.savePetState(currentUsername, s);
+  }, CLOUD_SAVE_DEBOUNCE_MS);
+}
+
+function flushCloudSaveNow() {
+  if (!window.Cloud || !window.Cloud.enabled || !currentUsername || !state) return;
+  if (cloudSaveTimer) {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+  }
+  cloudSavePending = false;
+  window.Cloud.savePetState(currentUsername, state);
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushCloudSaveNow();
+});
+window.addEventListener("pagehide", flushCloudSaveNow);
 
 function makeInlineLayer(innerMarkup, extraClass) {
   const svg = document.createElementNS(SVG_NS, "svg");
@@ -461,7 +555,7 @@ function setupClickToWalk() {
     // click (pedido explícito, sección 10: "menús/manchas/botones no
     // deben activar accidentalmente el movimiento de fondo"; el personaje
     // se suma en v2.2, porque clickearlo ahora acaricia en vez de mover).
-    if (event.target.closest(".dirt-item") || event.target.closest("#toy-ball") || event.target.closest("#game-stage")) return;
+    if (event.target.closest(".dirt-item") || event.target.closest("#toy-ball") || event.target.closest("#game-stage") || event.target.closest(".world-object")) return;
     registerInteraction();
     if (walkMax <= 0 || !canWalk()) return;
     setPointerWalkTarget(event.clientX);
@@ -534,6 +628,122 @@ function setLocationVisuals(locationId) {
   el.stageFloor.classList.add("location-" + def.id);
   if (el.locationDeco) el.locationDeco.innerHTML = LOCATION_DECO_HTML[def.id] || "";
   if (el.navBtnLabel) el.navBtnLabel.textContent = def.exitLabel;
+  if (state) renderWorldObjects();
+}
+
+// ---------- Fase 1: objetos interactivos de la Casa ----------
+
+function worldObjectArt(kind) {
+  const art = {
+    bed: '<span class="wo-bed"><i class="wo-bed-head"></i><i class="wo-bed-pillow"></i><i class="wo-bed-blanket"></i></span>',
+    sofa: '<span class="wo-sofa"><i class="wo-sofa-back"></i><i class="wo-sofa-seat"></i><i class="wo-sofa-arm wo-left"></i><i class="wo-sofa-arm wo-right"></i></span>',
+    "food-bowl": '<span class="wo-bowl wo-food"><i></i></span>',
+    "water-bowl": '<span class="wo-bowl wo-water"><i></i></span>',
+    toy: '<span class="wo-toy"><i></i></span>',
+    lamp: '<span class="wo-lamp"><i class="wo-lamp-shade"></i><i class="wo-lamp-stem"></i><i class="wo-lamp-base"></i><i class="wo-lamp-glow"></i></span>',
+  };
+  return art[kind] || '<span class="wo-placeholder"></span>';
+}
+
+function randomWorldPhrase(obj) {
+  const list = Array.isArray(obj.phrases) ? obj.phrases.filter(Boolean) : [];
+  return list.length ? list[Math.floor(Math.random() * list.length)] : obj.name;
+}
+
+function updateWorldLighting() {
+  if (!state || !el.stageFloor) return;
+  const lampOn = !!state.world?.objects?.lamp_01?.on;
+  el.stageFloor.classList.toggle("room-lamp-on", state.location === "casa" && lampOn);
+  const lamp = el.worldLayer?.querySelector('[data-world-id="lamp_01"]');
+  if (lamp) {
+    lamp.classList.toggle("is-on", lampOn);
+    lamp.setAttribute("aria-pressed", String(lampOn));
+  }
+}
+
+function movePetNearWorldObject(obj) {
+  if (!obj || !canWalk()) return;
+  computeWalkBounds();
+  const walkerWidth = el.walker.offsetWidth || 200;
+  const stageX = (obj.x / 100) * el.stageFloor.clientWidth;
+  walkTarget = clamp(stageX - walkerWidth / 2 - WALK_PAD, 0, walkMax);
+  walkSpeed = WALK_SPEED_MAX;
+  walkState = "walking";
+}
+
+function interactWithWorldObject(obj) {
+  if (!state || !obj || navLock || state.location !== obj.room) return;
+  registerInteraction();
+  const node = el.worldLayer?.querySelector(`[data-world-id="${obj.id}"]`);
+  if (node) {
+    node.classList.remove("world-object-pulse");
+    void node.offsetWidth;
+    node.classList.add("world-object-pulse");
+  }
+
+  switch (obj.action) {
+    case "sleep":
+      toggleSueño();
+      break;
+    case "feed":
+      if (state.sleep.dormida) { notifySystem(`${state.name} está durmiendo.`); return; }
+      if (el.feedMenu.hidden) toggleFeedMenu();
+      else refreshFeedMenuState();
+      if (el.feedMenu.hidden === false) showBubble(randomWorldPhrase(obj), 2400);
+      break;
+    case "drink":
+      doBeber();
+      break;
+    case "play":
+      showBubble(randomWorldPhrase(obj), 1800);
+      doJugar();
+      break;
+    case "sofa": {
+      if (state.sleep.dormida) { notifySystem(`${state.name} está durmiendo.`); return; }
+      movePetNearWorldObject(obj);
+      const now = Date.now();
+      const sofaState = state.world.objects.sofa_01;
+      if (now - sofaState.lastRewardAt >= 30000) {
+        gainFelicidad(2);
+        addBond(1);
+        sofaState.lastRewardAt = now;
+        trySave(state);
+        refreshUI();
+      }
+      setTimeout(() => { if (state && state.location === obj.room && !state.sleep.dormida) showBubble(randomWorldPhrase(obj), 3000); }, prefersReducedMotion() ? 50 : 650);
+      break;
+    }
+    case "lamp":
+      state.world.objects.lamp_01.on = !state.world.objects.lamp_01.on;
+      trySave(state);
+      updateWorldLighting();
+      showBubble(state.world.objects.lamp_01.on ? "Qué linda luz." : "Apaguemos la luz un rato.", 2400);
+      break;
+  }
+}
+
+function renderWorldObjects() {
+  if (!el.worldLayer || !state) return;
+  el.worldLayer.innerHTML = "";
+  const objects = getRoomObjects(state.location);
+  objects.forEach((obj) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `world-object world-object-${obj.type}`;
+    button.dataset.worldId = obj.id;
+    button.dataset.tooltip = obj.tooltip || obj.name;
+    button.setAttribute("aria-label", `${obj.name}: ${obj.tooltip || "interactuar"}`);
+    if (obj.action === "lamp") button.setAttribute("aria-pressed", "false");
+    button.style.left = `${obj.x}%`;
+    button.style.top = `${obj.y}%`;
+    button.style.width = `${obj.width}%`;
+    button.style.zIndex = String(obj.depth || 1);
+    button.innerHTML = worldObjectArt(obj.art);
+    button.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    button.addEventListener("click", (ev) => { ev.stopPropagation(); interactWithWorldObject(obj); });
+    el.worldLayer.appendChild(button);
+  });
+  updateWorldLighting();
 }
 
 /** Mueve a la mascota (walkX) hasta targetX en `ms` milisegundos, con el
@@ -1264,6 +1474,7 @@ function refreshUI() {
   updateStatusLine();
   updateFlies();
   renderDirt();
+  updateWorldLighting();
   updateSleepToggle();
   updateActionsAvailability();
   el.gameStage.setAttribute("aria-disabled", String(Math.round(state.stats.felicidad) >= 100 || state.sleep.dormida));
@@ -2187,21 +2398,52 @@ function doReiniciar() {
     if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
     clearState();
     state = null;
+    if (currentUsername) window.Cloud.savePetState(currentUsername, null);
     openOnboarding(null);
   }
 }
 
+// v3.3: "Cambiar de usuario" cierra la sesión de nube actual (la mascota
+// queda guardada tal cual en la cuenta) y vuelve a la pantalla de login —
+// sólo aparece en el menú cuando hay nube configurada y sesión iniciada
+// (ver updateOptCambiarUsuario).
+function doCambiarUsuario() {
+  if (!confirm("¿Cambiar de usuario? Tu mascota queda guardada en la nube en tu cuenta actual.")) return;
+  flushCloudSaveNow();
+  if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+  if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
+  if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
+  if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+  currentUsername = null;
+  currentDisplayName = null;
+  myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
+  rememberUsername(null);
+  state = null;
+  closeFriendsPanel();
+  if (el.btnAmigos) el.btnAmigos.hidden = true;
+  el.game.hidden = true;
+  el.onboarding.hidden = true;
+  updateFooterText();
+  updateOptCambiarUsuario();
+  showLoginScreen();
+}
+
+function updateOptCambiarUsuario() {
+  if (el.optCambiarUsuario) {
+    el.optCambiarUsuario.hidden = !(window.Cloud && window.Cloud.enabled && currentUsername);
+  }
+}
+
+function updateFooterText() {
+  if (!el.footerText) return;
+  if (window.Cloud && window.Cloud.enabled && currentUsername) {
+    el.footerText.textContent = `Hecho por Jony · Mascotito Alpha v3.3 · sesión: ${currentDisplayName} · guardado en la nube y en este navegador`;
+  } else {
+    el.footerText.textContent = "Hecho por Jony · Mascotito Alpha v3.3 · guardado localmente en este navegador";
+  }
+}
+
 function setupOptionsMenu() {
-  document.getElementById("opt-change-user").addEventListener("click", () => {
-    if (debugSnapshot) closeDebugMode();
-    if (state && !trySave(state)) return;
-    try {
-      localStorage.removeItem(USER_KEY);
-      window.location.reload();
-    } catch (error) {
-      announce("No se pudo cambiar de usuario. Volvé a intentar.");
-    }
-  });
   if (el.btnEditPet) el.btnEditPet.addEventListener("click", () => openOnboarding(state));
   el.btnOpciones.addEventListener("click", () => {
     if (el.optionsMenu.hidden) openOptionsMenu();
@@ -2211,6 +2453,12 @@ function setupOptionsMenu() {
     if (el.debugPanel.hidden) openDebugMode();
     else closeDebugMode();
   });
+  if (el.optCambiarUsuario) {
+    el.optCambiarUsuario.addEventListener("click", () => {
+      closeOptionsMenu();
+      doCambiarUsuario();
+    });
+  }
   el.optReiniciar.addEventListener("click", () => {
     closeOptionsMenu();
     doReiniciar();
@@ -2441,10 +2689,7 @@ document.addEventListener("keydown", ev => {
 });
 // ---------- Arranque ----------
 
-(async function init() {
-  const username = restoreUsername() || await requestUsername();
-  document.getElementById("current-username").textContent = username;
-  el.appHeader.hidden = false;
+(function init() {
   // Iconos estáticos que no cambian durante la sesión (los que sí cambian
   // — puerta/etiqueta de lugar — se resuelven en setLocationVisuals).
   el.btnAleatorio.innerHTML = iconSvg("dado") + "<span>Aleatorio</span>";
@@ -2467,20 +2712,413 @@ document.addEventListener("keydown", ev => {
   setupVisibilityRecalc();
   setupAutoBlink();
   setupClock();
-  const saved = loadState();
+  setupLoginUI();
+  setupFriendsUI();
+  boot();
+})();
+
+/**
+ * v3.3 — Arranque de sesión (nube o local). Reemplaza el "cargar y
+ * mostrar" directo de v3.2: ahora primero hay que saber si hay un
+ * proyecto de Firebase configurado (window.Cloud.enabled) y, si lo hay,
+ * quién está jugando.
+ *
+ * - Sin nube configurada (CLOUD_ENABLED=false en js/firebase-config.js,
+ *   el valor por defecto): comportamiento IDÉNTICO a v3.2, sin pantalla
+ *   de login — se sigue guardando sólo en este navegador.
+ * - Con nube configurada: se intenta retomar la sesión recordada en este
+ *   navegador (mismo usuario de la última vez); si no hay ninguna, o la
+ *   cuenta recordada ya no responde, se pide usuario+PIN.
+ */
+async function waitForCloud(timeoutMs) {
+  const start = Date.now();
+  while (!window.Cloud) {
+    if (Date.now() - start > timeoutMs) return null;
+    await wait(50);
+  }
+  return window.Cloud;
+}
+
+async function boot() {
   const notice = getStorageNotice();
   if (notice && el.storageNotice) {
     el.storageNotice.textContent = "⚠️ " + notice;
     el.storageNotice.hidden = false;
     announce(notice);
   }
+  const Cloud = await waitForCloud(4000);
+  if (!Cloud || !Cloud.enabled) {
+    beginLocalOnlySession();
+    return;
+  }
+  await Cloud.ready;
+  if (!Cloud.enabled) {
+    // enabled puede haber quedado en true por config pero falló la
+    // conexión real (ver window.Cloud.lastInitError) — se sigue jugando
+    // localmente en vez de trabar la app.
+    beginLocalOnlySession();
+    return;
+  }
+  const remembered = getRememberedUsername();
+  if (remembered) {
+    const result = await Cloud.getPlayerData(remembered);
+    if (result.ok) {
+      currentUsername = remembered;
+      currentDisplayName = result.data.username;
+      startSessionWithData(result.data);
+      return;
+    }
+    if (result.error === "not_found") rememberUsername(null);
+    // Si fue error de red, se deja la sesión recordada guardada (se
+    // reintenta sola la próxima vez) y se pide login igual por ahora.
+  }
+  showLoginScreen();
+}
+
+function beginLocalOnlySession() {
+  const saved = loadState();
   if (saved) {
     state = saved;
-    state.location = "casa";
     el.onboarding.hidden = true;
     el.game.hidden = false;
     startGame();
   } else {
     openOnboarding(null);
   }
-})();
+}
+
+function startSessionWithData(data) {
+  el.loginScreen.hidden = true;
+  el.appHeader.hidden = false;
+  if (el.btnAmigos) el.btnAmigos.hidden = false;
+  updateFooterText();
+  updateOptCambiarUsuario();
+  subscribeFriendsLive();
+  const cloudPet = data && data.petState ? normalizeState(data.petState) : null;
+  if (cloudPet) {
+    state = cloudPet;
+    el.onboarding.hidden = true;
+    el.game.hidden = false;
+    startGame();
+    return;
+  }
+  // Cuenta sin mascota guardada en la nube todavía (recién creada, o
+  // creada desde otro navegador sin haber llegado a crear mascota). Si
+  // este navegador ya tenía una mascota guardada de forma local, se
+  // toma como punto de partida en vez de perderla — trySave() dentro de
+  // startGame() ya programa subirla a la nube sola.
+  const local = loadState();
+  if (local) {
+    state = local;
+    el.onboarding.hidden = true;
+    el.game.hidden = false;
+    startGame();
+  } else {
+    openOnboarding(null);
+  }
+}
+
+// ---------- v3.3: pantalla de login (usuario + PIN) ----------
+
+function showLoginScreen() {
+  el.loginScreen.hidden = false;
+  el.game.hidden = true;
+  el.onboarding.hidden = true;
+  el.appHeader.hidden = true;
+  if (el.loginError) el.loginError.hidden = true;
+  if (el.loginOffline) el.loginOffline.hidden = true;
+  setTimeout(() => el.loginUsername && el.loginUsername.focus(), 50);
+}
+
+function showLoginError(msg) {
+  if (!el.loginError) return;
+  el.loginError.textContent = msg;
+  el.loginError.hidden = false;
+}
+
+const LOGIN_ERROR_MESSAGES = {
+  wrong_pin: "Ese PIN no es correcto para ese usuario.",
+  invalid_username: "El usuario debe tener 3 a 16 letras/números, empezando con una letra (sin espacios ni símbolos).",
+  invalid_pin: "El PIN tiene que ser de 4 números.",
+  taken: "Ese usuario ya existe — si es tuyo, escribí el PIN con el que lo creaste.",
+};
+
+async function handleLoginSubmit() {
+  if (el.loginError) el.loginError.hidden = true;
+  if (el.loginOffline) el.loginOffline.hidden = true;
+  const Cloud = window.Cloud;
+  if (!Cloud) return;
+  const usernameRaw = el.loginUsername.value;
+  const pin = el.loginPin.value;
+  const usernameLower = Cloud.normalizeUsername(usernameRaw);
+  if (!usernameLower) {
+    showLoginError(LOGIN_ERROR_MESSAGES.invalid_username);
+    el.loginUsername.focus();
+    return;
+  }
+  if (!Cloud.isValidPin(pin)) {
+    showLoginError(LOGIN_ERROR_MESSAGES.invalid_pin);
+    el.loginPin.focus();
+    return;
+  }
+  el.loginSubmit.disabled = true;
+  const originalLabel = el.loginSubmit.textContent;
+  el.loginSubmit.textContent = "Entrando...";
+  try {
+    let result = await Cloud.login(usernameRaw, pin);
+    if (!result.ok && result.error === "not_found") {
+      // Usuario nuevo para la nube: se crea la cuenta en el momento con
+      // ese mismo PIN (pedido explícito: "no hace falta contraseña,
+      // entre amigos" — el login sigue siendo instantáneo).
+      result = await Cloud.register(usernameRaw, pin, null);
+      if (!result.ok && result.error === "taken") {
+        // carrera rara (alguien lo registró en el medio) — se reintenta como login.
+        result = await Cloud.login(usernameRaw, pin);
+      }
+      if (result.ok) {
+        currentUsername = result.usernameLower;
+        currentDisplayName = result.username;
+        rememberUsername(currentUsername);
+        startSessionWithData({
+          username: currentDisplayName,
+          petState: null,
+          friends: {},
+          friendRequests: { incoming: {}, outgoing: {} },
+        });
+        return;
+      }
+    }
+    if (!result.ok) {
+      if (result.error === "network" || result.error === "disabled") {
+        showLoginError("No se pudo conectar con la nube ahora mismo. Podés seguir jugando en este navegador mientras tanto.");
+        if (el.loginOffline) el.loginOffline.hidden = false;
+      } else {
+        showLoginError(LOGIN_ERROR_MESSAGES[result.error] || "No se pudo iniciar sesión.");
+      }
+      return;
+    }
+    currentUsername = result.usernameLower;
+    currentDisplayName = result.username;
+    rememberUsername(currentUsername);
+    startSessionWithData(result.data);
+  } finally {
+    el.loginSubmit.disabled = false;
+    el.loginSubmit.textContent = originalLabel;
+  }
+}
+
+function setupLoginUI() {
+  if (!el.loginForm) return;
+  el.loginForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    handleLoginSubmit();
+  });
+  if (el.loginOffline) {
+    el.loginOffline.addEventListener("click", () => {
+      el.loginScreen.hidden = true;
+      beginLocalOnlySession();
+    });
+  }
+}
+
+// ---------- v3.3: panel de Amigos ----------
+
+function subscribeFriendsLive() {
+  if (cloudUnsub) {
+    cloudUnsub();
+    cloudUnsub = null;
+  }
+  if (!window.Cloud || !window.Cloud.enabled || !currentUsername) return;
+  cloudUnsub = window.Cloud.subscribeToPlayer(currentUsername, (data) => {
+    myCloudData = data || { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
+    renderFriendsBadge();
+    if (el.friendsOverlay && !el.friendsOverlay.hidden) renderFriendsPanel();
+  });
+}
+
+function renderFriendsBadge() {
+  const incoming = (myCloudData.friendRequests && myCloudData.friendRequests.incoming) || {};
+  const count = Object.keys(incoming).length;
+  if (el.friendsBadge) {
+    el.friendsBadge.hidden = count === 0;
+    el.friendsBadge.textContent = String(count);
+  }
+  if (el.requestsTabBadge) {
+    el.requestsTabBadge.hidden = count === 0;
+    el.requestsTabBadge.textContent = String(count);
+  }
+}
+
+function friendRow(displayName, actionsHtml) {
+  const li = document.createElement("li");
+  li.className = "friend-item";
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "friend-item-name";
+  nameSpan.textContent = displayName;
+  const actionsSpan = document.createElement("span");
+  actionsSpan.className = "friend-item-actions";
+  actionsSpan.innerHTML = actionsHtml;
+  li.appendChild(nameSpan);
+  li.appendChild(actionsSpan);
+  return li;
+}
+
+function renderFriendsPanel() {
+  const friends = myCloudData.friends || {};
+  const incoming = (myCloudData.friendRequests && myCloudData.friendRequests.incoming) || {};
+  const outgoing = (myCloudData.friendRequests && myCloudData.friendRequests.outgoing) || {};
+
+  el.friendsList.innerHTML = "";
+  const friendKeys = Object.keys(friends);
+  el.friendsEmpty.hidden = friendKeys.length > 0;
+  friendKeys.forEach((k) => {
+    const display = (friends[k] && friends[k].displayName) || k;
+    el.friendsList.appendChild(
+      friendRow(display, `<button type="button" class="friend-btn-remove" data-user="${k}">Quitar</button>`)
+    );
+  });
+
+  el.requestsIncomingList.innerHTML = "";
+  const inKeys = Object.keys(incoming);
+  el.requestsIncomingEmpty.hidden = inKeys.length > 0;
+  inKeys.forEach((k) => {
+    const display = (incoming[k] && incoming[k].fromDisplay) || k;
+    el.requestsIncomingList.appendChild(
+      friendRow(
+        display,
+        `<button type="button" class="friend-btn-accept" data-user="${k}">Aceptar</button><button type="button" class="friend-btn-reject" data-user="${k}">Rechazar</button>`
+      )
+    );
+  });
+
+  el.requestsOutgoingList.innerHTML = "";
+  const outKeys = Object.keys(outgoing);
+  el.requestsOutgoingEmpty.hidden = outKeys.length > 0;
+  outKeys.forEach((k) => {
+    el.requestsOutgoingList.appendChild(
+      friendRow(k, `<button type="button" class="friend-btn-cancel" data-user="${k}">Cancelar</button>`)
+    );
+  });
+
+  renderFriendsBadge();
+}
+
+function openFriendsPanel() {
+  el.friendsOverlay.hidden = false;
+  renderFriendsPanel();
+  switchFriendsTab(friendsTabActive);
+}
+
+function closeFriendsPanel() {
+  if (el.friendsOverlay) el.friendsOverlay.hidden = true;
+}
+
+function switchFriendsTab(tab) {
+  friendsTabActive = tab;
+  const panels = { lista: el.friendsTabLista, solicitudes: el.friendsTabSolicitudes, agregar: el.friendsTabAgregar };
+  Object.keys(panels).forEach((key) => {
+    if (panels[key]) panels[key].hidden = key !== tab;
+  });
+  el.friendsTabs.querySelectorAll(".creator-tab").forEach((btn) => {
+    btn.setAttribute("aria-selected", String(btn.dataset.tab === tab));
+  });
+}
+
+async function handleAddFriendSearch() {
+  const Cloud = window.Cloud;
+  const resultBox = el.addFriendResult;
+  if (!Cloud || !resultBox) return;
+  const raw = el.addFriendInput.value;
+  resultBox.hidden = false;
+  resultBox.textContent = "Buscando...";
+  const result = await Cloud.searchUser(raw);
+  if (!result.ok) {
+    resultBox.textContent = result.error === "invalid_username"
+      ? LOGIN_ERROR_MESSAGES.invalid_username
+      : "No se pudo buscar ahora mismo (revisá tu conexión).";
+    return;
+  }
+  if (!result.exists) {
+    resultBox.textContent = "No existe ningún usuario con ese nombre.";
+    return;
+  }
+  if (result.usernameLower === currentUsername) {
+    resultBox.textContent = "Ese sos vos.";
+    return;
+  }
+  if (myCloudData.friends && myCloudData.friends[result.usernameLower]) {
+    resultBox.textContent = `Ya son amigos con ${result.username}.`;
+    return;
+  }
+  if (myCloudData.friendRequests && myCloudData.friendRequests.outgoing && myCloudData.friendRequests.outgoing[result.usernameLower]) {
+    resultBox.textContent = `Ya le enviaste una solicitud a ${result.username}.`;
+    return;
+  }
+  if (myCloudData.friendRequests && myCloudData.friendRequests.incoming && myCloudData.friendRequests.incoming[result.usernameLower]) {
+    resultBox.textContent = `${result.username} ya te envió una solicitud — buscala en la pestaña Solicitudes.`;
+    return;
+  }
+  resultBox.textContent = "";
+  resultBox.appendChild(document.createTextNode(`Encontrado: ${result.username}. `));
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "secondary-btn";
+  btn.textContent = "Enviar solicitud";
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    const send = await Cloud.sendFriendRequest(currentUsername, currentDisplayName, result.usernameLower);
+    if (send.ok) {
+      resultBox.textContent = `Solicitud enviada a ${result.username}.`;
+      el.addFriendInput.value = "";
+    } else {
+      resultBox.textContent = "No se pudo enviar la solicitud (¿ya son amigos, o ya hay una solicitud pendiente?).";
+      btn.disabled = false;
+    }
+  });
+  resultBox.appendChild(btn);
+}
+
+function setupFriendsUI() {
+  if (!el.btnAmigos || !el.friendsOverlay) return;
+  el.btnAmigos.addEventListener("click", openFriendsPanel);
+  el.friendsClose.addEventListener("click", closeFriendsPanel);
+  el.friendsOverlay.addEventListener("click", (ev) => {
+    if (ev.target === el.friendsOverlay) closeFriendsPanel();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && !el.friendsOverlay.hidden) closeFriendsPanel();
+  });
+  el.friendsTabs.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".creator-tab");
+    if (!btn) return;
+    switchFriendsTab(btn.dataset.tab);
+  });
+  el.friendsList.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button[data-user]");
+    if (!btn || !btn.classList.contains("friend-btn-remove")) return;
+    btn.disabled = true;
+    await window.Cloud.removeFriend(currentUsername, btn.dataset.user);
+  });
+  el.requestsIncomingList.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button[data-user]");
+    if (!btn) return;
+    const target = btn.dataset.user;
+    btn.disabled = true;
+    if (btn.classList.contains("friend-btn-accept")) {
+      const res = await window.Cloud.acceptFriendRequest(currentUsername, currentDisplayName, target);
+      if (res.ok) notifySystem("Ahora son amigos.");
+    } else if (btn.classList.contains("friend-btn-reject")) {
+      await window.Cloud.rejectFriendRequest(currentUsername, target);
+    }
+  });
+  el.requestsOutgoingList.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button[data-user]");
+    if (!btn || !btn.classList.contains("friend-btn-cancel")) return;
+    btn.disabled = true;
+    await window.Cloud.cancelFriendRequest(currentUsername, btn.dataset.user);
+  });
+  el.addFriendForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    handleAddFriendSearch();
+  });
+}

@@ -2858,15 +2858,249 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .feed-item-icon { width:auto; height:auto; }
 .game-title { font-family:inherit; font-size:1rem; font-weight:700; }
 
-/* Entrada de usuario: comparte la paleta y los botones del juego. */
-.user-entry { width: min(480px, calc(100% - 32px)); margin: 40px auto; padding: 28px; background: var(--panel); border: 3px solid var(--wood-edge); border-radius: 20px; box-shadow: var(--shadow-soft); color: var(--ink); }
-.user-entry > img { display: block; max-width: 100%; height: auto; margin: 0 auto 20px; }
-.user-entry h1 { font-size: 1.6rem; line-height: 1.2; }
-.user-entry p { line-height: 1.5; }
-.user-entry form { display: grid; gap: 12px; margin-top: 24px; }
-.user-entry label { font-weight: 700; }
-.user-entry input { width: 100%; padding: 12px; font: inherit; border: 2px solid var(--wood-edge); border-radius: 10px; }
-.user-entry input:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-#username-error { color: #a52a19; margin: 0; }
-.user-entry-note, #username-help { font-size: .88rem; }
-#current-username { overflow-wrap: anywhere; }
+/* ======================================================================
+   v3.3 — Fase 1: Casa interactiva / objetos del mundo
+   Los objetos se posicionan con porcentajes del escenario (data-driven en
+   js/world.js), de modo que una futura fase pueda persistir x/y por objeto.
+   ====================================================================== */
+.world-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.world-object {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  appearance: none;
+  filter: drop-shadow(0 7px 7px rgba(44, 31, 21, 0.2));
+  transition: transform .18s ease, filter .18s ease;
+  touch-action: manipulation;
+}
+.world-object:hover,
+.world-object:focus-visible {
+  transform: translate(-50%, -50%) scale(1.045);
+  filter: drop-shadow(0 8px 9px rgba(44, 31, 21, 0.26)) brightness(1.04);
+  outline: none;
+}
+.world-object:focus-visible::after,
+.world-object:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(35, 30, 28, .88);
+  color: #fff;
+  font: 700 clamp(.62rem, 1.1vw, .76rem)/1 "Baloo 2", sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  z-index: 20;
+}
+.world-object-pulse { animation: worldObjectPulse .34s ease; }
+@keyframes worldObjectPulse {
+  0%,100% { transform: translate(-50%, -50%) scale(1); }
+  45% { transform: translate(-50%, -50%) scale(.94); }
+}
+
+/* Iluminación ambiental de la lámpara. No bloquea interacciones. */
+.stage-floor.location-casa.room-lamp-on::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle at 18% 48%, rgba(255, 225, 154, .23), transparent 34%);
+  mix-blend-mode: screen;
+}
+
+/* Cama */
+.world-object-bed { aspect-ratio: 1.85 / 1; }
+.wo-bed, .wo-sofa, .wo-lamp, .wo-bowl, .wo-toy { position:absolute; inset:0; display:block; }
+.wo-bed { border-radius: 12% 12% 16% 16%; background:#9b6b4d; border:3px solid rgba(74,47,31,.65); overflow:hidden; }
+.wo-bed-head { position:absolute; left:0; top:0; width:18%; height:100%; background:#7a5039; border-right:3px solid rgba(74,47,31,.5); }
+.wo-bed-pillow { position:absolute; left:22%; top:12%; width:24%; height:36%; border-radius:35%; background:#f7ead4; box-shadow:inset 0 -3px rgba(0,0,0,.06); }
+.wo-bed-blanket { position:absolute; right:0; bottom:0; width:58%; height:62%; border-radius:28% 0 12% 0; background:#6fa9ad; box-shadow:inset 0 6px rgba(255,255,255,.12); }
+
+/* Sillón */
+.world-object-sofa { aspect-ratio: 1.55 / 1; }
+.wo-sofa-back { position:absolute; left:10%; right:10%; top:8%; height:52%; border-radius:24% 24% 13% 13%; background:#b87968; border:3px solid rgba(99,55,48,.55); }
+.wo-sofa-seat { position:absolute; left:13%; right:13%; bottom:10%; height:42%; border-radius:14% 14% 20% 20%; background:#c98c79; border:3px solid rgba(99,55,48,.5); }
+.wo-sofa-arm { position:absolute; bottom:13%; width:18%; height:50%; border-radius:30%; background:#ad6e60; border:3px solid rgba(99,55,48,.45); }
+.wo-sofa-arm.wo-left { left:0; } .wo-sofa-arm.wo-right { right:0; }
+
+/* Platos */
+.world-object-food_bowl, .world-object-water_bowl { aspect-ratio: 1.45 / 1; }
+.wo-bowl { top:20%; height:70%; border-radius:15% 15% 48% 48%; background:#e3c06c; border:3px solid rgba(91,65,32,.55); box-shadow:inset 0 7px rgba(255,255,255,.24); }
+.wo-bowl::before { content:""; position:absolute; left:8%; right:8%; top:-10%; height:34%; border-radius:50%; background:#7a5633; border:3px solid rgba(91,65,32,.55); }
+.wo-food::after { content:""; position:absolute; left:22%; right:22%; top:-4%; height:20%; border-radius:50%; background:repeating-radial-gradient(circle at 40% 45%, #946133 0 5px, #b47a42 6px 10px); }
+.wo-water { background:#8fc7d2; }
+.wo-water::before { background:#79bcd2; box-shadow:inset 0 3px rgba(255,255,255,.55); }
+
+/* Pelota */
+.world-object-toy { aspect-ratio:1; }
+.wo-toy { border-radius:50%; background:radial-gradient(circle at 35% 30%, #f8de63 0 28%, #e3b93a 30% 100%); border:3px solid rgba(100,72,24,.48); overflow:hidden; }
+.wo-toy::before, .wo-toy::after { content:""; position:absolute; width:120%; height:22%; left:-10%; top:39%; border:3px solid rgba(255,255,255,.75); border-left:0; border-right:0; border-radius:50%; transform:rotate(48deg); }
+.wo-toy::after { transform:rotate(-48deg); }
+
+/* Lámpara */
+.world-object-lamp { aspect-ratio:.62 / 1; }
+.wo-lamp-shade { position:absolute; top:6%; left:10%; width:80%; height:38%; clip-path:polygon(22% 0,78% 0,100% 100%,0 100%); background:#e5b36d; border-radius:10% 10% 4% 4%; z-index:3; }
+.wo-lamp-stem { position:absolute; top:40%; left:46%; width:8%; height:43%; border-radius:999px; background:#705442; z-index:2; }
+.wo-lamp-base { position:absolute; bottom:5%; left:22%; width:56%; height:12%; border-radius:50%; background:#705442; z-index:2; }
+.wo-lamp-glow { position:absolute; left:-50%; top:-20%; width:200%; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle, rgba(255,223,140,.55), transparent 65%); opacity:0; transform:scale(.55); transition:opacity .2s ease, transform .2s ease; z-index:1; }
+.world-object-lamp.is-on .wo-lamp-shade { filter:brightness(1.16); }
+.world-object-lamp.is-on .wo-lamp-glow { opacity:1; transform:scale(1); }
+
+@media (max-width: 640px) {
+  .world-object-bed { width:27% !important; }
+  .world-object-sofa { width:25% !important; }
+  .world-object-lamp { width:11% !important; }
+  .world-object-food_bowl, .world-object-water_bowl { width:9% !important; }
+  .world-object-toy { width:7% !important; }
+  .world-object:hover::after { display:none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world-object { transition:none; }
+  .world-object-pulse { animation:none; }
+}
+
+/* ======================================================================
+   v3.3 — Fase 2: cuenta en la nube (login usuario+PIN) y sistema de
+   amigos. Reutiliza los tokens/clases del look actual (cream/naranja/
+   navy: --ui-cream, --ui-orange, --ui-navy, .primary-btn/.secondary-btn/
+   .name-field/.field-error/.creator-tabs/.creator-tab) en vez de inventar
+   una paleta nueva, para que se sienta parte de la misma app.
+   ====================================================================== */
+
+.icon-btn { position: relative; }
+.icon-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ui-pink, #dd6d85);
+  color: #fff;
+  font: 800 0.68rem/18px "Baloo 2", sans-serif;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--ui-cream, #fff8e8);
+}
+.creator-tab .icon-badge {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  box-shadow: none;
+  vertical-align: middle;
+}
+
+/* ---------- Pantalla de login ---------- */
+.login-screen {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+  padding-top: clamp(24px, 6vh, 64px);
+}
+.login-screen .brand-emblem { margin: 0 auto 8px; }
+.login-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 4px 0 18px;
+  line-height: 1.4;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.login-form .name-field { max-width: none; text-align: left; }
+.login-form .primary-btn { margin-top: 10px; }
+.login-form .secondary-btn { margin-top: 8px; width: 100%; }
+
+/* ---------- Modal genérico (Amigos) ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  /* Tiene que ganarle a .app-header (z-index:100 en el rediseño de
+     encabezado más abajo en este mismo archivo) para que el panel de
+     Amigos no quede tapado/inaccesible detrás del encabezado. */
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(23, 35, 63, 0.5);
+  backdrop-filter: blur(2px);
+}
+.modal-window {
+  width: min(480px, 100%);
+  max-height: min(640px, 90dvh);
+  display: flex;
+  flex-direction: column;
+  background: var(--ui-cream, #fff8e8);
+  border-radius: 20px;
+  box-shadow: var(--ui-shadow, 0 14px 34px rgba(32, 22, 12, .28));
+  overflow: hidden;
+}
+.modal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 8px;
+}
+.modal-topbar h2 { margin: 0; font: 800 1.3rem/1 "Baloo 2", sans-serif; color: var(--ui-navy, #17233f); }
+.modal-window .creator-tabs { margin: 0 18px; }
+.modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px 18px 20px; }
+.friends-tabpanel + .friends-tabpanel { margin-top: 0; }
+.friends-subtitle {
+  margin: 14px 0 6px;
+  font: 800 0.8rem/1 "Baloo 2", sans-serif;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.friends-subtitle:first-child { margin-top: 0; }
+.friends-empty { color: var(--muted); font-size: 0.88rem; padding: 6px 2px; }
+.friends-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.friend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ui-cream-2, #f9ecd0);
+}
+.friend-item-name { font-weight: 700; color: var(--ui-navy, #17233f); overflow-wrap: anywhere; }
+.friend-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.friend-item-actions button {
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font: 700 0.8rem/1 "Baloo 2", sans-serif;
+  cursor: pointer;
+}
+.friend-btn-accept { background: var(--ui-green, #43a957); color: #fff; }
+.friend-btn-reject, .friend-btn-remove, .friend-btn-cancel { background: #ecdcc4; color: var(--ui-navy, #17233f); }
+.friend-btn-accept:hover { filter: brightness(1.06); }
+.friend-btn-reject:hover, .friend-btn-remove:hover, .friend-btn-cancel:hover { background: #e2cfae; }
+#add-friend-form { display: flex; align-items: flex-end; gap: 10px; }
+#add-friend-form .name-field { flex: 1; margin: 0; }
+#add-friend-form .secondary-btn { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .modal-window { border-radius: 16px; }
+  #add-friend-form { flex-direction: column; align-items: stretch; }
+}

@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para Mascotito v3.3.
+// Pegar este archivo completo en Firebase Console → Firestore Database →
+// Reglas, y publicar. Ver la sección "Cómo crear tu proyecto de Firebase"
+// en README.md para el paso a paso completo, y la nota de seguridad al
+// principio de js/cloud.js para entender qué protegen (y qué NO
+// protegen) estas reglas.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /players/{playerId} {
+      // Cualquier cliente de la app puede LEER un perfil (hace falta para
+      // poder buscar amigos por nombre de usuario e iniciar sesión) pero
+      // sólo puede LISTAR (recorrer toda la colección) si está deshabilitado
+      // del todo — así nadie puede "descargar" la lista completa de
+      // usuarios, sólo consultar uno por nombre exacto.
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      // Crear cuenta nueva: el ID del documento tiene que ser exactamente
+      // el nombre de usuario en minúsculas (evita duplicados con
+      // mayúsculas distintas) con un formato válido, y traer un PIN ya
+      // hasheado (nunca en texto plano).
+      allow create: if request.auth != null
+        && playerId == request.resource.data.usernameLower
+        && playerId.matches('^[a-z][a-z0-9_]{2,15}$')
+        && request.resource.data.pinHash is string
+        && request.resource.data.pinHash.size() > 10;
+
+      // Actualizar (guardar mascota, amigos, solicitudes): no se permite
+      // que una actualización cambie el PIN guardado ni el nombre de
+      // usuario del documento.
+      allow update: if request.auth != null
+        && resource.data.pinHash == request.resource.data.pinHash
+        && resource.data.usernameLower == request.resource.data.usernameLower;
+
+      allow delete: if false;
+    }
+  }
+}

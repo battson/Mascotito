@@ -8,7 +8,7 @@
 // v2 agrega necesidades/campos nuevos (Fase 2: Cuidado) — normalizeState
 // migra un guardado v1 (hambre/sed/limpieza) a la forma nueva sin perder
 // la mascota ni su progreso.
-const STATE_VERSION = 5;
+const STATE_VERSION = 6;
 
 let lastStorageNotice = null;
 function getStorageNotice() {
@@ -220,6 +220,17 @@ function normalizeDailyProgress(raw) {
   };
 }
 
+
+function normalizeWorld(raw) {
+  const w = raw && typeof raw === "object" ? raw : {};
+  return {
+    objects: {
+      lamp_01: { on: !!w.objects?.lamp_01?.on },
+      sofa_01: { lastRewardAt: Number.isFinite(w.objects?.sofa_01?.lastRewardAt) ? w.objects.sofa_01.lastRewardAt : 0 },
+    },
+  };
+}
+
 function normalizeEconomy(raw) {
   if (!raw || typeof raw !== "object") return { coins: 0 };
   const coins = Number.isFinite(raw.coins) ? Math.max(0, Math.floor(raw.coins)) : 0;
@@ -244,6 +255,7 @@ function normalizeState(raw) {
     health: normalizeHealth(raw.health),
     bond: normalizeBond(raw.bond),
     economy: normalizeEconomy(raw.economy),
+    world: normalizeWorld(raw.world),
     digestion: { pending: Array.isArray(raw.digestion?.pending) ? raw.digestion.pending.filter(Number.isFinite).slice(0,40).sort((a,b)=>a-b) : [] },
     petPosition: { xPct: clamp(raw.petPosition?.xPct || 50, 8,92), yPct: clamp(raw.petPosition?.yPct || 75,40,88) },
     inventory: { pescado: Number.isFinite(raw.inventory?.pescado) ? Math.max(0, Math.floor(raw.inventory.pescado)) : 0 },
@@ -269,6 +281,7 @@ function createNewState(name, look) {
     health: { malestar: 0, enferma: false, causa: null },
     bond: { xp: 0 },
     economy: { coins: 0 },
+    world: normalizeWorld(null),
     inventory: { pescado: 0 },
     digestion: { pending: [] },
     petPosition: { xPct: 50, yPct: 75 },
@@ -280,13 +293,13 @@ function createNewState(name, look) {
 }
 
 function recoveryKey() {
-  return currentStateKey() + ".recovery";
+  return PET_CONFIG.storageKey + ".recovery";
 }
 
 function loadState() {
   let raw;
   try {
-    raw = localStorage.getItem(currentStateKey());
+    raw = localStorage.getItem(PET_CONFIG.storageKey);
   } catch (e) {
     lastStorageNotice = "No se pudo acceder al guardado del navegador, así que el progreso no se va a guardar en esta sesión.";
     return null;
@@ -320,7 +333,7 @@ function loadState() {
 
 function saveState(state) {
   try {
-    const previousRaw = localStorage.getItem(currentStateKey());
+    const previousRaw = localStorage.getItem(PET_CONFIG.storageKey);
     if (previousRaw) {
       try {
         if (normalizeState(JSON.parse(previousRaw))) {
@@ -330,7 +343,7 @@ function saveState(state) {
         // el guardado anterior ya estaba roto: no lo usamos como respaldo
       }
     }
-    localStorage.setItem(currentStateKey(), JSON.stringify(state));
+    localStorage.setItem(PET_CONFIG.storageKey, JSON.stringify(state));
     return true;
   } catch (e) {
     lastStorageNotice = "No se pudo guardar tu mascota en este navegador (¿modo privado, o sin espacio?). Los cambios de esta sesión pueden perderse.";
@@ -341,7 +354,7 @@ function saveState(state) {
 
 function clearState() {
   try {
-    localStorage.removeItem(currentStateKey());
+    localStorage.removeItem(PET_CONFIG.storageKey);
     localStorage.removeItem(recoveryKey());
   } catch (e) {
     // si ni esto se puede, no hay mucho más para hacer

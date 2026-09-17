@@ -62,6 +62,10 @@ const PET_ICONS = {
   // siempre visible, pedido explícito) así que este ícono quedó sin uso
   // por ahora — se deja definido por si hace falta en otro lado.
   flecha: '<path d="M9 5.5 15.5 12 9 18.5"/>',
+  // v3.3: Amigos — dos cabecitas simples, mismo estilo de trazo que el resto.
+  amigos: '<circle cx="8.6" cy="8.2" r="2.6"/><path d="M3.4 18.4c.6-3.1 2.6-4.7 5.2-4.7s4.6 1.6 5.2 4.7"/><circle cx="16.2" cy="8.6" r="2.1"/><path d="M14.6 13.9c2.1.2 3.6 1.7 4 4.2"/>',
+  // v3.3: candado — pantalla de login/PIN.
+  candado: '<rect x="5" y="10.5" width="14" height="9.5" rx="1.6"/><path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9"/>',
 };
 
 /** Devuelve el <svg> completo de un icono. `cls` son clases extra (además

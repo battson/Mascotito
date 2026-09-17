@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Alpha v3.2</title>
+  <title>Mascotito — Alpha v3.3</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,20 +12,6 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <section id="user-entry" class="user-entry" hidden aria-labelledby="user-entry-title">
-    <img src="assets/brand/logo-full.png" alt="Mascotito Alpha" width="240" />
-    <h1 id="user-entry-title">¡Bienvenido a Mascotito!</h1>
-    <p>Elegí tu nombre de usuario para guardar tu partida.</p>
-    <p>Si ya jugaste en este navegador, tu partida anterior se asociará al nombre que ingreses.</p>
-    <form id="username-form">
-      <label for="username-input">Nombre de usuario</label>
-      <input id="username-input" name="username" autocomplete="username" maxlength="24" required aria-describedby="username-help username-error" />
-      <small id="username-help">Hasta 24 letras, números, guiones o guiones bajos. Mayúsculas y minúsculas cuentan como el mismo usuario.</small>
-      <p id="username-error" role="alert"></p>
-      <button class="primary-btn" type="submit">Continuar</button>
-    </form>
-    <p class="user-entry-note">Por ahora, tu partida se guarda solo en este navegador, sin contraseña.</p>
-  </section>
 
   <!-- v2.6: pedido explícito — el encabezado entero desaparece mientras se
        está CREANDO una mascota por primera vez (no hay nada que editar/
@@ -34,7 +20,7 @@
        encabezado se muestra normalmente. Ver openOnboarding()/
        cancelOnboarding()/submitOnboarding() en js/app.js, que alternan
        el atributo hidden de #app-header. -->
-  <header class="app-header" id="app-header" hidden>
+  <header class="app-header" id="app-header">
     <!-- v2.3: logo oficial (logo_alpha.ai) — variante compacta (símbolo +
          nombre extraído del arte, ver README "Integración de marca"). El
          símbolo es decorativo (alt vacío) y el nombre-imagen es aria-hidden
@@ -50,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge">Alpha v3.2</span>
+      <span class="badge">Alpha v3.3</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -75,17 +61,89 @@
          Modo prueba y Reiniciar progreso, que antes eran 3 controles
          sueltos (2 arriba + 1 en el pie). Ver options-menu más abajo y
          js/app.js (setupOptionsMenu). -->
+    <!-- v3.3: botón de Amigos — sólo tiene sentido con la nube activada
+         (Cloud.enabled); si no hay nube configurada, setupFriendsUI() lo
+         deja oculto del todo. El numerito rojo muestra solicitudes de
+         amistad entrantes sin leer (0 = oculto). -->
+    <button id="btn-amigos" class="icon-btn" type="button" aria-haspopup="dialog" aria-controls="friends-panel" aria-label="Amigos" title="Amigos" hidden>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.6" cy="8.2" r="2.6"/><path d="M3.4 18.4c.6-3.1 2.6-4.7 5.2-4.7s4.6 1.6 5.2 4.7"/><circle cx="16.2" cy="8.6" r="2.1"/><path d="M14.6 13.9c2.1.2 3.6 1.7 4 4.2"/></svg>
+      <span id="friends-badge" class="icon-badge" hidden>0</span>
+    </button>
     <button id="btn-opciones" class="icon-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="options-menu" aria-label="Opciones" title="Opciones">
       <svg class="icon gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.6 3.7 10.2 2h3.6l.6 1.7 1.8.8 1.6-.8 2.5 2.5-.8 1.6.8 1.8 1.7.6v3.6l-1.7.6-.8 1.8.8 1.6-2.5 2.5-1.6-.8-1.8.8-.6 1.7h-3.6l-.6-1.7-1.8-.8-1.6.8-2.5-2.5.8-1.6-.8-1.8-1.7-.6v-3.6l1.7-.6.8-1.8-.8-1.6 2.5-2.5 1.6.8 1.8-.8Z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
     <div id="options-menu" class="options-menu" hidden role="menu" aria-label="Opciones">
-      <div class="options-menu-item">Usuario: <strong id="current-username"></strong></div>
-      <button id="opt-change-user" class="options-menu-item" role="menuitem" type="button">Cambiar usuario</button>
       <button id="opt-debug" class="options-menu-item" role="menuitem" type="button">Modo prueba</button>
       <hr class="options-menu-sep" />
+      <!-- v3.3: sólo visible si hay nube activada y hay sesión iniciada. -->
+      <button id="opt-cambiar-usuario" class="options-menu-item" role="menuitem" type="button" hidden>Cambiar de usuario</button>
       <button id="opt-reiniciar" class="options-menu-item options-menu-danger" role="menuitem" type="button">Reiniciar progreso</button>
     </div>
   </header>
+
+  <!-- ---------- v3.3: pantalla de login (usuario + PIN) ----------
+       Sólo se muestra si hay un proyecto de Firebase configurado
+       (Cloud.enabled) y no hay sesión ya recordada en este navegador. Si
+       no hay nube configurada, esta pantalla queda oculta para siempre y
+       la app se comporta exactamente igual que en v3.2 (ver boot() en
+       js/app.js). -->
+  <main id="login-screen" class="screen login-screen" hidden>
+    <img src="assets/brand/logo-full.svg" alt="Mascotito" class="brand-emblem" width="140" height="140" />
+    <h2>¿Quién sos?</h2>
+    <p class="login-hint">Usuario y PIN de 4 dígitos para vos y tus amigos. Si el usuario todavía no existe, se crea solo con ese PIN.</p>
+    <form id="login-form" class="login-form" autocomplete="off">
+      <div class="name-field">
+        <label class="name-label" for="login-username">Usuario</label>
+        <input id="login-username" class="name-input" type="text" maxlength="16" placeholder="Ej: jony" autocapitalize="none" autocorrect="off" spellcheck="false" />
+      </div>
+      <div class="name-field">
+        <label class="name-label" for="login-pin">PIN (4 dígitos)</label>
+        <input id="login-pin" class="name-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" />
+      </div>
+      <p id="login-error" class="field-error" role="alert" hidden></p>
+      <button id="login-submit" type="submit" class="primary-btn">Entrar</button>
+      <button id="login-offline" type="button" class="secondary-btn" hidden>Seguir sin conexión por ahora</button>
+    </form>
+  </main>
+
+  <!-- ---------- v3.3: panel de Amigos (modal) ---------- -->
+  <div id="friends-overlay" class="modal-overlay" hidden>
+    <section id="friends-panel" class="modal-window" role="dialog" aria-modal="true" aria-label="Amigos">
+      <div class="modal-topbar">
+        <h2>Amigos</h2>
+        <button id="friends-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button>
+      </div>
+      <div id="friends-tabs" class="creator-tabs" role="tablist" aria-label="Sección de amigos">
+        <button class="creator-tab" data-tab="lista" role="tab" aria-selected="true" type="button">Mis amigos</button>
+        <button class="creator-tab" data-tab="solicitudes" role="tab" aria-selected="false" type="button">Solicitudes<span id="requests-tab-badge" class="icon-badge" hidden>0</span></button>
+        <button class="creator-tab" data-tab="agregar" role="tab" aria-selected="false" type="button">Agregar</button>
+      </div>
+      <div class="modal-body">
+        <div id="friends-tab-lista" class="friends-tabpanel">
+          <ul id="friends-list" class="friends-list"></ul>
+          <p id="friends-empty" class="friends-empty" hidden>Todavía no tenés amigos agregados.</p>
+        </div>
+        <div id="friends-tab-solicitudes" class="friends-tabpanel" hidden>
+          <h3 class="friends-subtitle">Te escribieron</h3>
+          <ul id="requests-incoming-list" class="friends-list"></ul>
+          <p id="requests-incoming-empty" class="friends-empty" hidden>No tenés solicitudes nuevas.</p>
+          <h3 class="friends-subtitle">Enviadas</h3>
+          <ul id="requests-outgoing-list" class="friends-list"></ul>
+          <p id="requests-outgoing-empty" class="friends-empty" hidden>No enviaste ninguna solicitud.</p>
+        </div>
+        <div id="friends-tab-agregar" class="friends-tabpanel" hidden>
+          <form id="add-friend-form" class="login-form" autocomplete="off">
+            <div class="name-field">
+              <label class="name-label" for="add-friend-input">Nombre de usuario</label>
+              <input id="add-friend-input" class="name-input" type="text" maxlength="16" placeholder="Ej: ana" autocapitalize="none" autocorrect="off" spellcheck="false" />
+            </div>
+            <button type="submit" class="secondary-btn">Buscar</button>
+          </form>
+          <p id="add-friend-result" class="friends-empty" hidden></p>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <!-- Región para anuncios cortos a lectores de pantalla (elegir una
        opción, avisos de guardado, ánimo urgente, cambio de lugar) —
@@ -103,7 +161,7 @@
   <p id="storage-notice" class="alert-banner" hidden></p>
 
   <!-- ---------- Pantalla de personalización ---------- -->
-  <main id="onboarding" class="screen onboarding" hidden>
+  <main id="onboarding" class="screen onboarding">
     <!-- v2.3: emblema completo del logo (logo_alpha.ai), intacto, centrado
          arriba del título. v2.6: pedido explícito — sólo se muestra al
          CREAR una mascota por primera vez, no al editar una ya creada (ver
@@ -276,6 +334,8 @@
           <!-- Manchas/desechos del entorno (sección 5) — se arman en JS,
                cada una es un botón chico clickeable que se retira sola.
                Independientes por lugar (state.dirt.casa / .jardin). -->
+          <!-- Objetos interactivos de la habitación (Fase 1). Se renderizan desde js/world.js. -->
+          <div id="world-layer" class="world-layer" aria-label="Objetos de la habitación"></div>
           <div id="dirt-layer" class="dirt-layer" aria-hidden="true"></div>
           <div id="walker" class="walker">
             <div class="pet-shadow" aria-hidden="true"></div>
@@ -346,7 +406,7 @@
   </main>
 
   <footer class="app-footer">
-    <p>Hecho por Jony · Mascotito Alpha v3.2 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.3 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
@@ -354,11 +414,13 @@
     <div id="debug-panel" class="debug-panel" hidden></div>
   </footer>
 
+  <script src="js/firebase-config.js"></script>
   <script src="js/config.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/manifest.js"></script>
-  <script src="js/users.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/world.js"></script>
+  <script type="module" src="js/cloud.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
