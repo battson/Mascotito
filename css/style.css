@@ -3029,6 +3029,43 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .login-form .primary-btn { margin-top: 10px; }
 .login-form .secondary-btn { margin-top: 8px; width: 100%; }
 
+/* ---------- v3.3: login alternativo con Google ---------- */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--wood-edge, #cbb28a);
+  opacity: 0.5;
+}
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--wood-edge, #cbb28a);
+  border-radius: 10px;
+  background: #fff;
+  color: #3c4043;
+  font: 700 0.95rem/1 "Baloo 2", sans-serif;
+  cursor: pointer;
+}
+.google-btn:hover { background: #f7f7f7; }
+.google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.google-btn .google-icon { flex-shrink: 0; }
+#google-username-form { margin-top: 14px; }
+
 /* ---------- Modal genérico (Amigos) ---------- */
 .modal-overlay {
   position: fixed;

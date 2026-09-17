@@ -6,35 +6,80 @@ rules_version = '2';
 // en README.md para el paso a paso completo, y la nota de seguridad al
 // principio de js/cloud.js para entender qué protegen (y qué NO
 // protegen) estas reglas.
+//
+// Dos tipos de cuenta conviven en la misma colección "players":
+// - Cuentas con PIN (login anónimo de Firebase por dentro): no tienen
+//   campo "ownerUid". Protección liviana (ver nota de seguridad).
+// - Cuentas con Google (el usuario entró con "Iniciar sesión con
+//   Google"): tienen "ownerUid" = el uid real que Firebase Authentication
+//   verifica en cada pedido. Estas SÍ tienen protección real sobre su
+//   mascota y los datos de su cuenta — nadie más que ese uid puede
+//   modificarlos, ni siquiera reenviando datos leídos del propio
+//   documento (a diferencia del PIN, acá Firestore verifica la
+//   identidad, no un valor que viaja en la petición).
+//
+// El sistema de "amigos" (friends/friendRequests) es la excepción a
+// ambos esquemas: como no hay backend propio que arbitre el envío de
+// solicitudes, cualquier usuario autenticado puede escribir en ESOS DOS
+// campos de la cuenta de cualquier otro (nunca en su mascota, su PIN o
+// su ownerUid) — es el mismo nivel de confianza liviano para las dos
+// clases de cuenta, documentado en README.md.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /players/{playerId} {
-      // Cualquier cliente de la app puede LEER un perfil (hace falta para
-      // poder buscar amigos por nombre de usuario e iniciar sesión) pero
-      // sólo puede LISTAR (recorrer toda la colección) si está deshabilitado
-      // del todo — así nadie puede "descargar" la lista completa de
-      // usuarios, sólo consultar uno por nombre exacto.
+      // Cualquier cliente puede LEER un perfil (hace falta para poder
+      // buscar amigos por nombre e iniciar sesión), pero nunca LISTAR
+      // (recorrer toda la colección) — sólo se puede consultar un
+      // usuario por nombre exacto.
       allow get: if request.auth != null;
       allow list: if false;
 
-      // Crear cuenta nueva: el ID del documento tiene que ser exactamente
-      // el nombre de usuario en minúsculas (evita duplicados con
-      // mayúsculas distintas) con un formato válido, y traer un PIN ya
-      // hasheado (nunca en texto plano).
+      // Crear cuenta nueva: el ID del documento tiene que ser el nombre
+      // de usuario en minúsculas con formato válido, y viene en dos
+      // variantes según cómo se creó:
       allow create: if request.auth != null
         && playerId == request.resource.data.usernameLower
         && playerId.matches('^[a-z][a-z0-9_]{2,15}$')
-        && request.resource.data.pinHash is string
-        && request.resource.data.pinHash.size() > 10;
+        && (
+          // (a) cuenta con PIN: sin ownerUid, con un PIN ya hasheado (nunca en texto plano).
+          (!('ownerUid' in request.resource.data)
+            && request.resource.data.pinHash is string
+            && request.resource.data.pinHash.size() > 10)
+          // (b) cuenta de Google: ownerUid tiene que ser exactamente el uid real de quien escribe.
+          || request.resource.data.ownerUid == request.auth.uid
+        );
 
-      // Actualizar (guardar mascota, amigos, solicitudes): no se permite
-      // que una actualización cambie el PIN guardado ni el nombre de
-      // usuario del documento.
-      allow update: if request.auth != null
-        && resource.data.pinHash == request.resource.data.pinHash
-        && resource.data.usernameLower == request.resource.data.usernameLower;
+      allow update: if request.auth != null && (
+        // Escritura "social" de otra cuenta: sólo puede tocar friends/
+        // friendRequests (el buzón de solicitudes de amistad), nunca la
+        // mascota, el PIN ni el ownerUid de nadie.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'friendRequests'])
+        ||
+        // Escritura del dueño de su propia cuenta: puede tocar cualquier campo.
+        (
+          !('ownerUid' in resource.data)
+            ? (resource.data.pinHash == request.resource.data.pinHash
+               && resource.data.usernameLower == request.resource.data.usernameLower)
+            : (request.auth.uid == resource.data.ownerUid
+               && request.resource.data.ownerUid == resource.data.ownerUid
+               && resource.data.usernameLower == request.resource.data.usernameLower)
+        )
+      );
 
       allow delete: if false;
+    }
+
+    // Mapa privado "uid de Google -> nombre de usuario", para poder
+    // encontrar la cuenta de alguien que ya se registró con Google sin
+    // necesitar una consulta abierta sobre toda la colección de arriba.
+    // Cada quien sólo puede leer/crear el suyo propio, y nunca se puede
+    // reescribir una vez creado (evita que alguien le "robe" el usuario
+    // a otra cuenta de Google cambiando el vínculo).
+    match /googleLinks/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.usernameLower is string;
+      allow update, delete: if false;
     }
   }
 }

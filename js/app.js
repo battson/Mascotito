@@ -17,6 +17,7 @@ let currentUsername = null; // usernameLower, o null en modo sin nube/sin login
 let currentDisplayName = null;
 let cloudUnsub = null; // desuscribe el onSnapshot de amigos/solicitudes de la cuenta actual
 let myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
+let pendingGoogleUid = null; // uid de Google mientras se muestra el paso de "elegí tu usuario"
 let friendsTabActive = "lista";
 const SESSION_KEY = PET_CONFIG.storageKey + ".session";
 
@@ -114,6 +115,14 @@ const el = {
   loginError: document.getElementById("login-error"),
   loginSubmit: document.getElementById("login-submit"),
   loginOffline: document.getElementById("login-offline"),
+  loginDivider: document.getElementById("login-divider"),
+  loginGoogle: document.getElementById("login-google"),
+  loginGoogleError: document.getElementById("login-google-error"),
+  googleUsernameForm: document.getElementById("google-username-form"),
+  googleUsername: document.getElementById("google-username"),
+  googleUsernameError: document.getElementById("google-username-error"),
+  googleUsernameSubmit: document.getElementById("google-username-submit"),
+  googleUsernameCancel: document.getElementById("google-username-cancel"),
   optCambiarUsuario: document.getElementById("opt-cambiar-usuario"),
   btnAmigos: document.getElementById("btn-amigos"),
   friendsBadge: document.getElementById("friends-badge"),
@@ -2407,7 +2416,7 @@ function doReiniciar() {
 // queda guardada tal cual en la cuenta) y vuelve a la pantalla de login —
 // sólo aparece en el menú cuando hay nube configurada y sesión iniciada
 // (ver updateOptCambiarUsuario).
-function doCambiarUsuario() {
+async function doCambiarUsuario() {
   if (!confirm("¿Cambiar de usuario? Tu mascota queda guardada en la nube en tu cuenta actual.")) return;
   flushCloudSaveNow();
   if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
@@ -2425,6 +2434,13 @@ function doCambiarUsuario() {
   el.onboarding.hidden = true;
   updateFooterText();
   updateOptCambiarUsuario();
+  // Si la sesión actual era de Google, hay que cerrarla de verdad (si no,
+  // Firebase Auth la restauraría sola en el próximo boot() y saltearía la
+  // pantalla de login). Vuelve a entrar anónimo para que el login de
+  // usuario+PIN siga funcionando.
+  if (window.Cloud && window.Cloud.enabled && typeof window.Cloud.signOutCloud === "function") {
+    try { await window.Cloud.signOutCloud(); } catch (e) { /* no es grave */ }
+  }
   showLoginScreen();
 }
 
@@ -2827,7 +2843,25 @@ function showLoginScreen() {
   el.appHeader.hidden = true;
   if (el.loginError) el.loginError.hidden = true;
   if (el.loginOffline) el.loginOffline.hidden = true;
+  if (el.loginGoogleError) el.loginGoogleError.hidden = true;
+  pendingGoogleUid = null;
+  if (el.googleUsernameForm) el.googleUsernameForm.hidden = true;
+  if (el.loginForm) el.loginForm.hidden = false;
+  // El botón de Google sólo tiene sentido si hay nube configurada — si no
+  // hay Firebase de por medio, no ofrecemos algo que no puede funcionar.
+  const showGoogle = !!(window.Cloud && window.Cloud.enabled);
+  if (el.loginDivider) el.loginDivider.hidden = !showGoogle;
+  if (el.loginGoogle) el.loginGoogle.hidden = !showGoogle;
   setTimeout(() => el.loginUsername && el.loginUsername.focus(), 50);
+}
+
+/** Guarda la sesión y arranca el juego — comparte el mismo final tanto
+ * para el login de usuario+PIN como para el de Google. */
+function completeCloudLogin(usernameLower, username, data) {
+  currentUsername = usernameLower;
+  currentDisplayName = username;
+  rememberUsername(currentUsername);
+  startSessionWithData(data);
 }
 
 function showLoginError(msg) {
@@ -2876,11 +2910,8 @@ async function handleLoginSubmit() {
         result = await Cloud.login(usernameRaw, pin);
       }
       if (result.ok) {
-        currentUsername = result.usernameLower;
-        currentDisplayName = result.username;
-        rememberUsername(currentUsername);
-        startSessionWithData({
-          username: currentDisplayName,
+        completeCloudLogin(result.usernameLower, result.username, {
+          username: result.username,
           petState: null,
           friends: {},
           friendRequests: { incoming: {}, outgoing: {} },
@@ -2897,13 +2928,97 @@ async function handleLoginSubmit() {
       }
       return;
     }
-    currentUsername = result.usernameLower;
-    currentDisplayName = result.username;
-    rememberUsername(currentUsername);
-    startSessionWithData(result.data);
+    completeCloudLogin(result.usernameLower, result.username, result.data);
   } finally {
     el.loginSubmit.disabled = false;
     el.loginSubmit.textContent = originalLabel;
+  }
+}
+
+/** "Iniciar sesión con Google": abre el popup y, según lo que devuelva
+ * cloud.js, o entra directo (cuenta de Google ya vinculada a un usuario
+ * de Mascotito) o muestra el paso de elegir nombre (primera vez). */
+async function handleGoogleLogin() {
+  const Cloud = window.Cloud;
+  if (!Cloud || !el.loginGoogle) return;
+  if (el.loginError) el.loginError.hidden = true;
+  if (el.loginGoogleError) el.loginGoogleError.hidden = true;
+  if (el.loginOffline) el.loginOffline.hidden = true;
+  el.loginGoogle.disabled = true;
+  try {
+    const result = await Cloud.loginWithGoogle();
+    if (!result.ok) {
+      if (result.error === "popup_closed") return; // el usuario canceló, no es un error
+      if (result.error === "network" || result.error === "disabled") {
+        el.loginGoogleError.textContent = "No se pudo conectar con la nube ahora mismo. Podés seguir jugando en este navegador mientras tanto.";
+        el.loginGoogleError.hidden = false;
+        if (el.loginOffline) el.loginOffline.hidden = false;
+      } else {
+        el.loginGoogleError.textContent = "No se pudo iniciar sesión con Google.";
+        el.loginGoogleError.hidden = false;
+      }
+      return;
+    }
+    if (result.needsUsername) {
+      pendingGoogleUid = result.googleUid;
+      if (el.loginForm) el.loginForm.hidden = true;
+      if (el.loginDivider) el.loginDivider.hidden = true;
+      el.loginGoogle.hidden = true;
+      if (el.googleUsernameForm) {
+        el.googleUsernameForm.hidden = false;
+        if (el.googleUsername) {
+          el.googleUsername.value = result.suggestedName || "";
+          setTimeout(() => el.googleUsername.focus(), 50);
+        }
+      }
+      return;
+    }
+    completeCloudLogin(result.usernameLower, result.username, result.data);
+  } finally {
+    el.loginGoogle.disabled = false;
+  }
+}
+
+/** Segundo paso de "Iniciar sesión con Google" para una cuenta nueva:
+ * crea el usuario de Mascotito vinculado al uid de Google ya autenticado. */
+async function handleGoogleUsernameSubmit() {
+  const Cloud = window.Cloud;
+  if (!Cloud || !pendingGoogleUid) return;
+  if (el.googleUsernameError) el.googleUsernameError.hidden = true;
+  const usernameRaw = el.googleUsername.value;
+  const usernameLower = Cloud.normalizeUsername(usernameRaw);
+  if (!usernameLower) {
+    el.googleUsernameError.textContent = LOGIN_ERROR_MESSAGES.invalid_username;
+    el.googleUsernameError.hidden = false;
+    el.googleUsername.focus();
+    return;
+  }
+  el.googleUsernameSubmit.disabled = true;
+  const originalLabel = el.googleUsernameSubmit.textContent;
+  el.googleUsernameSubmit.textContent = "Creando...";
+  try {
+    const result = await Cloud.completeGoogleSignup(usernameRaw, pendingGoogleUid);
+    if (!result.ok) {
+      if (result.error === "taken") {
+        el.googleUsernameError.textContent = "Ese usuario ya existe — probá con otro nombre.";
+      } else if (result.error === "network" || result.error === "disabled") {
+        el.googleUsernameError.textContent = "No se pudo conectar con la nube ahora mismo. Probá de nuevo en un momento.";
+      } else {
+        el.googleUsernameError.textContent = LOGIN_ERROR_MESSAGES[result.error] || "No se pudo crear la cuenta.";
+      }
+      el.googleUsernameError.hidden = false;
+      return;
+    }
+    pendingGoogleUid = null;
+    completeCloudLogin(result.usernameLower, result.username, {
+      username: result.username,
+      petState: null,
+      friends: {},
+      friendRequests: { incoming: {}, outgoing: {} },
+    });
+  } finally {
+    el.googleUsernameSubmit.disabled = false;
+    el.googleUsernameSubmit.textContent = originalLabel;
   }
 }
 
@@ -2917,6 +3032,28 @@ function setupLoginUI() {
     el.loginOffline.addEventListener("click", () => {
       el.loginScreen.hidden = true;
       beginLocalOnlySession();
+    });
+  }
+  if (el.loginGoogle) {
+    el.loginGoogle.addEventListener("click", () => handleGoogleLogin());
+  }
+  if (el.googleUsernameForm) {
+    el.googleUsernameForm.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      handleGoogleUsernameSubmit();
+    });
+  }
+  if (el.googleUsernameCancel) {
+    el.googleUsernameCancel.addEventListener("click", () => {
+      pendingGoogleUid = null;
+      if (el.googleUsernameForm) el.googleUsernameForm.hidden = true;
+      if (el.loginForm) el.loginForm.hidden = false;
+      const showGoogle = !!(window.Cloud && window.Cloud.enabled);
+      if (el.loginDivider) el.loginDivider.hidden = !showGoogle;
+      if (el.loginGoogle) el.loginGoogle.hidden = !showGoogle;
+      // La sesión de Google sigue autenticada en Firebase Auth aunque se
+      // cancele acá — la próxima vez que se apriete "Iniciar sesión con
+      // Google" vuelve a pedir el usuario (no quedó ningún vínculo creado).
     });
   }
 }

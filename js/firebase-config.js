@@ -14,20 +14,13 @@
  * proyecto de Firebase. En cuanto pegues acá tus valores reales, en el
  * próximo F5 aparece la pantalla de usuario/PIN.
  */
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDJQQBmr3BQVc6twOA1pyNRdLIcVTrVaUA",
   authDomain: "mascotito-84b36.firebaseapp.com",
   projectId: "mascotito-84b36",
   storageBucket: "mascotito-84b36.firebasestorage.app",
   messagingSenderId: "331394610630",
-  appId: "1:331394610630:web:044abb336ff02931e3eec7"
-
+  appId: "1:331394610630:web:044abb336ff02931e3eec7",
 };
 
 // Se considera "sin configurar" mientras el apiKey siga siendo el
@@ -38,6 +31,3 @@ const CLOUD_ENABLED = !!(
   FIREBASE_CONFIG.projectId &&
   FIREBASE_CONFIG.projectId !== "TU_PROYECTO"
 );
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
