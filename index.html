@@ -57,35 +57,48 @@
       </button>
     </div>
 
-    <!-- Acceso secundario a opciones (sección 6): agrupa Editar mascota,
-         Modo prueba y Reiniciar progreso, que antes eran 3 controles
-         sueltos (2 arriba + 1 en el pie). Ver options-menu más abajo y
-         js/app.js (setupOptionsMenu). -->
-    <!-- v3.3: botón de Amigos — sólo tiene sentido con la nube activada
-         (Cloud.enabled); si no hay nube configurada, setupFriendsUI() lo
-         deja oculto del todo. El numerito rojo muestra solicitudes de
-         amistad entrantes sin leer (0 = oculto). -->
-    <button id="btn-amigos" class="icon-btn" type="button" aria-haspopup="dialog" aria-controls="friends-panel" aria-label="Amigos" title="Amigos" hidden>
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.6" cy="8.2" r="2.6"/><path d="M3.4 18.4c.6-3.1 2.6-4.7 5.2-4.7s4.6 1.6 5.2 4.7"/><circle cx="16.2" cy="8.6" r="2.1"/><path d="M14.6 13.9c2.1.2 3.6 1.7 4 4.2"/></svg>
-      <span id="friends-badge" class="icon-badge" hidden>0</span>
-    </button>
-    <button id="btn-opciones" class="icon-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="options-menu" aria-label="Opciones" title="Opciones">
-      <svg class="icon gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.6 3.7 10.2 2h3.6l.6 1.7 1.8.8 1.6-.8 2.5 2.5-.8 1.6.8 1.8 1.7.6v3.6l-1.7.6-.8 1.8.8 1.6-2.5 2.5-1.6-.8-1.8.8-.6 1.7h-3.6l-.6-1.7-1.8-.8-1.6.8-2.5-2.5.8-1.6-.8-1.8-1.7-.6v-3.6l1.7-.6.8-1.8-.8-1.6 2.5-2.5 1.6.8 1.8-.8Z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-    <div id="options-menu" class="options-menu" hidden role="menu" aria-label="Opciones">
-      <!-- v3.4: pedido explícito — "Modo prueba" queda reservado sólo al
-           Administrador (usuario "jony"); arranca oculto y updateAdminUI()
-           en js/app.js lo muestra únicamente para esa cuenta. -->
-      <button id="opt-debug" class="options-menu-item" role="menuitem" type="button" hidden>Modo prueba</button>
-      <hr class="options-menu-sep" />
-      <!-- v3.3: sólo visible si hay nube activada y hay sesión iniciada. -->
-      <button id="opt-cambiar-usuario" class="options-menu-item" role="menuitem" type="button" hidden>Cambiar de usuario</button>
-      <button id="opt-reiniciar" class="options-menu-item options-menu-danger" role="menuitem" type="button">Reiniciar progreso</button>
-      <!-- v3.4: sólo visible con nube activada y sesión iniciada (misma
-           condición que "Cambiar de usuario"), ver updateOptCambiarUsuario
-           en js/app.js. Pide escribir el nombre de usuario para confirmar
-           (#delete-account-overlay más abajo) antes de borrar de verdad. -->
-      <button id="opt-eliminar-cuenta" class="options-menu-item options-menu-danger" role="menuitem" type="button" hidden>Eliminar cuenta</button>
+    <!-- v3.5: pedido explícito — "arreglar el header ya que ahora queda en
+         dos líneas... debería estar todo en una sola línea". .app-header
+         es un grid de 3 columnas (brand / header-progress / [esto]) en
+         TODAS las resoluciones (ver css/style.css) — con 3 hijos directos
+         sueltos acá (Amigos, Opciones, el menú desplegable) el grid los
+         mandaba a una fila implícita nueva en vez de mantenerlos en la
+         3ra columna. Agruparlos en un solo contenedor (.header-actions)
+         los deja como UN solo hijo de grid, así siempre entran en la
+         misma fila que el logo y el progreso. #options-menu sigue
+         anclado con position:absolute contra .app-header (no contra este
+         div, que no tiene position propio), exactamente como antes. -->
+    <div class="header-actions">
+      <!-- v3.3: botón de Amigos — sólo tiene sentido con la nube activada
+           (Cloud.enabled); si no hay nube configurada, setupFriendsUI() lo
+           deja oculto del todo. El numerito rojo muestra solicitudes de
+           amistad entrantes sin leer (0 = oculto). -->
+      <button id="btn-amigos" class="icon-btn" type="button" aria-haspopup="dialog" aria-controls="friends-panel" aria-label="Amigos" title="Amigos" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.6" cy="8.2" r="2.6"/><path d="M3.4 18.4c.6-3.1 2.6-4.7 5.2-4.7s4.6 1.6 5.2 4.7"/><circle cx="16.2" cy="8.6" r="2.1"/><path d="M14.6 13.9c2.1.2 3.6 1.7 4 4.2"/></svg>
+        <span id="friends-badge" class="icon-badge" hidden>0</span>
+      </button>
+      <!-- Acceso secundario a opciones (sección 6): agrupa Editar mascota,
+           Modo prueba y Reiniciar progreso, que antes eran 3 controles
+           sueltos (2 arriba + 1 en el pie). Ver options-menu más abajo y
+           js/app.js (setupOptionsMenu). -->
+      <button id="btn-opciones" class="icon-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="options-menu" aria-label="Opciones" title="Opciones">
+        <svg class="icon gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.6 3.7 10.2 2h3.6l.6 1.7 1.8.8 1.6-.8 2.5 2.5-.8 1.6.8 1.8 1.7.6v3.6l-1.7.6-.8 1.8.8 1.6-2.5 2.5-1.6-.8-1.8.8-.6 1.7h-3.6l-.6-1.7-1.8-.8-1.6.8-2.5-2.5.8-1.6-.8-1.8-1.7-.6v-3.6l1.7-.6.8-1.8-.8-1.6 2.5-2.5 1.6.8 1.8-.8Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <div id="options-menu" class="options-menu" hidden role="menu" aria-label="Opciones">
+        <!-- v3.4: pedido explícito — "Modo prueba" queda reservado sólo al
+             Administrador (usuario "jony"); arranca oculto y updateAdminUI()
+             en js/app.js lo muestra únicamente para esa cuenta. -->
+        <button id="opt-debug" class="options-menu-item" role="menuitem" type="button" hidden>Modo prueba</button>
+        <hr class="options-menu-sep" />
+        <!-- v3.3: sólo visible si hay nube activada y hay sesión iniciada. -->
+        <button id="opt-cambiar-usuario" class="options-menu-item" role="menuitem" type="button" hidden>Cambiar de usuario</button>
+        <button id="opt-reiniciar" class="options-menu-item options-menu-danger" role="menuitem" type="button">Reiniciar progreso</button>
+        <!-- v3.4: sólo visible con nube activada y sesión iniciada (misma
+             condición que "Cambiar de usuario"), ver updateOptCambiarUsuario
+             en js/app.js. Pide escribir el nombre de usuario para confirmar
+             (#delete-account-overlay más abajo) antes de borrar de verdad. -->
+        <button id="opt-eliminar-cuenta" class="options-menu-item options-menu-danger" role="menuitem" type="button" hidden>Eliminar cuenta</button>
+      </div>
     </div>
   </header>
 
@@ -206,29 +219,41 @@
     </section>
   </div>
 
-  <!-- ---------- v3.4: Visita a la casa de un amigo (modal, sólo lectura) ----------
-       Escenario propio (#visit-*), aparte del de la propia mascota (#stage-floor):
-       nada acá tiene manejador de click, sólo muestra el estado del amigo en
-       vivo (ver Cloud.subscribeToPlayer / openVisit·renderVisit en js/app.js). -->
-  <div id="visit-overlay" class="modal-overlay" hidden>
-    <section id="visit-panel" class="modal-window visit-window" role="dialog" aria-modal="true" aria-label="Visita a la casa de un amigo">
-      <div class="modal-topbar">
-        <h2 id="visit-title">Casa de...</h2>
-        <button id="visit-close" type="button" class="notice-close-btn" aria-label="Volver a tu mascota">×</button>
+  <!-- ---------- v3.5: Visita a la casa de un amigo (pantalla completa,
+       sólo lectura) ----------
+       Pedido explícito v3.5: "debería ir tu personaje a la casa de la
+       otra persona... debería cargar en toda la escena la casa de la otra
+       persona y deberían estar las dos mascotas juntas en esa casa: tu
+       mascota y el anfitrión... (ahora es en un recuadro chico, debería
+       ser en toda la escena)". Antes (v3.4) esto era un modal chico
+       centrado (.modal-overlay/.modal-window) con SÓLO la mascota del
+       amigo, encogido con overrides de tamaño fijo. Ahora ocupa todo el
+       viewport (igual que la pantalla de juego real) y muestra DOS
+       mascotas paradas juntas en el mismo escenario: la propia
+       (#visit-walker-mine, con el look actual de state.look — "salió de
+       tu casa y entró a la de la otra") y la del anfitrión
+       (#visit-walker-host, con el look que llega de Cloud.subscribeToPlayer).
+       Sigue sin ningún manejador de click adentro: es sólo una foto en
+       vivo, nunca se puede interactuar con nada de esta casa (ver
+       openVisit/renderVisit en js/app.js). -->
+  <div id="visit-overlay" class="visit-overlay" hidden>
+    <div class="visit-topbar">
+      <h2 id="visit-title">Casa de...</h2>
+      <button id="visit-close" type="button" class="notice-close-btn" aria-label="Volver a tu mascota">×</button>
+    </div>
+    <p id="visit-status-line" class="visit-status-line" aria-live="polite"></p>
+    <div id="visit-stage-floor" class="stage-floor visit-stage-floor" aria-hidden="true">
+      <div id="visit-location-deco" class="location-deco"></div>
+      <div id="visit-walker-host" class="walker visit-walker visit-walker-host">
+        <div class="pet-shadow" aria-hidden="true"></div>
+        <div id="visit-pet-stage-host" class="pet-stage" role="img" aria-label="Mascota de tu amigo"></div>
       </div>
-      <div class="modal-body visit-body">
-        <p id="visit-status-line" class="visit-status-line" aria-live="polite"></p>
-        <div id="visit-stage-floor" class="stage-floor visit-stage-floor" aria-hidden="true">
-          <div id="visit-location-deco" class="location-deco"></div>
-          <div id="visit-world-layer" class="world-layer visit-world-layer"></div>
-          <div id="visit-walker" class="walker visit-walker">
-            <div class="pet-shadow" aria-hidden="true"></div>
-            <div id="visit-pet-stage" class="pet-stage" role="img" aria-label="Mascota de tu amigo"></div>
-          </div>
-        </div>
-        <p class="visit-hint">Estás de visita: sólo podés mirar, no podés alimentar, jugar ni tocar nada de esta casa.</p>
+      <div id="visit-walker-mine" class="walker visit-walker visit-walker-mine">
+        <div class="pet-shadow" aria-hidden="true"></div>
+        <div id="visit-pet-stage-mine" class="pet-stage" role="img" aria-label="Tu mascota"></div>
       </div>
-    </section>
+    </div>
+    <p class="visit-hint">Estás de visita: sólo podés mirar, no podés alimentar, jugar ni tocar nada de esta casa.</p>
   </div>
 
   <!-- Región para anuncios cortos a lectores de pantalla (elegir una
@@ -384,10 +409,17 @@
             <div class="daily-reward"><span>Recompensa</span><strong>50 monedas + 100 XP</strong></div>
           </aside>
 
-          <aside class="time-card hud-card" id="time-card" aria-label="Hora del día">
-            <span class="time-icon" id="time-card-icon" aria-hidden="true">☾</span>
-            <div><span class="hud-eyebrow">HORA DEL DÍA</span><strong id="time-card-clock">20:43</strong><span id="time-card-label">Noche</span></div>
-          </aside>
+          <!-- v3.5: pedido explícito — "quitar cartel de reloj y que las
+               notificaciones ocupen ese lugar". #time-card (arriba, con la
+               hora y Mañana/Tarde/Noche) se saca del todo; syncHudLayout()
+               en js/app.js ahora ancla #notification-card directo debajo
+               de #wellbeing-widget (el cartel de "Estado"), en el lugar
+               que ocupaba el reloj — antes, si el reloj estaba oculto en
+               alguna resolución, las notificaciones se quedaban sin nada
+               de qué colgar y terminaban superpuestas con "Estado". El
+               cálculo de día/noche (isNightNow/updateClock en js/app.js)
+               sigue vivo para la escena (.is-night), sólo se sacó el
+               texto de la hora. -->
 
           <!-- v3.2, pedido explícito: separar en 3 ventanas distintas lo
                que antes vivía todo junto en #notification-card:
@@ -420,8 +452,6 @@
           <!-- Manchas/desechos del entorno (sección 5) — se arman en JS,
                cada una es un botón chico clickeable que se retira sola.
                Independientes por lugar (state.dirt.casa / .jardin). -->
-          <!-- Objetos interactivos de la habitación (Fase 1). Se renderizan desde js/world.js. -->
-          <div id="world-layer" class="world-layer" aria-label="Objetos de la habitación"></div>
           <div id="dirt-layer" class="dirt-layer" aria-hidden="true"></div>
           <div id="walker" class="walker">
             <div class="pet-shadow" aria-hidden="true"></div>
@@ -467,12 +497,15 @@
                ahora ALTERNA con Despertar en el mismo botón (mismo
                handler de siempre, toggleSueño en js/app.js) — pedido
                explícito, ya no hay un botón de Despertar aparte. -->
+          <!-- v3.5 (pedido explícito): "quitar el botón para salir, junto a
+               su función" — el botón "Salir al jardín"/"Entrar a casa"
+               (antes #btn-nav acá) se saca del todo. La puerta de la
+               escena (#scene-puerta, dentro de HOME_SCENE_INLINE) queda
+               deshabilitada hasta nuevo aviso (ver setupSceneDoor en
+               js/app.js) — a futuro un menú "¿A dónde quieres ir?" con
+               Jardín/Club/Casa de amigo la reemplaza. -->
           <div class="stage-actions-row" id="stage-actions-row">
             <div class="actions" id="actions-dock"></div>
-            <button id="btn-nav" class="nav-btn-tile" type="button">
-              <span class="nav-btn-icon" aria-hidden="true"></span>
-              <span id="nav-btn-label"></span>
-            </button>
           </div>
 
           <!-- Menú de comida (sección 3): aparece al tocar el botón de

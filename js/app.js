@@ -57,6 +57,7 @@ const el = {
   walker: document.getElementById("walker"),
   petName: document.getElementById("pet-name"),
   statusLine: document.getElementById("status-line"),
+  hudStatusDot: document.querySelector(".hud-status-dot"),
   wellbeingWidget: document.getElementById("wellbeing-widget"),
   wellbeingHud: document.getElementById("wellbeing-hud"),
   wellbeingAvatar: document.getElementById("wellbeing-avatar"),
@@ -67,14 +68,12 @@ const el = {
   headerXpText: document.getElementById("header-xp-text"),
   headerLevelFill: document.getElementById("header-level-fill"),
   btnEditPet: document.getElementById("btn-edit-pet"),
+  dailyCard: document.getElementById("daily-card"),
   dailyCount: document.getElementById("daily-count"),
   dailyFeed: document.getElementById("daily-feed"),
   dailyPlay: document.getElementById("daily-play"),
   dailyTalk: document.getElementById("daily-talk"),
   dailyReward: document.querySelector(".daily-reward"),
-  timeCardClock: document.getElementById("time-card-clock"),
-  timeCardLabel: document.getElementById("time-card-label"),
-  timeCardIcon: document.getElementById("time-card-icon"),
   navHome: document.getElementById("nav-home"),
   navGarden: document.getElementById("nav-garden"),
   actionsDock: document.getElementById("actions-dock"),
@@ -102,7 +101,6 @@ const el = {
   optReiniciar: document.getElementById("opt-reiniciar"),
   btnAleatorio: document.getElementById("btn-aleatorio"),
   locationDeco: document.getElementById("location-deco"),
-  worldLayer: document.getElementById("world-layer"),
   navBtn: document.getElementById("btn-nav"),
   navBtnLabel: document.getElementById("nav-btn-label"),
   headerClock: document.getElementById("header-clock"),
@@ -152,18 +150,20 @@ const el = {
   addFriendForm: document.getElementById("add-friend-form"),
   addFriendInput: document.getElementById("add-friend-input"),
   addFriendResult: document.getElementById("add-friend-result"),
-  // v3.4: visita a la casa de un amigo (sólo lectura) — ver openVisit()/
-  // renderVisit() más abajo.
+  // v3.4/v3.5: visita a la casa de un amigo (sólo lectura) — ver openVisit()/
+  // renderVisit() más abajo. v3.5: pantalla completa con las DOS mascotas
+  // (visitWalkerHost/visitPetStageHost = la del amigo, visitWalkerMine/
+  // visitPetStageMine = la propia).
   visitOverlay: document.getElementById("visit-overlay"),
-  visitPanel: document.getElementById("visit-panel"),
   visitClose: document.getElementById("visit-close"),
   visitTitle: document.getElementById("visit-title"),
   visitStatusLine: document.getElementById("visit-status-line"),
   visitStageFloor: document.getElementById("visit-stage-floor"),
   visitLocationDeco: document.getElementById("visit-location-deco"),
-  visitWorldLayer: document.getElementById("visit-world-layer"),
-  visitWalker: document.getElementById("visit-walker"),
-  visitPetStage: document.getElementById("visit-pet-stage"),
+  visitWalkerHost: document.getElementById("visit-walker-host"),
+  visitPetStageHost: document.getElementById("visit-pet-stage-host"),
+  visitWalkerMine: document.getElementById("visit-walker-mine"),
+  visitPetStageMine: document.getElementById("visit-pet-stage-mine"),
 };
 
 // ---------- Render de la mascota (capas de SVG apiladas) ----------
@@ -256,6 +256,27 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") flushCloudSaveNow();
 });
 window.addEventListener("pagehide", flushCloudSaveNow);
+
+// v3.5 (pedido explícito): "agregar estado de conectado/desconectado" —
+// el puntito de .hud-status-dot (al lado del nombre, en el cartel de
+// ESTADO). "Conectado" acá significa: hay sesión de nube activa (se están
+// guardando/sincronizando los cambios en Firestore, currentUsername +
+// window.Cloud.enabled) Y el navegador tiene internet en este momento
+// (navigator.onLine). Jugando en modo local (sin cuenta, beginLocalOnlySession)
+// o sin internet ahora mismo → "desconectado". No afecta en nada al juego
+// en sí (las necesidades siguen bajando igual, ver applyDecay), es sólo
+// indicador visual.
+function isCloudConnected() {
+  return !!(window.Cloud && window.Cloud.enabled && currentUsername && navigator.onLine);
+}
+
+function updateConnectionIndicator() {
+  if (!el.hudStatusDot) return;
+  el.hudStatusDot.classList.toggle("is-offline", !isCloudConnected());
+}
+
+window.addEventListener("online", updateConnectionIndicator);
+window.addEventListener("offline", updateConnectionIndicator);
 
 function makeInlineLayer(innerMarkup, extraClass) {
   const svg = document.createElementNS(SVG_NS, "svg");
@@ -585,7 +606,7 @@ function setupClickToWalk() {
     // click (pedido explícito, sección 10: "menús/manchas/botones no
     // deben activar accidentalmente el movimiento de fondo"; el personaje
     // se suma en v2.2, porque clickearlo ahora acaricia en vez de mover).
-    if (event.target.closest(".dirt-item") || event.target.closest("#toy-ball") || event.target.closest("#game-stage") || event.target.closest(".world-object")) return;
+    if (event.target.closest(".dirt-item") || event.target.closest("#toy-ball") || event.target.closest("#game-stage")) return;
     registerInteraction();
     if (walkMax <= 0 || !canWalk()) return;
     setPointerWalkTarget(event.clientX);
@@ -635,17 +656,12 @@ const LOCATION_DECO_HTML = {
   // HOME_SCENE_INLINE en js/manifest.js para la extracción/organización
   // de capas (suelo/pared/ventana/puerta/alfombra) a partir de
   // home-scene.ai. #scene-puerta dentro de este markup tiene su propio
-  // click handler (ver setupSceneDoor más abajo) que sale al Jardín.
+  // click handler (ver setupSceneDoor más abajo), deshabilitado desde v3.5.
+  //
+  // v3.5 (pedido explícito): "Quitar la escena del jardín" — la entrada
+  // "jardin" (cielo + pasto + sol/luna/nubes) se saca del todo; ya no
+  // queda ningún lugar al que la puerta pueda llevar.
   casa: HOME_SCENE_INLINE,
-  // v2.2: Jardín vuelve al diseño simple de antes de v2.1 (cielo + pasto +
-  // sol + nubes, ver css/style.css) — se sacaron la cerca/arbustos/flores/
-  // fachada de casa. Se agrega sol/luna/estrellas (nuevo, no existía
-  // antes): updateClock() alterna la clase .is-night sobre #stage-floor
-  // según la hora real de la PC, y el CSS decide cuál se ve.
-  jardin:
-    '<span class="cloud cloud-1"></span><span class="cloud cloud-2"></span><span class="cloud cloud-3"></span>' +
-    '<span class="sun"></span><span class="moon"></span>' +
-    '<span class="star star-1"></span><span class="star star-2"></span><span class="star star-3"></span><span class="star star-4"></span>',
 };
 
 /** Aplica la ilustración/etiquetas de un lugar — SIN moverse (eso lo hace
@@ -658,148 +674,6 @@ function setLocationVisuals(locationId) {
   el.stageFloor.classList.add("location-" + def.id);
   if (el.locationDeco) el.locationDeco.innerHTML = LOCATION_DECO_HTML[def.id] || "";
   if (el.navBtnLabel) el.navBtnLabel.textContent = def.exitLabel;
-  if (state) renderWorldObjects();
-}
-
-// ---------- Fase 1: objetos interactivos de la Casa ----------
-
-/* v3.4: placeholders de Cama/Sillón/Lámpara (pedido explícito: "armá vos
- * unos svg, que simulen..." hasta que el usuario mande los .ai
- * definitivos) — antes eran formas armadas con CSS (spans con
- * background/border-radius), ahora cada uno es un <svg> simple e inline
- * con el mismo tono de madera/tela cálido del resto de la app. La lámpara
- * conserva el <i class="wo-lamp-glow"> aparte (no es parte del dibujo,
- * es el resplandor que css/style.css prende/apaga con .is-on). */
-function worldObjectArt(kind) {
-  const art = {
-    bed:
-      '<svg viewBox="0 0 200 108" class="wo-bed-svg" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
-      '<rect x="2" y="2" width="196" height="104" rx="16" fill="#9b6b4d" stroke="#4a2f1f" stroke-width="4"/>' +
-      '<rect x="2" y="2" width="42" height="104" rx="16" fill="#7a5039" stroke="#4a2f1f" stroke-width="4"/>' +
-      '<rect x="55" y="16" width="52" height="38" rx="13" fill="#f7ead4"/>' +
-      '<rect x="100" y="32" width="98" height="72" rx="16" fill="#6fa9ad"/>' +
-      '<rect x="100" y="32" width="98" height="12" rx="6" fill="#ffffff" opacity=".22"/>' +
-      "</svg>",
-    sofa:
-      '<svg viewBox="0 0 200 129" class="wo-sofa-svg" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
-      '<rect x="16" y="10" width="168" height="66" rx="22" fill="#b87968" stroke="#63372f" stroke-width="4"/>' +
-      '<rect x="10" y="70" width="180" height="50" rx="18" fill="#c98c79" stroke="#63372f" stroke-width="4"/>' +
-      '<rect x="0" y="46" width="34" height="76" rx="16" fill="#ad6e60" stroke="#63372f" stroke-width="4"/>' +
-      '<rect x="166" y="46" width="34" height="76" rx="16" fill="#ad6e60" stroke="#63372f" stroke-width="4"/>' +
-      '<line x1="100" y1="78" x2="100" y2="116" stroke="rgba(99,55,48,.35)" stroke-width="3"/>' +
-      "</svg>",
-    lamp:
-      '<span class="wo-lamp">' +
-      '<svg viewBox="0 0 100 161" class="wo-lamp-svg" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
-      '<g class="wo-lamp-shade"><path d="M18 8 L82 8 L94 50 L6 50 Z" fill="#e5b36d" stroke="#a6763f" stroke-width="3" stroke-linejoin="round"/></g>' +
-      '<rect class="wo-lamp-stem" x="44" y="50" width="12" height="68" rx="6" fill="#705442"/>' +
-      '<ellipse class="wo-lamp-base" cx="50" cy="148" rx="32" ry="10" fill="#705442"/>' +
-      "</svg>" +
-      '<i class="wo-lamp-glow"></i>' +
-      "</span>",
-  };
-  return art[kind] || '<span class="wo-placeholder"></span>';
-}
-
-function randomWorldPhrase(obj) {
-  const list = Array.isArray(obj.phrases) ? obj.phrases.filter(Boolean) : [];
-  return list.length ? list[Math.floor(Math.random() * list.length)] : obj.name;
-}
-
-function updateWorldLighting() {
-  if (!state || !el.stageFloor) return;
-  const lampOn = !!state.world?.objects?.lamp_01?.on;
-  el.stageFloor.classList.toggle("room-lamp-on", state.location === "casa" && lampOn);
-  const lamp = el.worldLayer?.querySelector('[data-world-id="lamp_01"]');
-  if (lamp) {
-    lamp.classList.toggle("is-on", lampOn);
-    lamp.setAttribute("aria-pressed", String(lampOn));
-  }
-}
-
-function movePetNearWorldObject(obj) {
-  if (!obj || !canWalk()) return;
-  computeWalkBounds();
-  const walkerWidth = el.walker.offsetWidth || 200;
-  const stageX = (obj.x / 100) * el.stageFloor.clientWidth;
-  walkTarget = clamp(stageX - walkerWidth / 2 - WALK_PAD, 0, walkMax);
-  walkSpeed = WALK_SPEED_MAX;
-  walkState = "walking";
-}
-
-function interactWithWorldObject(obj) {
-  if (!state || !obj || navLock || state.location !== obj.room) return;
-  registerInteraction();
-  const node = el.worldLayer?.querySelector(`[data-world-id="${obj.id}"]`);
-  if (node) {
-    node.classList.remove("world-object-pulse");
-    void node.offsetWidth;
-    node.classList.add("world-object-pulse");
-  }
-
-  switch (obj.action) {
-    case "sleep":
-      toggleSueño();
-      break;
-    case "feed":
-      if (state.sleep.dormida) { notifySystem(`${state.name} está durmiendo.`); return; }
-      if (el.feedMenu.hidden) toggleFeedMenu();
-      else refreshFeedMenuState();
-      if (el.feedMenu.hidden === false) showBubble(randomWorldPhrase(obj), 2400);
-      break;
-    case "drink":
-      doBeber();
-      break;
-    case "play":
-      showBubble(randomWorldPhrase(obj), 1800);
-      doJugar();
-      break;
-    case "sofa": {
-      if (state.sleep.dormida) { notifySystem(`${state.name} está durmiendo.`); return; }
-      movePetNearWorldObject(obj);
-      const now = Date.now();
-      const sofaState = state.world.objects.sofa_01;
-      if (now - sofaState.lastRewardAt >= 30000) {
-        gainFelicidad(2);
-        addBond(1);
-        sofaState.lastRewardAt = now;
-        trySave(state);
-        refreshUI();
-      }
-      setTimeout(() => { if (state && state.location === obj.room && !state.sleep.dormida) showBubble(randomWorldPhrase(obj), 3000); }, prefersReducedMotion() ? 50 : 650);
-      break;
-    }
-    case "lamp":
-      state.world.objects.lamp_01.on = !state.world.objects.lamp_01.on;
-      trySave(state);
-      updateWorldLighting();
-      showBubble(state.world.objects.lamp_01.on ? "Qué linda luz." : "Apaguemos la luz un rato.", 2400);
-      break;
-  }
-}
-
-function renderWorldObjects() {
-  if (!el.worldLayer || !state) return;
-  el.worldLayer.innerHTML = "";
-  const objects = getRoomObjects(state.location);
-  objects.forEach((obj) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `world-object world-object-${obj.type}`;
-    button.dataset.worldId = obj.id;
-    button.dataset.tooltip = obj.tooltip || obj.name;
-    button.setAttribute("aria-label", `${obj.name}: ${obj.tooltip || "interactuar"}`);
-    if (obj.action === "lamp") button.setAttribute("aria-pressed", "false");
-    button.style.left = `${obj.x}%`;
-    button.style.top = `${obj.y}%`;
-    button.style.width = `${obj.width}%`;
-    button.style.zIndex = String(obj.depth || 1);
-    button.innerHTML = worldObjectArt(obj.art);
-    button.addEventListener("pointerdown", (ev) => ev.stopPropagation());
-    button.addEventListener("click", (ev) => { ev.stopPropagation(); interactWithWorldObject(obj); });
-    el.worldLayer.appendChild(button);
-  });
-  updateWorldLighting();
 }
 
 /** Mueve a la mascota (walkX) hasta targetX en `ms` milisegundos, con el
@@ -906,13 +780,19 @@ function setupHeaderNavigation() {
   if (el.navGarden) el.navGarden.addEventListener("click", () => goToLocation("jardin"));
 }
 
-/* v2.5: pedido explícito — "al hacerle click a la puerta de la escena que
- * funcione como hacerle click al botón SALIR AL JARDÍN". La puerta
- * (#scene-puerta) sólo existe dentro del fondo de la Casa (HOME_SCENE_INLINE,
- * inyectado en #location-deco por setLocationVisuals) — se delega el click
- * en #location-deco en vez de buscar #scene-puerta directo, porque ese
- * markup se reconstruye entero cada vez que cambia de lugar. stopPropagation
- * evita que el mismo click además dispare el click-to-walk del fondo. */
+/* v2.5 (histórico): al hacerle click a la puerta de la escena funcionaba
+ * como hacerle click al botón "Salir al jardín". v3.5 (pedido explícito):
+ * "Se deshabilita la puerta hasta nuevo aviso (próximamente se pondrá un
+ * menú al hacer click que diga ¿A dónde quieres ir? con las opciones
+ * Jardín, Club, Casa de *nombre de amigo*)." — ese menú TODAVÍA no se
+ * construye (pedido explícito de dejarlo para más adelante); por ahora el
+ * click en la puerta no navega a ningún lado, sólo avisa que está en
+ * camino. La puerta (#scene-puerta) sólo existe dentro del fondo de la
+ * Casa (HOME_SCENE_INLINE, inyectado en #location-deco por
+ * setLocationVisuals) — se delega el click en #location-deco en vez de
+ * buscar #scene-puerta directo, porque ese markup se reconstruye entero
+ * cada vez que cambia de lugar. stopPropagation evita que el mismo click
+ * además dispare el click-to-walk del fondo. */
 function setupSceneDoor() {
   if (!el.locationDeco) return;
   el.locationDeco.addEventListener("click", (ev) => {
@@ -920,7 +800,8 @@ function setupSceneDoor() {
     if (!puerta) return;
     ev.stopPropagation();
     if (!state) return;
-    goToLocation(getLocationDef(state.location).to);
+    notifySystem("Muy pronto vas a poder elegir a dónde ir desde acá.");
+    announce("La puerta todavía no lleva a ningún lado — muy pronto vas a poder elegir a dónde ir.");
   });
 }
 
@@ -1000,7 +881,13 @@ function buildOjosSubtabs() {
 }
 
 /** Fila de swatches de la pestaña activa. Para "ojos" depende además de la
- * sub-pestaña (forma numerada vs. color de iris, ver buildOjosSubtabs). */
+ * sub-pestaña (forma numerada vs. color de iris, ver buildOjosSubtabs).
+ * v3.5: pedido explícito — "cambiar selector de opciones de partes por un
+ * slider (menos los de color, mantenerlos)". Los colores (bodyColor y la
+ * sub-pestaña "Color" de ojos) siguen siendo la fila de swatches de
+ * siempre; todo lo demás (cabeza/orejas/ojos-forma/narices/boca/cejas,
+ * las opciones "numeradas") pasa a un slider con flechas ‹ › en vez de
+ * mostrar las N opciones todas juntas. */
 function renderCreatorSwatchRow() {
   if (!el.creatorSwatchRow) return;
   el.creatorSwatchRow.innerHTML = "";
@@ -1010,6 +897,13 @@ function renderCreatorSwatchRow() {
   const label = showingEyeColor ? "Color de ojos" : (CATEGORY_LABELS[activeCreatorTab] || activeCreatorTab);
   const options = showingEyeColor ? PET_EYE_COLORS : PET_PARTS_MANIFEST[activeCreatorTab];
   const isNumbered = !showingEyeColor && activeCreatorTab !== "bodyColor";
+
+  el.creatorSwatchRow.classList.toggle("is-slider", isNumbered);
+
+  if (isNumbered) {
+    renderCreatorPartSlider(category, label, options);
+    return;
+  }
 
   // v3.4: pedido explícito — colores nuevos en bodyColor marcados con
   // `locked: true` ("próximamente se pueden comprar"). Sólo aparecen al
@@ -1025,14 +919,10 @@ function renderCreatorSwatchRow() {
     if (opt.locked && category === "bodyColor" && !showLocked) return; // ni siquiera se muestra al crear
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = isNumbered ? "swatch swatch-number" : "swatch";
+    btn.className = "swatch";
     btn.title = isLocked ? `${opt.label} (Próximamente)` : opt.label;
     btn.setAttribute("aria-label", isLocked ? `${label}: ${opt.label}, próximamente` : `${label}: ${opt.label}`);
-    if (isNumbered) {
-      btn.textContent = opt.label;
-    } else {
-      btn.style.background = opt.swatch;
-    }
+    btn.style.background = opt.swatch;
     if (isLocked) {
       btn.classList.add("swatch-locked");
       btn.disabled = true;
@@ -1051,6 +941,59 @@ function renderCreatorSwatchRow() {
     });
     el.creatorSwatchRow.appendChild(btn);
   });
+}
+
+/** Slider ‹ N › para las categorías "numeradas" (todo menos los colores) —
+ * ver comentario de renderCreatorSwatchRow. Circular: desde la última
+ * opción, "siguiente" vuelve a la primera (y viceversa desde la primera
+ * con "anterior"), así las flechas nunca quedan deshabilitadas. */
+function renderCreatorPartSlider(category, label, options) {
+  const currentIndex = Math.max(0, options.findIndex((o) => o.id === selectedLook[category]));
+  const current = options[currentIndex] || options[0];
+
+  const wrap = document.createElement("div");
+  wrap.className = "part-slider";
+
+  const goTo = (index) => {
+    const opt = options[index];
+    selectedLook[category] = opt.id;
+    renderPetLayers(el.previewStage, selectedLook);
+    renderCreatorSwatchRow();
+    announce(`${label}: ${opt.label}`);
+  };
+
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.className = "part-slider-arrow part-slider-prev";
+  prevBtn.setAttribute("aria-label", `${label}: opción anterior`);
+  prevBtn.innerHTML = "‹";
+  prevBtn.addEventListener("click", () => {
+    goTo((currentIndex - 1 + options.length) % options.length);
+  });
+
+  const currentTile = document.createElement("span");
+  currentTile.className = "swatch swatch-number selected part-slider-current";
+  currentTile.textContent = current.label;
+  currentTile.setAttribute("aria-live", "polite");
+
+  const count = document.createElement("span");
+  count.className = "part-slider-count";
+  count.textContent = `${currentIndex + 1} / ${options.length}`;
+
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.className = "part-slider-arrow part-slider-next";
+  nextBtn.setAttribute("aria-label", `${label}: opción siguiente`);
+  nextBtn.innerHTML = "›";
+  nextBtn.addEventListener("click", () => {
+    goTo((currentIndex + 1) % options.length);
+  });
+
+  wrap.appendChild(prevBtn);
+  wrap.appendChild(currentTile);
+  wrap.appendChild(nextBtn);
+  el.creatorSwatchRow.appendChild(wrap);
+  el.creatorSwatchRow.appendChild(count);
 }
 
 function renderCreatorPanel() {
@@ -1287,6 +1230,12 @@ function updateDailyGoals() {
     if (node) node.classList.toggle("is-done", complete);
   });
   if (el.dailyCount) el.dailyCount.textContent = `${done} / 3`;
+  // v3.5: pedido explícito — "el cartel de objetivos que se cierre cuando
+  // ya se completaron todos". ensureDailyProgress() ya resetea
+  // state.daily (y por lo tanto `done`) al cambiar de día, así que el
+  // cartel vuelve a aparecer solo al otro día sin que haga falta ningún
+  // botón para reabrirlo.
+  if (el.dailyCard) el.dailyCard.hidden = done >= 3;
   if (el.coinCount) el.coinCount.textContent = String(state.economy.coins || 0);
   // v3.2, pedido explícito: "que el texto de los objetivos se tachen...
   // y también el de recompensas" — cada objetivo ya se tachaba a medias
@@ -1480,11 +1429,10 @@ function updateClock() {
   const hh = String(now.getHours()).padStart(2, "0");
   const mm = String(now.getMinutes()).padStart(2, "0");
   if (el.headerClock) el.headerClock.innerHTML = `${iconSvg("reloj")}<span>${hh}:${mm}</span>`;
-  const night = isNightNow(now);
-  if (el.timeCardClock) el.timeCardClock.textContent = `${hh}:${mm}`;
-  if (el.timeCardLabel) el.timeCardLabel.textContent = night ? "Noche" : (now.getHours() < 12 ? "Mañana" : "Tarde");
-  if (el.timeCardIcon) el.timeCardIcon.textContent = night ? "☾" : "☀";
-  if (el.stageFloor) el.stageFloor.classList.toggle("is-night", night);
+  // v3.5: pedido explícito — se sacó el cartel de reloj (#time-card, con
+  // hora + Mañana/Tarde/Noche); sólo queda el cálculo de día/noche para
+  // la escena (.is-night sobre #stage-floor sigue vivo).
+  if (el.stageFloor) el.stageFloor.classList.toggle("is-night", isNightNow(now));
 }
 
 function setupClock() {
@@ -1552,9 +1500,9 @@ function refreshUI() {
   updateStatusLine();
   updateFlies();
   renderDirt();
-  updateWorldLighting();
   updateSleepToggle();
   updateActionsAvailability();
+  updateConnectionIndicator();
   el.gameStage.setAttribute("aria-disabled", String(Math.round(state.stats.felicidad) >= 100 || state.sleep.dormida));
 }
 
@@ -1962,7 +1910,12 @@ function buildFeedMenu() {
     item.className = "feed-item";
     item.id = "feed-item-" + key;
     item.setAttribute("role", "menuitem");
-    item.innerHTML = `<span class="feed-item-icon"><img src="assets/items/fish-item.svg" alt="" /></span><span>${food.label} <strong id="fish-quantity">×0</strong></span><span class="feed-item-desc">${FOOD_DESCRIPTIONS[key] || ""}</span>`;
+    // v3.5: pedido explícito — "sacar la leyenda 'Pescado' y que el
+    // número de stock sea mucho más chico, el svg un poco más chico y el
+    // número de stock esté debajo del svg, todo centrado" (ver
+    // .feed-item/#fish-quantity en css/style.css para el layout en
+    // columna centrada que arma esto).
+    item.innerHTML = `<span class="feed-item-icon"><img src="assets/items/fish-item.svg" alt="${food.label}" /></span><strong id="fish-quantity">×0</strong><span class="feed-item-desc">${FOOD_DESCRIPTIONS[key] || ""}</span>`;
     item.addEventListener("click", () => doComer(key));
     el.feedMenu.appendChild(item);
   });
@@ -2783,12 +2736,14 @@ function buildDebugPanel() {
     updateCooldownButtons();
   });
 
+  // v3.5: el Jardín se saca del todo (pedido explícito) — sólo queda
+  // "Casa" como lugar, así que el botón de debug para ir al Jardín
+  // también se saca (ya no hay a dónde ir).
   const locRow = document.createElement("div");
   locRow.className = "debug-row";
-  locRow.innerHTML = `<span>Lugar</span> <button type="button" id="debug-go-casa">Ir a Casa</button> <button type="button" id="debug-go-jardin">Ir a Jardín</button>`;
+  locRow.innerHTML = `<span>Lugar</span> <button type="button" id="debug-go-casa">Ir a Casa</button>`;
   p.appendChild(locRow);
   locRow.querySelector("#debug-go-casa").addEventListener("click", () => goToLocation("casa"));
-  locRow.querySelector("#debug-go-jardin").addEventListener("click", () => goToLocation("jardin"));
 }
 
 function refreshDebugValues() {
@@ -2879,10 +2834,14 @@ function renderNotifications() {
 // Global overlays and responsive HUD measurement.
 function syncHudLayout() {
   const hud = document.getElementById("wellbeing-widget");
-  document.getElementById("time-card").style.top = (hud.offsetTop + hud.offsetHeight + 12) + "px";
-  const clock=document.getElementById("time-card");
+  // v3.5: pedido explícito — sin #time-card, #notification-card pasa a
+  // colgar directo de #wellbeing-widget (el cartel de "Estado"), en el
+  // lugar que ocupaba el reloj. Antes colgaba de #time-card, así que si
+  // esa tarjeta estaba oculta en alguna resolución (offsetTop/offsetHeight
+  // en 0) las notificaciones terminaban pegadas contra "Estado" en vez de
+  // debajo — este es justamente el bug que se pidió arreglar.
   const notif=document.getElementById("notification-card");
-  notif.style.top=(clock.offsetTop+clock.offsetHeight+12)+"px";
+  notif.style.top=(hud.offsetTop+hud.offsetHeight+12)+"px";
   // v3.2: #sleep-notice-card y #system-notice-card se encadenan debajo de
   // las alertas de bienestar, en ese orden — cuando alguna está hidden
   // (display:none) su offsetHeight da 0 y la siguiente sube sola a
@@ -2897,7 +2856,7 @@ function syncHudLayout() {
   el.walker.style.transform = `translateX(${walkX + WALK_PAD}px)`;
   if (minigame) positionMinigameTarget();
 }
-for (const id of ["wellbeing-widget","time-card","stage-actions-row"]) new ResizeObserver(syncHudLayout).observe(document.getElementById(id));
+for (const id of ["wellbeing-widget","stage-actions-row"]) new ResizeObserver(syncHudLayout).observe(document.getElementById(id));
 window.addEventListener("resize", syncHudLayout);
 document.addEventListener("keydown", ev => {
   if (ev.defaultPrevented || ev.key !== "Escape") return;
@@ -2907,10 +2866,10 @@ document.addEventListener("keydown", ev => {
 // ---------- Arranque ----------
 
 (function init() {
-  // Iconos estáticos que no cambian durante la sesión (los que sí cambian
-  // — puerta/etiqueta de lugar — se resuelven en setLocationVisuals).
+  // Iconos estáticos que no cambian durante la sesión.
+  // v3.5: el botón "Salir al jardín" (#btn-nav, antes con el ícono de
+  // puerta acá) se sacó del todo — ya no hay nada que inicializar acá.
   el.btnAleatorio.innerHTML = iconSvg("dado") + "<span>Aleatorio</span>";
-  el.navBtn.querySelector(".nav-btn-icon").innerHTML = iconSvg("puerta");
   buildPrimaryMeters();
   buildActionsDock();
   buildFeedMenu();
@@ -3472,18 +3431,26 @@ function setupFriendsUI() {
   });
 }
 
-// ---------- v3.4: Visita a la casa de un amigo (sólo lectura) ----------
-// Pedido explícito: "Visita a amigos. Cuando añadís un amigo te da la
+// ---------- v3.4/v3.5: Visita a la casa de un amigo (sólo lectura) ----------
+// Pedido explícito v3.4: "Visita a amigos. Cuando añadís un amigo te da la
 // opción de visitar su casa y si esa persona está activa ves lo que hace
 // en ese momento, sino su personaje anda por ahí como cuando dejás al
-// personaje sin hacer nada idle." Se implementa como un modal aparte
-// (#visit-overlay) con su PROPIO escenario/mascota (#visit-*): reutiliza
-// las piezas puras de render que ya usa la mascota propia (renderPetLayers
-// + manifest, computeEyeScale/moodFromStats de js/state.js, isNightNow,
-// HOME_SCENE_INLINE/LOCATION_DECO_HTML/worldObjectArt) pero nunca toca
-// `state` ni el loop de juego real ni guarda nada — así no hay forma de
-// que visitar interfiera con la propia partida. Nada del escenario de
-// visita tiene manejadores de click (mundo y mascota son decorativos).
+// personaje sin hacer nada idle."
+// Pedido explícito v3.5 ("reinventar el sistema de visita"): deja de ser
+// un modal chico con sólo la mascota del amigo — ahora ocupa toda la
+// pantalla (#visit-overlay, ver css/style.css e index.html) y muestra las
+// DOS mascotas juntas en la casa del amigo: la propia (con el look actual
+// de `state.look`, "como si saliera de tu casa y entrara a la de la
+// otra") y la del anfitrión (con el look que llega en vivo de
+// Cloud.subscribeToPlayer). Reutiliza las piezas puras de render que ya
+// usa la mascota propia (renderPetLayers + manifest, computeEyeScale/
+// moodFromStats de js/state.js, isNightNow, HOME_SCENE_INLINE/
+// LOCATION_DECO_HTML) pero nunca toca `state` ni el loop de juego real ni
+// guarda nada — así no hay forma de que visitar interfiera con la propia
+// partida. Nada del escenario de visita tiene manejadores de click (la
+// mascota propia se muestra tal cual está, sin mobiliario — ver v3.5
+// tarea "quitar los items interactivos" — así que no hay nada más que
+// dibujar en la escena aparte de las dos mascotas).
 //
 // "Activa" = guardó su estado en la nube hace poco. El guardado normal
 // tiene como máximo CLOUD_SAVE_DEBOUNCE_MS (20s) de demora mientras juega,
@@ -3502,42 +3469,44 @@ let visitHomeSceneMarkupCache = null;
  * tienen manejador de click propio (ver css/style.css, #visit-scene-puerta
  * queda con pointer-events:none — la puerta de una visita no lleva a
  * ningún lado). */
-function visitDecoMarkup(locationId) {
-  if (locationId === "casa") {
-    if (visitHomeSceneMarkupCache === null) {
-      visitHomeSceneMarkupCache = HOME_SCENE_INLINE
-        .replace('id="scene-noche-overlay"', 'id="visit-scene-noche-overlay"')
-        .replace('id="scene-puerta"', 'id="visit-scene-puerta"');
-    }
-    return visitHomeSceneMarkupCache;
+function visitDecoMarkup() {
+  // v3.5: el Jardín se saca del todo — la única escena de visita posible
+  // ahora es la Casa (ver locationId más abajo en renderVisit, que ya
+  // fuerza cualquier location guardada distinta de "casa" a "casa").
+  if (visitHomeSceneMarkupCache === null) {
+    visitHomeSceneMarkupCache = HOME_SCENE_INLINE
+      .replace('id="scene-noche-overlay"', 'id="visit-scene-noche-overlay"')
+      .replace('id="scene-puerta"', 'id="visit-scene-puerta"');
   }
-  return LOCATION_DECO_HTML.jardin || "";
+  return visitHomeSceneMarkupCache;
 }
 
-function renderVisitWorldObjects(locationId, lampOn) {
-  if (!el.visitWorldLayer) return;
-  el.visitWorldLayer.innerHTML = "";
-  if (locationId !== "casa") return;
-  getRoomObjects(locationId).forEach((obj) => {
-    const box = document.createElement("div");
-    box.className = `world-object world-object-${obj.type}`;
-    box.style.left = `${obj.x}%`;
-    box.style.top = `${obj.y}%`;
-    box.style.width = `${obj.width}%`;
-    box.style.zIndex = String(obj.depth || 1);
-    box.innerHTML = worldObjectArt(obj.art);
-    if (obj.id === "lamp_01") box.classList.toggle("is-on", !!lampOn);
-    el.visitWorldLayer.appendChild(box);
-  });
+/** Pinta la propia mascota (tal cual está ahora mismo, con su look/ánimo/
+ * sueño reales) parada en la escena de visita — no depende de `data` de
+ * Cloud, así que se pinta una sola vez al abrir la visita (no cambia
+ * mientras el modal está abierto: no se puede seguir jugando mientras se
+ * visita a alguien). */
+function renderVisitOwnPet() {
+  if (!el.visitPetStageMine || !state) return;
+  renderPetLayers(el.visitPetStageMine, state.look || defaultLook());
+  const mood = state.health && state.health.enferma ? "triste" : moodFromStats(state.stats || {});
+  el.visitPetStageMine.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
+  el.visitPetStageMine.classList.add("mood-" + mood);
+  el.visitPetStageMine.classList.toggle("sleeping", !!state.sleep.dormida);
+  el.visitPetStageMine.classList.toggle("sick", !!(state.health && state.health.enferma));
+  el.visitPetStageMine.style.setProperty(
+    "--eye-scale",
+    state.sleep.dormida ? 0.04 : computeEyeScale(state.stats || {}, state.health || {})
+  );
+  if (el.visitWalkerMine) el.visitWalkerMine.classList.toggle("is-sleeping", !!state.sleep.dormida);
 }
 
 function renderVisit(displayName, data) {
   if (!el.visitStageFloor || el.visitOverlay.hidden) return;
   if (!data || !data.petState) {
     el.visitStatusLine.textContent = `No se pudo cargar la casa de ${displayName} ahora mismo.`;
-    delete el.visitPetStage.dataset.lookKey;
-    el.visitPetStage.innerHTML = "";
-    el.visitWorldLayer.innerHTML = "";
+    delete el.visitPetStageHost.dataset.lookKey;
+    el.visitPetStageHost.innerHTML = "";
     el.visitLocationDeco.innerHTML = "";
     return;
   }
@@ -3547,35 +3516,34 @@ function renderVisit(displayName, data) {
   // Sin conexión reciente: se ignoran location/sleep guardados y se la
   // muestra en la Casa, deambulando sola (mismo criterio que el idle
   // autónomo de la propia mascota cuando se la deja sin hacer nada).
-  const locationId = active && petState.location === "jardin" ? "jardin" : "casa";
+  // v3.5: el Jardín se saca del todo — aunque el guardado de un amigo
+  // todavía diga location:"jardin" (de antes de esta versión), la visita
+  // se muestra siempre en la Casa, que es el único lugar que existe.
+  const locationId = "casa";
   const asleep = active && !!(petState.sleep && petState.sleep.dormida);
-  const lampOn = active && !!(petState.world && petState.world.objects && petState.world.objects.lamp_01 && petState.world.objects.lamp_01.on);
 
   el.visitStageFloor.classList.remove(...PET_LOCATIONS.map((l) => "location-" + l.id));
   el.visitStageFloor.classList.add("location-" + locationId);
   el.visitStageFloor.classList.toggle("is-night", isNightNow(new Date()));
-  el.visitLocationDeco.innerHTML = visitDecoMarkup(locationId);
-  renderVisitWorldObjects(locationId, lampOn);
+  el.visitLocationDeco.innerHTML = visitDecoMarkup();
 
-  renderPetLayers(el.visitPetStage, petState.look || defaultLook());
+  renderPetLayers(el.visitPetStageHost, petState.look || defaultLook());
   const mood = petState.health && petState.health.enferma ? "triste" : moodFromStats(petState.stats || {});
-  el.visitPetStage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
-  el.visitPetStage.classList.add("mood-" + mood);
-  el.visitPetStage.classList.toggle("sleeping", asleep);
-  el.visitPetStage.classList.toggle("sick", !!(petState.health && petState.health.enferma));
-  el.visitPetStage.style.setProperty(
+  el.visitPetStageHost.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
+  el.visitPetStageHost.classList.add("mood-" + mood);
+  el.visitPetStageHost.classList.toggle("sleeping", asleep);
+  el.visitPetStageHost.classList.toggle("sick", !!(petState.health && petState.health.enferma));
+  el.visitPetStageHost.style.setProperty(
     "--eye-scale",
     asleep ? 0.04 : computeEyeScale(petState.stats || {}, petState.health || {})
   );
-  el.visitWalker.classList.toggle("is-sleeping", asleep);
-  el.visitWalker.classList.toggle("is-wandering", !active);
+  el.visitWalkerHost.classList.toggle("is-sleeping", asleep);
+  el.visitWalkerHost.classList.toggle("is-wandering", !active);
 
   if (!active) {
     el.visitStatusLine.textContent = `${displayName} no está conectada ahora — ${petName} anda por ahí, sin hacer nada en particular.`;
   } else if (asleep) {
     el.visitStatusLine.textContent = `${petName} está durmiendo.`;
-  } else if (locationId === "jardin") {
-    el.visitStatusLine.textContent = `${petName} está en el jardín ahora mismo.`;
   } else {
     el.visitStatusLine.textContent = `${petName} está en casa ahora mismo.`;
   }
@@ -3587,18 +3555,20 @@ function openVisit(usernameLower, displayName) {
   closeFriendsPanel();
   el.visitTitle.textContent = `Casa de ${displayName}`;
   el.visitStatusLine.textContent = "Conectando...";
-  delete el.visitPetStage.dataset.lookKey;
-  el.visitPetStage.innerHTML = "";
+  delete el.visitPetStageHost.dataset.lookKey;
+  el.visitPetStageHost.innerHTML = "";
   // "game-stage" (además de "pet-stage") es lo que le da a este escenario
   // la respiración/expresión de ánimo real (ver .game-stage en
-  // css/style.css) — #visit-pet-stage.pet-stage más abajo en ese mismo
-  // archivo le saca el cursor de "acariciable" que trae esa clase, ya que
-  // acá no se puede interactuar con nada.
-  el.visitPetStage.className = "pet-stage game-stage";
-  el.visitWorldLayer.innerHTML = "";
+  // css/style.css) — .visit-walker .pet-stage en ese mismo archivo le
+  // saca el cursor de "acariciable" que trae esa clase, ya que acá no se
+  // puede interactuar con nada.
+  el.visitPetStageHost.className = "pet-stage game-stage";
+  el.visitPetStageMine.className = "pet-stage game-stage";
   el.visitLocationDeco.innerHTML = "";
-  el.visitWalker.classList.remove("is-sleeping", "is-wandering");
+  el.visitWalkerHost.classList.remove("is-sleeping", "is-wandering");
+  el.visitWalkerMine.classList.remove("is-sleeping");
   el.visitOverlay.hidden = false;
+  renderVisitOwnPet();
   visitUnsubscribe = window.Cloud.subscribeToPlayer(usernameLower, (data) => renderVisit(displayName, data));
 }
 
@@ -3613,9 +3583,6 @@ function closeVisit() {
 function setupVisitUI() {
   if (!el.visitOverlay || !el.visitClose) return;
   el.visitClose.addEventListener("click", closeVisit);
-  el.visitOverlay.addEventListener("click", (ev) => {
-    if (ev.target === el.visitOverlay) closeVisit();
-  });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && !el.visitOverlay.hidden) closeVisit();
   });

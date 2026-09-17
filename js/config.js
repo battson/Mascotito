@@ -24,11 +24,21 @@ const PET_CONFIG = {
   // viejas (hambre ~30hs, sed ~24hs, limpieza ~48hs de 100 a 0);
   // "energia" decae parecido a la hidratación mientras está despierta,
   // pero se RECUPERA en vez de decaer mientras duerme (ver sleep.* abajo).
+  // v3.5 (pedido explícito): "aumentar bajada de necesidades: el hambre
+  // debería bajar un 200% más rápido que lo de ahora, la sed un 400%, la
+  // higiene 100%, y la energía 150%." Es decir, multiplicadores ×3/×5/×2/
+  // ×2.5 respectivamente sobre los valores base de siempre (felicidad NO
+  // se toca, no la menciona el pedido). Esto solo cambia la TASA — el
+  // "tiempo tiene que seguir corriendo estando offline" ya lo hacía
+  // applyDecay() desde siempre (usa el tiempo real transcurrido desde
+  // state.lastUpdate, no ticks fijos), así que no hace falta tocar esa
+  // lógica para que el descuento offline sea igual que estando online sin
+  // hacer nada.
   decayPerMinute: {
-    saciedad: 0.0556, // 100/(30*60)
-    hidratacion: 0.0694, // 100/(24*60)
-    higiene: 0.0347, // 100/(48*60)
-    energia: 0.0556, // ~30hs despierta sin hacer nada; jugar/correr gasta más (ver play.energiaCosto)
+    saciedad: 0.0556 * 3, // hambre 200% más rápido → ×3
+    hidratacion: 0.0694 * 5, // sed 400% más rápido → ×5
+    higiene: 0.0347 * 2, // higiene 100% más rápido → ×2
+    energia: 0.0556 * 2.5, // energía 150% más rápido → ×2.5
     // Felicidad no es "una necesidad que se atiende con una acción única"
     // como las de arriba — sube con cuidados variados (jugar, golosinas,
     // caricias, hablar) y baja sola despacio si hay abandono/aburrimiento/

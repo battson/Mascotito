@@ -45,13 +45,13 @@ function defaultLocation() {
 }
 
 /** Migra state.scenario (v2.0 y anteriores) a state.location: los ids
- * viejos eran "living" (interior) y "jardin" (exterior) — "living" pasa a
- * ser "casa" (mismo lugar, nombre nuevo), "jardin" se mantiene igual. Si
- * ya viene un state.location válido (guardado v2.1+), se respeta tal cual. */
+ * viejos eran "living" (interior) y "jardin" (exterior) — ambos pasan a
+ * "casa". v3.5 (pedido explícito): "quitar la escena del jardín" — el
+ * Jardín deja de existir como lugar, así que cualquier guardado (viejo o
+ * de justo antes de esta versión) que haya quedado con location:"jardin"
+ * vuelve a la Casa, que es el único lugar que sigue existiendo. */
 function normalizeLocation(rawLocation, legacyScenario) {
-  if (rawLocation === "casa" || rawLocation === "jardin") return rawLocation;
-  if (legacyScenario === "living") return "casa";
-  if (legacyScenario === "jardin") return "jardin";
+  if (rawLocation === "casa") return rawLocation;
   return defaultLocation();
 }
 

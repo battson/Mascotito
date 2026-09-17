@@ -1347,6 +1347,54 @@ body {
   justify-content: center;
 }
 
+/* v3.5: pedido explícito — "cambiar selector de opciones de partes por un
+ * slider (menos los de color, mantenerlos)". Reemplaza la fila con TODAS
+ * las opciones numeradas visibles a la vez por flechas ‹ › + la opción
+ * actual (ver renderCreatorPartSlider en js/app.js); los colores
+ * (bodyColor/ojosColor) no pasan por acá, siguen usando .swatch-row tal
+ * cual. .is-slider centra el conjunto en vez de heredar el
+ * justify-content de la fila normal de swatches. */
+.swatch-row.is-slider,
+.creator-panel .swatch-row.is-slider {
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.part-slider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.part-slider-arrow {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s, background 0.15s;
+}
+.part-slider-arrow:hover { transform: translateY(-1px); background: var(--soft-green); }
+.part-slider-arrow:active { transform: translateY(1px); }
+.part-slider-current { cursor: default; }
+.part-slider-current:hover { transform: none; }
+.part-slider-count {
+  display: block;
+  margin-top: 6px;
+  text-align: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--muted);
+  flex-basis: 100%;
+}
+
 /* ---------- Botones ---------- */
 
 .primary-btn, .secondary-btn, .action-circle, .link-btn {
@@ -2188,7 +2236,14 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   pointer-events:none;
 }
 .hud-card-title-row { display:flex; align-items:center; justify-content:space-between; width:100%; }
+/* v3.5 (pedido explícito): estado de conectado/desconectado. Conectado =
+   sesión de nube activa y con internet (mismo verde de siempre). Desconectado
+   = jugando sin nube o sin internet en este momento (naranja). El valor de
+   box-shadow desconectado no llegó completo en el pedido original — se
+   infiere por simetría con el conectado (mismo color base que el
+   background, alpha .13); ver nota de entrega para que se pueda corregir. */
 .hud-status-dot { width:10px; height:10px; border-radius:50%; background:#55ad62; box-shadow:0 0 0 5px rgba(85,173,98,.13); }
+.hud-status-dot.is-offline { background:#d9822636; box-shadow:0 0 0 5px rgba(217,130,38,.13); }
 .wellbeing-hud { width:100%; align-items:center; gap:12px; }
 .wellbeing-avatar { width:68px; height:68px; border-width:3px; box-shadow:0 4px 10px rgba(35,25,18,.14); }
 .wellbeing-avatar-stage { width:136px; height:136px; left:-34px; top:-21px; }
@@ -2281,26 +2336,10 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .daily-reward.is-claimed span,
 .daily-reward.is-claimed strong { text-decoration: line-through; }
 
-.time-card {
-  position:absolute;
-  z-index:7;
-  left:18px;
-  top:390px;
-  width:250px;
-  min-height:96px;
-  display:flex;
-  align-items:center;
-  gap:13px;
-  padding:14px 16px;
-  color:white;
-  background:rgba(20,35,67,.90);
-  border-color:rgba(244,166,62,.85);
-  pointer-events:none;
-}
-.time-icon { font-size:2.05rem; line-height:1; color:#fff6d7; }
-.time-card .hud-eyebrow { color:#e9c987; }
-.time-card strong { display:block; margin-top:3px; font:800 1.32rem/1 "Baloo 2",sans-serif; }
-.time-card #time-card-label { display:block; margin-top:3px; color:#d6def1; font:600 .76rem/1 "Segoe UI",sans-serif; }
+/* v3.5: #time-card (reloj + Mañana/Tarde/Noche) se sacó del todo —
+   pedido explícito, "quitar cartel de reloj y que las notificaciones
+   ocupen ese lugar" (ver syncHudLayout() en js/app.js, que ahora ancla
+   #notification-card directo debajo de #wellbeing-widget). */
 
 /* Dock inferior: acciones como controles de videojuego, no iconos flotantes */
 .stage-actions-row {
@@ -2399,7 +2438,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .daily-card { top:110px; right:10px; width:210px; padding:12px; }
   .daily-reward { display:block; }
   .daily-reward strong { display:block; margin-top:4px; text-align:left; }
-  .time-card { display:none; }
   .stage-actions-row { width:calc(100% - 24px); bottom:12px; overflow-x:auto; justify-content:flex-start; }
   .stage-actions-row .actions { justify-content:flex-start; }
   .walker { bottom:94px; }
@@ -2449,7 +2487,19 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   align-items:center;
   gap:12px;
 }
-#btn-opciones { justify-self:end; }
+/* v3.5: Amigos + Opciones (+ su menú desplegable) viven ahora agrupados
+   en un solo div (.header-actions, ver index.html) — UN solo hijo de
+   grid en la 3ra columna, en vez de 2-3 hijos sueltos que el grid de 3
+   columnas mandaba a una fila implícita nueva (pedido explícito: "el
+   header... queda en dos líneas... debería estar todo en una sola
+   línea"). Sin position propio: #options-menu sigue anclando su
+   position:absolute contra .app-header, como siempre. */
+.header-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .header-edit-btn {
   width:42px;
   height:42px;
@@ -2666,7 +2716,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .app-header { grid-template-columns:minmax(150px,1fr) auto minmax(44px,1fr); }
 .header-edit-btn { display:flex; width:auto; gap:7px; padding:8px 10px; white-space:nowrap; font:700 .85rem "Baloo 2",sans-serif; }
 .daily-card { top:18px; }
-.time-card { display:flex; bottom:auto; left:18px; }
 .walker { width:clamp(340px,31vw,440px); bottom:110px; }
 .walker .game-stage { width:100%; height:auto; aspect-ratio:1; cursor:pointer; touch-action:manipulation; }
 .speech-bubble { top:auto; bottom:88%; height:auto; padding:16px 20px 20px; max-width:min(300px,80vw); overflow-wrap:anywhere; }
@@ -2704,7 +2753,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .swatch,.part-card { border-radius:0; }
 @media(max-width:900px) {
  .daily-card { top:10px; }
- .time-card { left:10px; }
  .walker { width:340px; }
  .creator-stage-wrap { grid-template-columns:minmax(0,1fr) 330px; }
  .creator-controls,.screen.onboarding.is-editing .creator-controls { padding:18px; }
@@ -2733,7 +2781,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
  .daily-list li { font-size:.7rem; }
  .daily-reward { display:block; font-size:.65rem; }
  .walker { width:min(330px,calc(100% - 32px)); bottom:110px; }
- .time-card { width:calc(55% - 15px); padding:10px; }
  .minigame-panel { inset:18% 3% 15%; }
  .screen.onboarding,.screen.onboarding.is-editing { padding:12px; gap:8px 12px; }
  #brand-emblem { width:64px; height:64px; }
@@ -2837,10 +2884,16 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #debug-save { background:#244962; color:white; }
 .debug-help { margin:6px 0 12px; font-size:.8rem; line-height:1.4; }
 .feed-menu { max-height:300px; width:min(360px,calc(100% - 24px)); border:0; border-radius:0; padding:14px; }
-.feed-item { display:flex; align-items:center; gap:16px; padding:8px; }
-.feed-item-icon img { width:90px; height:65px; }
+/* v3.5: pedido explícito — sacar la leyenda "Pescado", achicar el svg y
+   el número de stock, y poner el número DEBAJO del svg, todo centrado
+   (antes: svg + "Pescado ×N" en fila, con el número grande). El markup
+   (ver buildFeedMenu() en js/app.js) ya no trae el texto "Pescado" —
+   sólo el ícono y el <strong id="fish-quantity">, así que alcanza con
+   apilarlos en columna y centrarlos. */
+.feed-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px; }
+.feed-item-icon img { width:56px; height:40px; }
 .feed-item-desc { display:none; }
-#fish-quantity { display:block; font-size:1.7rem; color:#244962; }
+#fish-quantity { display:block; font-size:0.85rem; color:#244962; }
 .notification-card { position:absolute; left:18px; width:250px; z-index:10; background:#fff8e8; color:#244962; padding:10px 12px; box-shadow:0 5px 16px #14253a20; max-height:160px; overflow:auto; }
 .notification-card ul { padding:0; margin:0; list-style:none; }
 .notification-card li { font-size:.78rem; line-height:1.4; padding:5px 0; }
@@ -2881,103 +2934,20 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 @media(max-width:640px) { .notification-card { width:calc(55% - 15px); max-height:125px; padding:8px; } }
 @media(prefers-reduced-motion:reduce) { .fishing-scene *,.caught-fish,.game-stage.is-pooping { animation:none!important; } .game-details { transition:none; } }
 .feed-menu { flex-direction:column; align-items:stretch; flex-wrap:nowrap; background:#fff8e8; }
-.feed-item { flex-direction:row; width:100%; border:0; border-radius:0; background:#efe3ca; justify-content:center; }
+/* v3.5: mantiene columna (icono arriba, stock chico debajo, centrado —
+   ver el bloque ".feed-item"/#fish-quantity más arriba) en vez de volver
+   a la fila icono+texto que tenía esta capa antes. */
+.feed-item { flex-direction:column; width:100%; border:0; border-radius:0; background:#efe3ca; justify-content:center; }
 .feed-item-icon { width:auto; height:auto; }
 .game-title { font-family:inherit; font-size:1rem; font-weight:700; }
 
 /* ======================================================================
-   v3.3 — Fase 1: Casa interactiva / objetos del mundo
-   Los objetos se posicionan con porcentajes del escenario (data-driven en
-   js/world.js), de modo que una futura fase pueda persistir x/y por objeto.
+   v3.5: los objetos interactivos de la Casa (Cama/Sillón/Lámpara,
+   placeholders de v3.4 sin arte definitivo) se sacaron del todo — pedido
+   explícito, "quitar los items interactivos: lampara/cama/sillón de la
+   casa". Todo su CSS (.world-layer/.world-object*/.wo-*/.room-lamp-on)
+   se retira acá con ellos (ver js/world.js: WORLD_OBJECTS ahora vacío).
    ====================================================================== */
-.world-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-.world-object {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  pointer-events: auto;
-  cursor: pointer;
-  appearance: none;
-  filter: drop-shadow(0 7px 7px rgba(44, 31, 21, 0.2));
-  transition: transform .18s ease, filter .18s ease;
-  touch-action: manipulation;
-}
-.world-object:hover,
-.world-object:focus-visible {
-  transform: translate(-50%, -50%) scale(1.045);
-  filter: drop-shadow(0 8px 9px rgba(44, 31, 21, 0.26)) brightness(1.04);
-  outline: none;
-}
-.world-object:focus-visible::after,
-.world-object:hover::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%);
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: rgba(35, 30, 28, .88);
-  color: #fff;
-  font: 700 clamp(.62rem, 1.1vw, .76rem)/1 "Baloo 2", sans-serif;
-  white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0,0,0,.2);
-  z-index: 20;
-}
-.world-object-pulse { animation: worldObjectPulse .34s ease; }
-@keyframes worldObjectPulse {
-  0%,100% { transform: translate(-50%, -50%) scale(1); }
-  45% { transform: translate(-50%, -50%) scale(.94); }
-}
-
-/* Iluminación ambiental de la lámpara. No bloquea interacciones. */
-.stage-floor.location-casa.room-lamp-on::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(circle at 18% 48%, rgba(255, 225, 154, .23), transparent 34%);
-  mix-blend-mode: screen;
-}
-
-/* v3.4: Cama/Sillón/Lámpara ahora son placeholders en <svg> (ver
-   worldObjectArt(), js/app.js) en vez de formas armadas con CSS — plato/
-   bebedero/pelota se sacaron de la habitación (pedido explícito, "por
-   ahora no los usaremos"; alimentar/beber/jugar se hacen desde el dock de
-   acciones igual que siempre). Cada <svg> llena el botón entero; sólo la
-   lámpara necesita CSS propio, para el resplandor (.wo-lamp-glow, un
-   <i> aparte del dibujo) y el brillo del velador cuando está prendida. */
-.world-object-bed { aspect-ratio: 1.85 / 1; }
-.world-object-sofa { aspect-ratio: 1.55 / 1; }
-.wo-bed-svg, .wo-sofa-svg { position:absolute; inset:0; width:100%; height:100%; display:block; }
-
-/* Lámpara */
-.world-object-lamp { aspect-ratio:.62 / 1; }
-.wo-lamp { position:absolute; inset:0; display:block; }
-.wo-lamp-svg { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:2; }
-.wo-lamp-glow { position:absolute; left:-50%; top:-20%; width:200%; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle, rgba(255,223,140,.55), transparent 65%); opacity:0; transform:scale(.55); transition:opacity .2s ease, transform .2s ease; z-index:1; }
-.world-object-lamp.is-on .wo-lamp-shade { filter:brightness(1.16); }
-.world-object-lamp.is-on .wo-lamp-glow { opacity:1; transform:scale(1); }
-
-@media (max-width: 640px) {
-  .world-object-bed { width:27% !important; }
-  .world-object-sofa { width:25% !important; }
-  .world-object-lamp { width:9% !important; }
-  .world-object:hover::after { display:none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .world-object { transition:none; }
-  .world-object-pulse { animation:none; }
-}
 
 /* ======================================================================
    v3.3 — Fase 2: cuenta en la nube (login usuario+PIN) y sistema de
@@ -3155,77 +3125,97 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #add-friend-form .name-field { flex: 1; margin: 0; }
 #add-friend-form .secondary-btn { flex-shrink: 0; }
 
+/* v3.5: pedido explícito — "sacarle todos los border-radius que haya en
+   el cartel del panel de amigos, en los botones y en los recuadros".
+   #friends-panel (el <section> del modal) + selector universal para
+   TODO lo de adentro (la tarjeta en sí, los tabs, la lista, cada
+   friend-item, sus botones, el form de "Agregar", el badge de
+   solicitudes, etc.) — el selector por id le gana en especificidad a
+   cualquier ".clase" de las reglas de arriba (.modal-window,
+   .friend-item, .friend-item-actions button, ...) sin tener que tocar
+   esas reglas compartidas con otros modales (p. ej. #delete-account-panel
+   sigue con esquinas redondeadas, no se pidió cambiarlo). */
+#friends-panel,
+#friends-panel * {
+  border-radius: 0;
+}
+
 @media (max-width: 640px) {
   .modal-window { border-radius: 16px; }
   #add-friend-form { flex-direction: column; align-items: stretch; }
 }
 
-/* ---------- v3.4: Visita a la casa de un amigo (sólo lectura) ----------
-   Reutiliza el modal genérico de arriba (.modal-overlay/.modal-window) y
-   las mismas clases de escenario (.stage-floor/.location-casa/
-   .location-jardin/.walker/.pet-stage/.world-object-*) que ya arma el
-   estilo del juego real, para que la casa visitada se vea igual — pero
-   todo dentro de #visit-* queda con pointer-events:none (ver más abajo):
-   es sólo una foto en vivo, nunca se puede interactuar con nada de acá. */
-.modal-window.visit-window { width: min(560px, 100%); }
+/* ---------- v3.5: Visita a la casa de un amigo (pantalla completa,
+   sólo lectura) ----------
+   v3.4 mostraba esto en un modal chico centrado con la mascota del amigo
+   sola, encogida a la fuerza. v3.5 (pedido explícito: "debería cargar en
+   toda la escena la casa de la otra persona... las dos mascotas juntas")
+   lo reemplaza por una capa fija a pantalla completa, por encima del
+   header, que reutiliza .stage-floor/.walker/.pet-stage TAL CUAL las usa
+   el juego real (mismas reglas de tamaño por media query — a propósito,
+   ya no hay overrides que la encojan) para que la casa visitada se vea
+   igual de grande que la propia. Todo queda con pointer-events:none: es
+   sólo una foto en vivo, nunca se puede interactuar con nada de acá. */
+.visit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  padding: 10px clamp(10px, 3vw, 28px) 18px;
+  background: var(--bg, #fff3de);
+}
+.visit-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 2px 8px;
+  flex: 0 0 auto;
+}
+.visit-topbar h2 { margin: 0; font: 800 1.3rem/1 "Baloo 2", sans-serif; color: var(--ui-navy, #17233f); }
 .visit-status-line {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font: 700 0.92rem/1.3 "Baloo 2", sans-serif;
   color: var(--ui-navy, #17233f);
+  flex: 0 0 auto;
 }
-/* .stage-floor/.walker traen un montón de reglas de altura/ancho por
-   media query pensadas SÓLO para el escenario real a pantalla completa
-   (ver más arriba en este archivo: .stage-floor{height:calc(100dvh...)},
-   .walker{width:clamp(...),bottom:110px}, etc.) — todas son selectores de
-   una sola clase, así que estos combinados de dos clases (más
-   específicos, ganan siempre, en cualquier ancho) las neutralizan y fijan
-   un tamaño fijo acorde al modal en vez de a la ventana completa. */
-.visit-stage-floor.stage-floor {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
+.visit-stage-floor {
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: none;
-  margin-top: 0;
-  overflow: hidden;
   pointer-events: none;
 }
-.visit-world-layer.world-layer { position: absolute; inset: 0; pointer-events: none; }
-.visit-world-layer .world-object { pointer-events: none; cursor: default; filter: none; }
 .visit-hint {
   margin: 10px 2px 0;
   color: var(--muted);
   font-size: 0.82rem;
+  flex: 0 0 auto;
 }
 /* La puerta de una visita no lleva a ningún lado (ver visitDecoMarkup en
-   js/app.js, que le cambia el id a #scene-puerta para evitar que la casa
-   real y la visitada, abiertas al mismo tiempo, repitan ids). */
+   js/app.js, que le cambia el id a #visit-scene-puerta para evitar que la
+   casa real y la visitada, abiertas al mismo tiempo, repitan ids). */
 #visit-scene-puerta { pointer-events: none; cursor: default; }
 #visit-scene-noche-overlay { opacity: 0; transition: opacity 0.4s ease; }
 .visit-stage-floor.location-casa.is-night #visit-scene-noche-overlay { opacity: 0.4; }
 
-/* Reposo centrado por defecto, tamaño fijo acorde al modal (nunca corre
-   el loop de caminata real acá, ver openVisit/renderVisit) —
-   .is-wandering agrega un ida-y-vuelta lento para representar "anda por
-   ahí sin hacer nada" cuando el amigo no está conectado (pedido
-   explícito: mismo criterio que el idle de la propia mascota al dejarla
-   sola). */
+/* Dos mascotas paradas juntas: el anfitrión un poco más al centro/derecha
+   (ya estaba "en su casa"), la propia entrando desde la izquierda (pedido
+   explícito: "como si tu mascota saliera de tu casa y entrara a la casa
+   de la otra mascota"). .is-wandering (mascota del anfitrión cuando no
+   está conectada) agrega un ida-y-vuelta lento — "anda por ahí sin hacer
+   nada", mismo criterio que el idle de la propia mascota al dejarla sola. */
 .visit-walker.walker {
-  position: absolute;
-  left: 50%;
   right: auto;
-  bottom: 0;
-  width: 46%;
-  height: auto;
-  aspect-ratio: 1 / 1;
   transform: translateX(-50%);
 }
+.visit-walker-host.walker { left: 62%; }
+.visit-walker-mine.walker { left: 38%; }
 .visit-walker.is-wandering { animation: visitWander 10s ease-in-out infinite; }
 @keyframes visitWander {
-  0%, 100% { left: 26%; }
-  50% { left: 74%; }
+  0%, 100% { left: 46%; }
+  50% { left: 78%; }
 }
-#visit-pet-stage.pet-stage { width: 100%; height: 100%; cursor: default; }
+.visit-walker .pet-stage { cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
   .visit-walker.is-wandering { animation: none; }
