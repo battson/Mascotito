@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Alpha v3.6</title>
+  <title>Mascotito — Alpha v3.6.2</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Alpha v3.6</span>
+      <span class="badge" id="app-version-badge">Alpha v3.6.2</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -271,79 +271,6 @@
        arrancar (getStorageNotice(), en js/state.js). -->
   <p id="storage-notice" class="alert-banner" hidden></p>
 
-  <!-- ---------- Pantalla de personalización ---------- -->
-  <main id="onboarding" class="screen onboarding">
-    <!-- v2.3: emblema completo del logo (logo_alpha.ai), intacto, centrado
-         arriba del título. v2.6: pedido explícito — sólo se muestra al
-         CREAR una mascota por primera vez, no al editar una ya creada (ver
-         openOnboarding() en js/app.js, que alterna su atributo hidden). -->
-    <img src="assets/brand/logo-full.svg" alt="Mascotito" id="brand-emblem" class="brand-emblem" width="180" height="180" />
-    <h2 id="onboarding-title">Creá tu mascota</h2>
-
-    <!-- v2.6: pedido explícito — el nombre se pide ANTES del escenario
-         (validado como obligatorio, mínimo 2 caracteres, ver
-         isValidPetName()/submitOnboarding() en js/app.js). Envuelto en su
-         propio contenedor angosto para que no se estire al ancho completo
-         del escenario, ahora mucho más ancho que en v2.5 (ver
-         .name-field en css/style.css). -->
-    <div class="name-field">
-      <label class="name-label" for="name-input">Nombre</label>
-      <input id="name-input" class="name-input" type="text" maxlength="20" minlength="2" placeholder="Ej: Ramoncito" />
-      <p id="name-error" class="field-error" role="alert" hidden>El nombre debe tener al menos 2 caracteres.</p>
-    </div>
-
-    <!-- v2.4: rediseño pedido explícito — el creador pasa a ser un
-         "escenario" con las mismas medidas que el del juego (.stage-floor),
-         pero con fondo sólido en vez de Casa/Jardín, la mascota parada en
-         el medio con idle + seguimiento de ojos, y el botón de aleatorio
-         arriba a la derecha. Las categorías dejaron de ser una grilla de
-         tarjetas (todas visibles a la vez) y pasaron a pestañas — Color,
-         Cabeza, Orejas, Ojos, Nariz, Boca, Cejas — con Ojos abriendo una
-         sub-pestaña para elegir por separado la forma y el color. Ver
-         buildCreatorTabs()/renderCreatorPanel() en js/app.js.
-         v2.6: pedido explícito — el escenario pasa a medir lo mismo que
-         #stage-floor del juego (ver .screen.onboarding/.creator-layout en
-         css/style.css), la mascota sube arriba del todo (.creator-pet-pos)
-         y las pestañas/opciones/Guardar/Cancelar se mudan TODOS adentro
-         del propio escenario (#creator-controls), superpuestos abajo con
-         un degradé oscuro — mismo lenguaje visual que .stage-actions-row
-         en el juego. -->
-    <div class="creator-layout">
-      <div id="creator-stage-wrap" class="creator-stage-wrap">
-        <div id="preview-stage-pos" class="creator-pet-pos">
-          <div id="preview-stage" class="pet-stage creator-pet-stage" role="img" aria-label="Vista previa de tu mascota"></div>
-          <!-- v3.6: pedido explícito — "los selectores [de partes, no de
-               color] estén ubicados en un rectángulo horizontal DENTRO de
-               la escena donde está la mascota... pero en la parte de
-               abajo" — reemplaza al slider de v3.5. Vive DENTRO de
-               #preview-stage-pos (la escena, con la mascota) en vez del
-               panel lateral, así queda anclado a la escena en cualquier
-               ancho de pantalla sin tener que perseguir el ancho del
-               panel lateral en cada media query. Se arma en
-               renderCreatorPartIcons() (js/app.js) — sólo para las
-               categorías "numeradas" (cabeza/orejas/ojos-forma/narices/
-               boca/cejas); color sigue siendo la fila de swatches de
-               siempre en #creator-swatch-row. -->
-          <div id="creator-part-icons" class="creator-part-icons" role="tablist" hidden></div>
-        </div>
-        <button id="btn-aleatorio" type="button" class="secondary-btn creator-random-btn"></button>
-
-        <div class="creator-controls" id="creator-controls">
-          <div id="creator-tabs" class="creator-tabs" role="tablist" aria-label="Categoría a personalizar"></div>
-          <div id="creator-subtabs" class="creator-subtabs" role="tablist" aria-label="Ojos" hidden></div>
-          <div id="creator-panel" class="creator-panel">
-            <div id="creator-swatch-row" class="swatch-row"></div>
-          </div>
-          <div class="onboarding-final-actions">
-            <!-- Sólo aparece al EDITAR una mascota ya creada. -->
-            <button id="onboarding-cancel" type="button" class="secondary-btn" hidden>Cancelar</button>
-            <button id="onboarding-submit" class="primary-btn"></button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
-
   <!-- ---------- Pantalla principal del juego ---------- -->
   <!-- v2.5: pedido explícito — se saca el renglón de arriba del escenario
        (nombre + estado breve + nivel). El nombre pasa a un recuadro
@@ -387,7 +314,7 @@
                renderPetLayers/updateWellbeingAvatar en js/app.js) + placa
                2x2. Debajo, un recuadro con el nombre. Contenido de las
                barras armado por buildPrimaryMeters() en js/app.js. -->
-          <div class="wellbeing-widget" id="wellbeing-widget">
+          <div class="wellbeing-widget play-only" id="wellbeing-widget">
             <div class="hud-card-title-row">
               <div>
                 <span class="hud-eyebrow">ESTADO</span>
@@ -409,7 +336,7 @@
           <!-- v2.6: pedido explícito — se saca el corazoncito decorativo
                (antes .bond-chip-icon), queda sólo el texto de nivel + la
                barrita de progreso. -->
-          <aside class="daily-card hud-card" id="daily-card" aria-label="Objetivos de hoy">
+          <aside class="daily-card hud-card play-only" id="daily-card" aria-label="Objetivos de hoy">
             <div class="daily-card-header">
               <div><span class="hud-eyebrow">HOY</span><h3>Objetivos</h3></div>
               <strong id="daily-count">0 / 3</strong>
@@ -451,13 +378,13 @@
                   automática de siempre. Ver renderNotifications() en
                   js/app.js, que arma las 3 y las encadena en vertical
                   (syncHudLayout). -->
-          <aside id="notification-card" class="notification-card" hidden aria-label="Alertas de bienestar" aria-live="polite"><ul></ul></aside>
-          <aside id="sleep-notice-card" class="notification-card sleep-notice-card" hidden aria-label="Aviso de descanso" aria-live="polite"><p></p></aside>
-          <aside id="system-notice-card" class="notification-card system-notice-card" hidden aria-label="Avisos" aria-live="polite">
+          <aside id="notification-card" class="notification-card play-only" hidden aria-label="Alertas de bienestar" aria-live="polite"><ul></ul></aside>
+          <aside id="sleep-notice-card" class="notification-card sleep-notice-card play-only" hidden aria-label="Aviso de descanso" aria-live="polite"><p></p></aside>
+          <aside id="system-notice-card" class="notification-card system-notice-card play-only" hidden aria-label="Avisos" aria-live="polite">
             <p></p>
             <button id="system-notice-close" type="button" class="notice-close-btn" aria-label="Cerrar aviso">×</button>
           </aside>
-          <div id="location-deco" class="location-deco" aria-hidden="true">
+          <div id="location-deco" class="location-deco play-only" aria-hidden="true">
             <span class="cloud cloud-1"></span>
             <span class="cloud cloud-2"></span>
             <span class="cloud cloud-3"></span>
@@ -465,8 +392,8 @@
           <!-- Manchas/desechos del entorno (sección 5) — se arman en JS,
                cada una es un botón chico clickeable que se retira sola.
                Independientes por lugar (state.dirt.casa / .jardin). -->
-          <div id="dirt-layer" class="dirt-layer" aria-hidden="true"></div>
-          <div id="walker" class="walker">
+          <div id="dirt-layer" class="dirt-layer play-only" aria-hidden="true"></div>
+          <div id="walker" class="walker play-only">
             <div class="pet-shadow" aria-hidden="true"></div>
             <div id="game-stage" class="pet-stage game-stage" role="img" aria-label="Tu mascota"></div>
             <div id="speech-bubble" class="speech-bubble" hidden></div>
@@ -482,16 +409,16 @@
           <!-- Juguete de la actividad "Jugar" (sección 4) — aparece en un
                punto al azar del escenario, hay que tocarlo antes de que se
                vaya solo. -->
-          <button id="toy-ball" class="toy-ball" type="button" hidden aria-label="¡Atrapá el juguete!">🎾</button>
+          <button id="toy-ball" class="toy-ball play-only" type="button" hidden aria-label="¡Atrapá el juguete!">🎾</button>
           <!-- Globo de diálogo: frases de "Hablar", pedidos espontáneos
                ("¿Jugamos?"), y el saludo al volver de una ausencia. -->
-          <section id="game-selector" class="game-selector" hidden aria-label="Elegir minijuego">
+          <section id="game-selector" class="game-selector play-only" hidden aria-label="Elegir minijuego">
             <div class="selector-heading"><div><span class="hud-eyebrow">HORA DE JUGAR</span><h2>Juegos</h2></div></div>
             <div id="game-choices"></div>
             <p id="game-selector-note" role="status"></p>
             <button id="game-play" type="button" hidden>Play</button><button id="game-selector-close" type="button">Cerrar</button>
           </section>
-          <section id="minigame-panel" class="minigame-panel" hidden aria-label="Minijuego">
+          <section id="minigame-panel" class="minigame-panel play-only" hidden aria-label="Minijuego">
             <div class="minigame-topbar">
               <div><span class="hud-eyebrow">MINIJUEGO</span><strong id="minigame-title">Jugamos</strong></div>
               <div class="minigame-meta"><span id="minigame-score">0 pts</span><span id="minigame-time">15s</span></div>
@@ -518,13 +445,66 @@
                js/app.js) — a futuro un menú "¿A dónde quieres ir?" con
                Jardín/Club/Casa de amigo la reemplaza. -->
           <div class="stage-actions-row" id="stage-actions-row">
-            <div class="actions" id="actions-dock"></div>
+            <div class="actions play-only" id="actions-dock"></div>
+            <!-- v3.6.2: pedido explícito — "que el selector de partes sea
+                 igual a la ventana de acciones cuando jugás (.stage-actions-
+                 row)". En vez de reconstruir ese look aparte, se reutiliza
+                 el MISMO contenedor #stage-actions-row para el modo edición:
+                 sus hijos de juego (#actions-dock) y de edición (estos dos)
+                 son mutuamente excluyentes (ver #stage-floor.is-editing en
+                 css/style.css y renderCreatorRow() en js/app.js), así el
+                 selector de partes/colores queda pixel-igual al dock de
+                 acciones sin duplicar ningún estilo. Partes 80% a la
+                 izquierda, colores (sólo si la categoría tiene, hoy sólo
+                 Ojos) 20% chiquitos a la derecha — pedido explícito. -->
+            <div class="actions editor-only editor-part-icons" id="creator-part-icons" role="tablist" hidden></div>
+            <div class="actions editor-only editor-color-icons" id="creator-color-icons" role="tablist" hidden></div>
           </div>
 
           <!-- Menú de comida (sección 3): aparece al tocar el botón de
                Alimentar del dock, en vez de una acción única — 3 opciones
                gratuitas, sin inventario. -->
-          <div id="feed-menu" class="feed-menu" hidden role="menu" aria-label="Elegí qué darle de comer"></div>
+          <div id="feed-menu" class="feed-menu play-only" hidden role="menu" aria-label="Elegí qué darle de comer"></div>
+
+          <!-- ======================================================================
+               v3.6.2 — pedido explícito: "hacer que #stage-floor sea
+               multiuso... juntamos todo en una sola ventana de juego" +
+               rediseño completo de Crear/Editar. Reemplaza a la vieja
+               pantalla #onboarding, separada del juego (ver historial más
+               abajo en css/style.css, .creator-stage-wrap y compañía, que
+               queda como referencia sin uso). Ahora la creación/edición
+               vive DENTRO de este mismo #stage-floor (mismo fondo/HUD que
+               Casa) — nada queda afuera salvo #app-header (el nav), que
+               sigue mostrándose sólo al EDITAR una mascota ya creada, igual
+               que siempre (ver openOnboarding() en js/app.js). -->
+          <div id="editor-welcome" class="editor-only editor-welcome" hidden>
+            <img src="assets/brand/logo-full.svg" alt="Mascotito" id="brand-emblem" class="editor-emblem" width="120" height="120" />
+            <h2 id="onboarding-title" class="editor-title">Creá tu mascota</h2>
+          </div>
+
+          <div id="editor-name-card" class="hud-card editor-only editor-name-card" hidden>
+            <span class="hud-eyebrow" id="editor-name-eyebrow">PERSONALIZAR</span>
+            <div class="name-field">
+              <label class="name-label" for="name-input">Nombre</label>
+              <input id="name-input" class="name-input" type="text" maxlength="20" minlength="2" placeholder="Ej: Ramoncito" />
+              <p id="name-error" class="field-error" role="alert" hidden>El nombre debe tener al menos 2 caracteres.</p>
+            </div>
+          </div>
+
+          <button id="btn-aleatorio" type="button" class="secondary-btn editor-only editor-random-btn" hidden></button>
+
+          <div id="preview-stage-pos" class="editor-only editor-pet-pos" hidden>
+            <div id="preview-stage" class="pet-stage editor-pet-stage" role="img" aria-label="Vista previa de tu mascota"></div>
+          </div>
+
+          <div id="creator-tabs-row" class="editor-only editor-tabs-row" hidden>
+            <div id="creator-tabs" class="editor-tabs" role="tablist" aria-label="Categoría a personalizar"></div>
+            <div class="editor-final-actions">
+              <!-- Sólo aparece al EDITAR una mascota ya creada. -->
+              <button id="onboarding-cancel" type="button" class="secondary-btn" hidden>Cancelar</button>
+              <button id="onboarding-submit" class="primary-btn"></button>
+            </div>
+          </div>
         </div>
       </div>
       <!-- v2.5: pedido explícito — se saca la fila de Felicidad/Salud
@@ -538,7 +518,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.6 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.6.2 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

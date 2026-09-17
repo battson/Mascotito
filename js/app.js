@@ -39,20 +39,24 @@ function rememberUsername(usernameLower) {
 }
 
 const el = {
-  onboarding: document.getElementById("onboarding"),
+  // v3.6.2: la vieja pantalla #onboarding, separada del juego, desaparece
+  // — la creación/edición vive ahora DENTRO de #stage-floor (ver
+  // setStageEditing() más abajo y el comentario grande en index.html).
   game: document.getElementById("game"),
   appHeader: document.getElementById("app-header"),
   brandEmblem: document.getElementById("brand-emblem"),
+  editorWelcome: document.getElementById("editor-welcome"),
+  editorNameCard: document.getElementById("editor-name-card"),
   nameInput: document.getElementById("name-input"),
   nameError: document.getElementById("name-error"),
   onboardingTitle: document.getElementById("onboarding-title"),
   onboardingSubmit: document.getElementById("onboarding-submit"),
   onboardingCancel: document.getElementById("onboarding-cancel"),
+  creatorTabsRow: document.getElementById("creator-tabs-row"),
   creatorTabs: document.getElementById("creator-tabs"),
-  creatorSubtabs: document.getElementById("creator-subtabs"),
-  creatorSwatchRow: document.getElementById("creator-swatch-row"),
-  creatorPanel: document.getElementById("creator-panel"),
   creatorPartIcons: document.getElementById("creator-part-icons"),
+  creatorColorIcons: document.getElementById("creator-color-icons"),
+  previewStagePos: document.getElementById("preview-stage-pos"),
   previewStage: document.getElementById("preview-stage"),
   gameStage: document.getElementById("game-stage"),
   stageFloor: document.getElementById("stage-floor"),
@@ -453,7 +457,9 @@ function setupPreviewStageHover() {
 function setupEyeTracking() {
   document.addEventListener("mousemove", (event) => {
     if (state && state.sleep.dormida) return; // dormida: ojos cerrados, no sigue nada
-    const activeStage = !el.game.hidden ? el.gameStage : !el.onboarding.hidden ? el.previewStage : null;
+    const activeStage = el.stageFloor.classList.contains("is-editing")
+      ? el.previewStage
+      : !el.game.hidden ? el.gameStage : null;
     if (!activeStage) return;
     if (activeStage === el.gameStage && mouseOverPet) return;
     if (activeStage === el.previewStage && mouseOverPreviewPet) return;
@@ -833,15 +839,21 @@ const CATEGORY_LABELS = {
   cejas: "Cejas",
 };
 
-// v2.4: rediseño pedido explícito — 7 pestañas de categoría en vez de la
-// grilla de tarjetas de siempre (todas las categorías visibles a la vez).
-// "ojos" además abre una sub-pestaña para elegir por separado la FORMA
-// (las mismas opciones numeradas de antes) del COLOR (lo que antes era
-// buildEyeColorRow, ahora "ojos-color" como sub-pestaña en vez de una fila
-// pegada abajo de las opciones de forma).
+// v2.4: 7 pestañas de categoría en vez de la grilla de tarjetas de siempre
+// (todas las categorías visibles a la vez).
+// v3.6.2 (pedido explícito): "arriba del selector de partes deberían estar
+// las pestañas (Color, Cabeza, Orejas, Ojos, etc)". "Ojos" ya no abre una
+// sub-pestaña aparte para elegir por separado forma/color (como en v3.6):
+// ahora conviven a la vez en la misma fila, partes 80% + color 20% — ver
+// renderCreatorRow().
 const CREATOR_TABS = ["bodyColor", "cabeza", "orejas", "ojos", "narices", "boca", "cejas"];
 let activeCreatorTab = "bodyColor";
-let activeOjosSubtab = "forma"; // "forma" | "color"
+// true mientras se edita una mascota YA CREADA (no al crearla por primera
+// vez) — distinto de "el editor está abierto" (eso es
+// #stage-floor.is-editing, ver setStageEditing()). Sólo afecta detalles
+// menores que ya existían antes de v3.6.2: título, colores bloqueados de
+// bodyColor, emblema/encabezado.
+let editingExistingPet = false;
 
 function buildCreatorTabs() {
   if (!el.creatorTabs) return;
@@ -850,7 +862,10 @@ function buildCreatorTabs() {
     const label = CATEGORY_LABELS[category] || category;
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "creator-tab";
+    // v3.6.2: clase nueva ("editor-tab", no "creator-tab") — "creator-tab"
+    // sigue en uso, sin tocar, para las pestañas del panel de Amigos (ver
+    // #friends-tabs en index.html), que no tienen nada que ver con esto.
+    btn.className = "editor-tab";
     btn.id = "creator-tab-" + category;
     btn.setAttribute("role", "tab");
     btn.setAttribute("aria-selected", category === activeCreatorTab ? "true" : "false");
@@ -865,95 +880,112 @@ function buildCreatorTabs() {
   });
 }
 
-function buildOjosSubtabs() {
-  if (!el.creatorSubtabs) return;
-  el.creatorSubtabs.innerHTML = "";
-  el.creatorSubtabs.hidden = activeCreatorTab !== "ojos";
-  if (activeCreatorTab !== "ojos") return;
-  [
-    { id: "forma", label: "Selección" },
-    { id: "color", label: "Color" },
-  ].forEach((sub) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "creator-subtab";
-    btn.setAttribute("role", "tab");
-    btn.setAttribute("aria-selected", sub.id === activeOjosSubtab ? "true" : "false");
-    btn.textContent = sub.label;
-    btn.addEventListener("click", () => {
-      if (activeOjosSubtab === sub.id) return;
-      activeOjosSubtab = sub.id;
-      renderCreatorSwatchRow();
-      buildOjosSubtabs();
-      announce(`Ojos: ${sub.label}`);
-    });
-    el.creatorSubtabs.appendChild(btn);
-  });
+/** v3.6.2 (pedido explícito): tile de una parte/color dentro del selector,
+ * con la MISMA estructura que createActionButton() (dock de acciones) —
+ * .action-circle-wrap > .cooldown-ring > .action-circle — así el selector
+ * queda pixel-igual al dock sin duplicar ningún estilo (ver
+ * .stage-actions-row .action-circle-wrap en css/style.css). Sin caption ni
+ * cooldown-label, que no aplican acá. */
+function createEditorTile({ selected, title, ariaLabel }) {
+  const wrap = document.createElement("div");
+  wrap.className = "action-circle-wrap";
+  const ring = document.createElement("div");
+  ring.className = "cooldown-ring";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "action-circle";
+  btn.classList.toggle("selected", !!selected);
+  btn.title = title;
+  btn.setAttribute("aria-label", ariaLabel);
+  btn.setAttribute("aria-pressed", selected ? "true" : "false");
+  ring.appendChild(btn);
+  wrap.appendChild(ring);
+  return { wrap, ring, btn };
 }
 
-/** Fila de swatches de la pestaña activa. Para "ojos" depende además de la
- * sub-pestaña (forma numerada vs. color de iris, ver buildOjosSubtabs).
- * v3.6: pedido explícito — el slider de v3.5 se saca del todo. Los colores
- * (bodyColor y la sub-pestaña "Color" de ojos) siguen siendo la fila de
- * swatches de siempre, en el panel lateral (#creator-swatch-row); todo lo
- * demás (cabeza/orejas/ojos-forma/narices/boca/cejas, las opciones
- * "numeradas") pasa a un rectángulo horizontal DENTRO de la escena, abajo
- * de la mascota (#creator-part-icons, ver renderCreatorPartIcons), con
- * una miniatura SVG real de cada opción en vez de un número. */
-function renderCreatorSwatchRow() {
-  if (!el.creatorSwatchRow) return;
-  el.creatorSwatchRow.innerHTML = "";
+/** v3.6.2 (pedido explícito): reemplaza a renderCreatorSwatchRow()/
+ * buildOjosSubtabs(). Decide qué mostrar en el selector según la pestaña
+ * activa: "Color" (bodyColor) sólo tiene colores → ocupan el 100% de
+ * #creator-color-icons (#creator-part-icons queda vacío/oculto). El resto
+ * de las categorías sin color propio (Cabeza/Orejas/Narices/Boca/Cejas)
+ * sólo tienen partes → ocupan el 100% de #creator-part-icons, "como
+ * ahora" (pedido explícito). "Ojos" es la única categoría con partes Y
+ * color a la vez → conviven, partes 80% a la izquierda + color de iris
+ * 20% chiquito a la derecha (ver CSS, ambos contenedores son flex-child
+ * del mismo #stage-actions-row con flex-grow 4:1). */
+function renderCreatorRow() {
+  const category = activeCreatorTab;
+  const label = CATEGORY_LABELS[category] || category;
+  const showParts = category !== "bodyColor";
+  const showColors = category === "bodyColor" || category === "ojos";
 
-  const showingEyeColor = activeCreatorTab === "ojos" && activeOjosSubtab === "color";
-  const category = showingEyeColor ? "ojosColor" : activeCreatorTab;
-  const label = showingEyeColor ? "Color de ojos" : (CATEGORY_LABELS[activeCreatorTab] || activeCreatorTab);
-  const options = showingEyeColor ? PET_EYE_COLORS : PET_PARTS_MANIFEST[activeCreatorTab];
-  const isNumbered = !showingEyeColor && activeCreatorTab !== "bodyColor";
+  if (el.creatorPartIcons) el.creatorPartIcons.hidden = !showParts;
+  if (el.creatorColorIcons) el.creatorColorIcons.hidden = !showColors;
 
-  if (el.creatorPanel) el.creatorPanel.hidden = isNumbered;
-  if (el.creatorPartIcons) el.creatorPartIcons.hidden = !isNumbered;
-
-  if (isNumbered) {
-    renderCreatorPartIcons(category, label, options);
-    return;
+  if (showParts) {
+    renderCreatorPartIcons(category, label, PET_PARTS_MANIFEST[category]);
+  } else if (el.creatorPartIcons) {
+    el.creatorPartIcons.innerHTML = "";
   }
-  if (el.creatorPartIcons) el.creatorPartIcons.innerHTML = "";
 
-  // v3.4: pedido explícito — colores nuevos en bodyColor marcados con
-  // `locked: true` ("próximamente se pueden comprar"). Sólo aparecen al
-  // EDITAR una mascota ya creada (no al crearla por primera vez), salvo
-  // para el Administrador ("jony"), que los ve desbloqueados desde el
-  // principio (creación incluida). Ver PET_PARTS_MANIFEST.bodyColor.
+  if (showColors) {
+    const colorCategory = category === "bodyColor" ? "bodyColor" : "ojosColor";
+    const colorLabel = category === "bodyColor" ? "Color" : "Color de ojos";
+    const colorOptions = category === "bodyColor" ? PET_PARTS_MANIFEST.bodyColor : PET_EYE_COLORS;
+    renderCreatorColorIcons(colorCategory, colorLabel, colorOptions);
+  } else if (el.creatorColorIcons) {
+    el.creatorColorIcons.innerHTML = "";
+  }
+}
+
+/** v3.6.2: columna de colores — 100% de ancho cuando es la única fila
+ * (bodyColor) o 20% chiquita cuando convive con partes (ojos, ver
+ * renderCreatorRow). Mismos tiles que el dock (createEditorTile), más
+ * chicos por CSS (#creator-color-icons .action-circle-wrap), con el color
+ * de fondo del propio botón en vez de un ícono. Conserva la lógica de
+ * colores bloqueados de bodyColor (🔒 "Próximamente") que ya existía en
+ * renderCreatorSwatchRow: visibles recién al editar una mascota ya creada,
+ * salvo para el Administrador, que los ve desbloqueados desde el
+ * principio (creación incluida). */
+function renderCreatorColorIcons(category, label, options) {
+  if (!el.creatorColorIcons) return;
+  el.creatorColorIcons.innerHTML = "";
+  el.creatorColorIcons.setAttribute("aria-label", label);
+
   const admin = typeof isAdmin === "function" && isAdmin();
-  const editing = !!(el.onboarding && el.onboarding.classList.contains("is-editing"));
-  const showLocked = category === "bodyColor" ? admin || editing : true;
+  const showLocked = category === "bodyColor" ? admin || editingExistingPet : true;
 
   options.forEach((opt) => {
+    if (category === "bodyColor" && opt.locked && !showLocked) return; // ni siquiera se muestra al crear
     const isLocked = category === "bodyColor" && opt.locked && !admin;
-    if (opt.locked && category === "bodyColor" && !showLocked) return; // ni siquiera se muestra al crear
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "swatch";
-    btn.title = isLocked ? `${opt.label} (Próximamente)` : opt.label;
-    btn.setAttribute("aria-label", isLocked ? `${label}: ${opt.label}, próximamente` : `${label}: ${opt.label}`);
+    const selected = !isLocked && selectedLook[category] === opt.id;
+    const { wrap, btn } = createEditorTile({
+      selected,
+      title: isLocked ? `${opt.label} (Próximamente)` : opt.label,
+      ariaLabel: isLocked ? `${label}: ${opt.label}, próximamente` : `${label}: ${opt.label}`,
+    });
+    btn.classList.add("editor-color-swatch");
     btn.style.background = opt.swatch;
+
     if (isLocked) {
-      btn.classList.add("swatch-locked");
       btn.disabled = true;
-      btn.innerHTML += '<span class="swatch-lock-icon" aria-hidden="true">🔒</span>';
-      el.creatorSwatchRow.appendChild(btn);
+      btn.classList.add("editor-color-locked");
+      const lock = document.createElement("span");
+      lock.className = "swatch-lock-icon";
+      lock.setAttribute("aria-hidden", "true");
+      lock.textContent = "🔒";
+      btn.appendChild(lock);
+      el.creatorColorIcons.appendChild(wrap);
       return;
     }
-    const selected = selectedLook[category] === opt.id;
-    btn.classList.toggle("selected", selected);
-    btn.setAttribute("aria-pressed", selected ? "true" : "false");
+
     btn.addEventListener("click", () => {
       selectedLook[category] = opt.id;
       renderPetLayers(el.previewStage, selectedLook);
-      renderCreatorSwatchRow();
+      renderCreatorColorIcons(category, label, options);
       announce(`${label}: ${opt.label}`);
     });
-    el.creatorSwatchRow.appendChild(btn);
+    el.creatorColorIcons.appendChild(wrap);
   });
 }
 
@@ -1031,31 +1063,35 @@ function renderNaricesIcon(fileUrl, altText) {
 }
 
 /** Rectángulo horizontal DENTRO de la escena (pedido explícito, ver
- * comentario de renderCreatorSwatchRow) para las categorías "numeradas".
- * Reemplaza al slider ‹ › de v3.5: ahora se ven varias opciones a la vez,
- * cada una con una miniatura SVG real de esa parte (no un número) — para
- * ojos/orejas/cejas, sólo el lado derecho (ver ICON_RIGHT_SIDE_ID), y
- * todas pintadas con el color por defecto (el de la primera opción de
- * color: bodyColor[0] para cabeza/orejas, PET_EYE_COLORS[0] para ojos —
- * narices/boca/cejas no tienen color propio, se muestran tal cual). */
+ * comentario de renderCreatorRow) para las categorías con partes. Cada
+ * opción tiene una miniatura SVG real (no un número) — para ojos/orejas/
+ * cejas, sólo el lado derecho (ver ICON_RIGHT_SIDE_ID) — y todas se pintan
+ * con el color por defecto.
+ * v3.6.2 (pedido explícito): "las partes deberían tener de color
+ * predeterminado el azul (así se ve mejor), sería el mismo azul que tiene
+ * el color azul del selector de partes" — antes bodyColor[0] (Blanco
+ * cálido), ahora bodyColor[1] (Azul cielo, #6CB9DD, el mismo tono que ya
+ * se ve en el selector de colores). Los tiles ahora son
+ * .action-circle-wrap/.cooldown-ring/.action-circle (ver createEditorTile)
+ * en vez de .creator-icon-tile, para quedar pixel-igual al dock de
+ * acciones — pedido explícito. */
 function renderCreatorPartIcons(category, label, options) {
   if (!el.creatorPartIcons) return;
   el.creatorPartIcons.innerHTML = "";
   el.creatorPartIcons.setAttribute("aria-label", label);
 
-  const defaultBodyColor = PET_PARTS_MANIFEST.bodyColor[0].swatch;
+  const defaultBodyColor = PET_PARTS_MANIFEST.bodyColor[1].swatch;
   const defaultEyeColor = PET_EYE_COLORS[0].swatch;
   const defaultEyeTint = PET_EYE_COLORS[0].tint || "none";
 
   options.forEach((opt) => {
     const selected = selectedLook[category] === opt.id;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "creator-icon-tile";
-    btn.classList.toggle("selected", selected);
-    btn.title = opt.label;
-    btn.setAttribute("aria-label", `${label}: ${opt.label}`);
-    btn.setAttribute("aria-pressed", selected ? "true" : "false");
+    const { wrap, btn } = createEditorTile({
+      selected,
+      title: opt.label,
+      ariaLabel: `${label}: ${opt.label}`,
+    });
+    btn.classList.add("editor-part-tile");
 
     if (category === "narices" && opt.file) {
       btn.appendChild(renderNaricesIcon(opt.file, label));
@@ -1076,7 +1112,7 @@ function renderCreatorPartIcons(category, label, options) {
       renderCreatorPartIcons(category, label, options);
       announce(`${label}: ${opt.label}`);
     });
-    el.creatorPartIcons.appendChild(btn);
+    el.creatorPartIcons.appendChild(wrap);
   });
 }
 
@@ -1087,8 +1123,7 @@ function renderCreatorPanel() {
       if (btn) btn.setAttribute("aria-selected", category === activeCreatorTab ? "true" : "false");
     });
   }
-  buildOjosSubtabs();
-  renderCreatorSwatchRow();
+  renderCreatorRow();
 }
 
 function randomizeLook() {
@@ -1117,37 +1152,72 @@ function clearNameError() {
   if (el.nameInput) el.nameInput.classList.remove("input-error");
 }
 
+// v3.6.2 (pedido explícito): "hacer que #stage-floor sea multiuso... así
+// juntamos todo en una sola ventana de juego" — reemplaza al viejo par de
+// <main> #onboarding/#game (mutuamente excluyentes) por una sola clase de
+// estado en #stage-floor. Todos los elementos de juego llevan la clase
+// "play-only" y todos los del editor "editor-only" (ver index.html); el
+// CSS se encarga de mostrar unos u otros según esta clase (ver
+// #stage-floor.is-editing en css/style.css) — acá sólo hace falta
+// prender/apagar la clase, cada elemento sigue manejando su propio
+// hidden/lógica interna (p.ej. #creator-color-icons según la categoría,
+// ver renderCreatorRow) sin que este toggle se las pise.
+// Elementos "de editor" de nivel superior que antes vivían todos juntos
+// bajo el mismo <main id="onboarding"> y se mostraban/ocultaban con un
+// solo hidden — ahora que cada uno es su propio hijo directo de
+// #stage-floor (ver index.html), hace falta prender/apagar el hidden de
+// cada uno acá. #editor-welcome es aparte (depende de si se está editando
+// una mascota YA CREADA, no sólo de si el editor está abierto — ver
+// openOnboarding) y #creator-part-icons/#creator-color-icons son aparte
+// también (dependen de la categoría activa, ver renderCreatorRow) — el
+// CSS (#stage-floor:not(.is-editing) .editor-only) los sigue ocultando a
+// todos igual apenas se cierra el editor, así que no hace falta forzarlos
+// acá para el caso "cerrar".
+const EDITOR_TOP_LEVEL_IDS = ["editor-name-card", "btn-aleatorio", "preview-stage-pos", "creator-tabs-row"];
+
+function setStageEditing(active) {
+  if (el.stageFloor) el.stageFloor.classList.toggle("is-editing", active);
+  EDITOR_TOP_LEVEL_IDS.forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) node.hidden = !active;
+  });
+  if (!active && el.editorWelcome) el.editorWelcome.hidden = true;
+  // Recalcula la posición de #creator-tabs-row/#feed-menu apenas cambia
+  // qué se ve dentro de #stage-actions-row — no siempre dispara al
+  // ResizeObserver que ya observa ese elemento (ver más abajo) si el alto
+  // del dock no cambia de un frame al otro.
+  if (typeof syncHudLayout === "function") syncHudLayout();
+}
+
 function openOnboarding(existingState) {
   document.getElementById("game-selector").hidden = true;
   if (navLock) return;
   finishMinigame(true);
   closeAllMenus();
+  editingExistingPet = !!existingState;
   selectedLook = existingState ? { ...defaultLook(), ...existingState.look } : defaultLook();
   el.nameInput.value = existingState ? existingState.name : "";
   clearNameError();
   el.onboardingTitle.textContent = existingState ? "Editá tu mascota" : "Creá tu mascota";
-  el.onboarding.classList.toggle("is-editing", !!existingState);
   el.onboardingSubmit.textContent = existingState ? "Guardar cambios" : "Crear mascota";
   if (el.onboardingCancel) el.onboardingCancel.hidden = !existingState;
-  // v2.6: pedido explícito — el emblema grande sólo se ve al CREAR (no al
-  // editar), y el encabezado entero desaparece sólo mientras se crea una
-  // mascota por primera vez (durante la edición se mantiene, con el menú
-  // de Opciones disponible como siempre).
-  if (el.brandEmblem) el.brandEmblem.hidden = !!existingState;
+  // v2.6: pedido explícito — el emblema+título grandes (#editor-welcome)
+  // sólo se ven al CREAR (no al editar), y el encabezado entero desaparece
+  // sólo mientras se crea una mascota por primera vez (durante la edición
+  // se mantiene, con el menú de Opciones disponible como siempre).
+  if (el.editorWelcome) el.editorWelcome.hidden = editingExistingPet;
   if (el.appHeader) el.appHeader.hidden = !existingState;
   activeCreatorTab = "bodyColor";
-  activeOjosSubtab = "forma";
   buildCreatorTabs();
   renderCreatorPanel();
   renderPetLayers(el.previewStage, selectedLook);
-  el.onboarding.hidden = false;
-  el.game.hidden = true;
+  setStageEditing(true);
+  el.game.hidden = false;
 }
 
 function cancelOnboarding() {
-  el.onboarding.hidden = true;
-  el.onboarding.classList.remove("is-editing");
-  el.game.hidden = false;
+  setStageEditing(false);
+  editingExistingPet = false;
   if (el.appHeader) el.appHeader.hidden = false;
 }
 
@@ -1173,8 +1243,8 @@ function submitOnboarding() {
     state = createNewState(name, cleanLook);
     trySave(state);
   }
-  el.onboarding.hidden = true;
-  el.game.hidden = false;
+  setStageEditing(false);
+  editingExistingPet = false;
   if (el.appHeader) el.appHeader.hidden = false;
   startGame();
 }
@@ -1488,8 +1558,9 @@ function blinkStage(stageEl) {
 
 function setupAutoBlink() {
   setInterval(() => {
-    if (!el.game.hidden) blinkStage(el.gameStage);
-    if (!el.onboarding.hidden) blinkStage(el.previewStage);
+    const editing = el.stageFloor && el.stageFloor.classList.contains("is-editing");
+    if (!el.game.hidden && !editing) blinkStage(el.gameStage);
+    if (editing) blinkStage(el.previewStage);
   }, BLINK_INTERVAL_MS);
 }
 
@@ -2553,7 +2624,7 @@ async function doCambiarUsuario() {
   closeFriendsPanel();
   if (el.btnAmigos) el.btnAmigos.hidden = true;
   el.game.hidden = true;
-  el.onboarding.hidden = true;
+  setStageEditing(false);
   updateFooterText();
   updateOptCambiarUsuario();
   updateAdminUI();
@@ -2648,7 +2719,7 @@ async function handleDeleteAccountSubmit() {
     closeFriendsPanel();
     if (el.btnAmigos) el.btnAmigos.hidden = true;
     el.game.hidden = true;
-    el.onboarding.hidden = true;
+    setStageEditing(false);
     updateFooterText();
     updateOptCambiarUsuario();
     updateAdminUI();
@@ -2957,6 +3028,11 @@ function syncHudLayout() {
   sysCard.style.top = nextTop + "px";
   const dock=document.getElementById("stage-actions-row");
   el.feedMenu.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+12)+"px";
+  // v3.6.2: #creator-tabs-row (pestañas Color/Cabeza/Orejas/... + Guardar/
+  // Cancelar del editor) flota justo arriba del selector de partes/colores
+  // — mismo cálculo que ya usa #feed-menu para flotar arriba de este mismo
+  // dock, reutilizado tal cual (ver comentario ahí arriba).
+  if (el.creatorTabsRow) el.creatorTabsRow.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+12)+"px";
   computeWalkBounds();
   el.walker.style.transform = `translateX(${walkX + WALK_PAD}px)`;
   if (minigame) positionMinigameTarget();
@@ -3063,7 +3139,7 @@ function beginLocalOnlySession() {
   const saved = loadState();
   if (saved) {
     state = saved;
-    el.onboarding.hidden = true;
+    setStageEditing(false);
     el.game.hidden = false;
     startGame();
   } else {
@@ -3082,7 +3158,7 @@ function startSessionWithData(data) {
   const cloudPet = data && data.petState ? normalizeState(data.petState) : null;
   if (cloudPet) {
     state = cloudPet;
-    el.onboarding.hidden = true;
+    setStageEditing(false);
     el.game.hidden = false;
     startGame();
     return;
@@ -3095,7 +3171,7 @@ function startSessionWithData(data) {
   const local = loadState();
   if (local) {
     state = local;
-    el.onboarding.hidden = true;
+    setStageEditing(false);
     el.game.hidden = false;
     startGame();
   } else {
@@ -3108,7 +3184,7 @@ function startSessionWithData(data) {
 function showLoginScreen() {
   el.loginScreen.hidden = false;
   el.game.hidden = true;
-  el.onboarding.hidden = true;
+  setStageEditing(false);
   el.appHeader.hidden = true;
   if (el.loginError) el.loginError.hidden = true;
   if (el.loginOffline) el.loginOffline.hidden = true;
