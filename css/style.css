@@ -3084,7 +3084,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 
 /* ---------- v3.3: login alternativo con Google ---------- */
 .login-divider {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 10px;
   margin: 16px 0 12px;
@@ -3100,7 +3100,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   opacity: 0.5;
 }
 .google-btn {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   gap: 10px;

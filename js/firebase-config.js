@@ -25,7 +25,7 @@ const FIREBASE_CONFIG = {
   // Realtime Database. Ejemplos válidos terminan en firebaseio.com o
   // firebasedatabase.app. Si queda vacío, el juego conserva el sistema de
   // presencia aproximada de v3.8 y todo lo demás sigue funcionando.
-  databaseURL: "",
+  databaseURL: "https://mascotito-84b36-default-rtdb.firebaseio.com",
 };
 
 // Se considera "sin configurar" mientras el apiKey siga siendo el
