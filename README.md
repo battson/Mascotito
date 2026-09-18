@@ -1,5 +1,12 @@
 # Mascotito Alpha
 
+## v3.7
+
+- Mascota grande y centrada verticalmente en la escena de creación/modificación, con proporciones cuadradas y tamaño adaptable a la ventana.
+- Barra `.stage-actions-row` centrada con `width: 80%` únicamente durante la creación/modificación.
+- Indicador de versión actualizado a Alpha v3.7.
+
+
 Descomprimí y abrí index.html, o serví esta carpeta con un servidor estático. Conservá el mismo navegador y origen para mantener tu partida. Migra automáticamente el guardado anterior (versión interna 5), sin borrar pescado, monedas ni apariencia.
 
 **Desde v3.3**, si configurás un proyecto de Firebase (ver la sección "v3.3" más abajo), el progreso deja de depender del navegador: se guarda en una cuenta (usuario + PIN) que podés abrir desde cualquier compu, y además se habilita un sistema de amigos. Si NO configurás nada, la app sigue funcionando exactamente igual que antes (guardado sólo en este navegador, sin login).

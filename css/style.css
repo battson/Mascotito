@@ -3361,27 +3361,32 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   z-index: 7;
 }
 
-/* ---------- Mascota en vista previa: mismo lenguaje visual/tamaño que
-   .walker en el juego (pedido explícito, "misma ventana de juego"),
-   centrada, un poco arriba del selector para no taparse con las
-   pestañas/dock. ---------- */
+/* ---------- v3.7: vista previa grande y centrada en la escena ---------- */
 .editor-pet-pos {
   position: absolute;
   left: 50%;
-  bottom: 55px;
-  transform: translateX(-50%);
-  width: clamp(300px, 28vw, 400px);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, 64vh, calc(100% - 32px));
+  width: min(520px, 64dvh, calc(100% - 32px));
   z-index: 3;
   pointer-events: none;
 }
 .editor-pet-stage {
   width: 100%;
+  height: auto;
   aspect-ratio: 1;
   animation: bob 3.2s ease-in-out infinite;
   transform-origin: 50% 100%;
   cursor: default;
 }
 
+/* La barra mantiene su ancho original fuera de Crear/Editar. */
+#stage-floor.is-editing .stage-actions-row {
+  width: 80%;
+  left: 10%;
+  right: auto;
+}
 /* ---------- Pestañas de categoría + Guardar/Cancelar: flotan arriba del
    selector de partes/colores (mismo criterio que #feed-menu arriba del
    dock de acciones — la posición real la calcula syncHudLayout() en
@@ -3511,13 +3516,13 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
      centrados (#editor-welcome, verificado con Playwright) — se bajan
      lo suficiente como para quedar siempre debajo de la tarjeta. */
   .editor-welcome { top: 108px; }
-  .editor-pet-pos { width: 260px; bottom: 55px; }
+
 }
 @media (max-width: 640px) {
   .editor-tabs-row { padding: 6px 8px; gap: 6px; }
   .editor-name-card { width: calc(60% - 15px); padding: 10px; }
   .editor-random-btn { padding: 8px 10px; }
-  .editor-pet-pos { width: min(220px, calc(100% - 32px)); bottom: 60px; }
+
   #creator-color-icons .action-circle-wrap { width: 34px; }
   #creator-color-icons .cooldown-ring { width: 34px; height: 34px; }
 }
