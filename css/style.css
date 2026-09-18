@@ -3084,7 +3084,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 
 /* ---------- v3.3: login alternativo con Google ---------- */
 .login-divider {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 10px;
   margin: 16px 0 12px;
@@ -3100,7 +3100,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   opacity: 0.5;
 }
 .google-btn {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
@@ -3676,4 +3676,382 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 
   #creator-color-icons .action-circle-wrap { width: 34px; }
   #creator-color-icons .cooldown-ring { width: 34px; height: 34px; }
+}
+
+/* ======================================================================
+   v3.9.2.1 — correccion para notebooks 1920x1200 con escalado del SO
+
+   En una pantalla 1920x1200 configurada al 125%, Chromium expone un
+   viewport cercano a 1536x960 CSS px. La interfaz de escritorio anterior
+   ocupaba ese viewport completo y por eso solo recuperaba sus proporciones
+   al bajar el zoom del navegador a 75%. Esta variante compacta reproduce
+   esa densidad a zoom 100%, componente por componente (sin `zoom` global
+   ni transformaciones que desalineen hitboxes).
+
+   La condicion de resolucion evita aplicar una segunda reduccion si el
+   usuario vuelve a poner el navegador en 75%: en Chromium el dppx efectivo
+   tambien baja y deja de coincidir con este bloque.
+   ====================================================================== */
+@media (min-width: 1300px) and (max-width: 1700px) and (min-resolution: 1.15dppx) {
+  .app-header {
+    min-height: 58px;
+    padding: 6px 24px;
+    gap: 14px;
+  }
+  .brand { gap: 8px; }
+  .brand-symbol { height: 38px; }
+  .brand-name-img { height: 18px; }
+  .badge { padding: 2px 7px; font-size: .58rem; }
+
+  .header-progress { gap: 9px; }
+  .currency-pill { min-height: 33px; padding: 5px 10px; gap: 6px; font-size: .78rem; }
+  .currency-icon,
+  .currency-icon svg { width: 21px; height: 21px; }
+  .header-level { width: 143px; }
+  .header-level-row strong { font-size: .72rem; }
+  .header-level-row span { font-size: .54rem; }
+  .header-level-track { height: 6px; }
+  .header-actions { gap: 7px; }
+  .header-edit-btn { height: 32px; padding: 5px 7px; gap: 5px; font-size: .68rem; }
+  .header-edit-btn svg { width: 16px; height: 16px; }
+  .icon-btn { width: 33px; height: 33px; }
+  .icon-btn .gear-icon { width: 18px; height: 18px; }
+
+  .screen.game { padding: 10px 12px 12px; }
+  .stage-col { max-width: 1192px; }
+  .stage-floor {
+    height: min(calc(100dvh - 70px), 690px);
+    min-height: min(500px, calc(100dvh - 88px));
+    max-height: 690px;
+    border-radius: 20px;
+  }
+
+  .wellbeing-widget {
+    top: 14px;
+    left: 14px;
+    width: 248px;
+    padding: 13px;
+    gap: 9px;
+  }
+  .hud-eyebrow { font-size: .5rem; }
+  .hud-card h3,
+  .hud-card-title-row h3 { font-size: .92rem; }
+  .hud-status-dot { width: 8px; height: 8px; box-shadow: 0 0 0 4px rgba(85,173,98,.13); }
+  .wellbeing-hud { gap: 9px; }
+  .wellbeing-avatar { width: 51px; height: 51px; border-width: 2px; }
+  .wellbeing-avatar-stage { width: 102px; height: 102px; left: -26px; top: -16px; }
+  .wellbeing-bars { gap: 6px; }
+  .wellbeing-row { grid-template-columns: 14px 47px 1fr 29px; gap: 5px; }
+  .wellbeing-row .icon { width: 14px; height: 14px; }
+  .wellbeing-label { font-size: .58rem; }
+  .wellbeing-value { font-size: .56rem; }
+  .wellbeing-track { height: 7px; }
+  .wellbeing-name-box { padding: 7px 9px; }
+  .wellbeing-name-box h2 { font-size: .78rem; }
+
+  .daily-card {
+    top: 14px;
+    right: 14px;
+    width: 203px;
+    padding: 12px;
+  }
+  .daily-card-header { gap: 9px; }
+  .daily-card-header strong { padding: 3px 7px; font-size: .58rem; }
+  .daily-list { margin: 10px 0 9px; gap: 7px; }
+  .daily-list li { gap: 7px; font-size: .6rem; }
+  .daily-check { width: 15px; height: 15px; border-width: 1px; border-radius: 4px; }
+  .daily-reward { padding-top: 8px; gap: 7px; font-size: .54rem; }
+
+  .notification-card {
+    left: 14px;
+    width: 188px;
+    max-height: 120px;
+    padding: 8px 9px;
+  }
+  .notification-card li,
+  .notification-card p { font-size: .6rem; }
+  .notification-card li { padding: 4px 0; }
+
+  .walker { width: clamp(255px, 23.25vw, 330px); bottom: 41px; }
+  .speech-bubble {
+    max-width: min(240px, 60vw);
+    min-width: 98px;
+    padding: 10px 14px 14px;
+    font-size: .74rem;
+  }
+
+  .stage-actions-row {
+    bottom: 12px;
+    width: min(660px, calc(100% - 270px));
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .stage-actions-row .actions { gap: 6px; }
+  .stage-actions-row .action-circle-wrap { width: 69px; gap: 2px; }
+  .stage-actions-row .cooldown-ring,
+  .nav-btn-tile { width: 69px; height: 51px; }
+  .stage-actions-row .action-circle .icon,
+  .stage-actions-row .nav-btn-icon .icon { width: 1.3rem; height: 1.3rem; }
+  .action-circle-caption { margin-top: 3px; font-size: .52rem; }
+  .cooldown-ring::before { left: 11px; right: 11px; bottom: 3px; height: 2px; }
+  .feed-menu { bottom: 78px; width: min(270px, calc(100% - 18px)); padding: 10px; }
+
+  .visit-context {
+    top: 10px;
+    width: min(323px, calc(100% - 24px));
+    gap: 10px;
+    padding: 7px 9px;
+  }
+  .visit-context strong { font-size: .8rem; }
+  .visit-context #visit-status-line { font-size: .6rem; }
+  .visit-room-count { font-size: .56rem; }
+  .visit-context .secondary-btn { padding: 6px 8px; font-size: .64rem; }
+
+  .room-chat-toggle {
+    right: 12px;
+    bottom: 87px;
+    min-height: 32px;
+    gap: 5px;
+    padding: 6px 10px;
+    font-size: .64rem;
+  }
+  .room-chat-toggle b { min-width: 15px; height: 15px; padding: 0 4px; font-size: .54rem; }
+  .room-chat-panel {
+    right: 12px;
+    bottom: 124px;
+    width: min(263px, calc(100% - 24px));
+    max-height: min(323px, calc(100% - 143px));
+    border-radius: 14px;
+  }
+}
+
+/* ======================================================================
+   v3.9.2.2 — chat amplio, rectangular y de lectura clasica
+
+   Inspirado en la claridad del chat del Facebook de escritorio original:
+   barra azul bien identificable, historial blanco, mensajes apilados sin
+   burbujas y compositor fijo al pie. Se modifica solamente la presentacion;
+   presencia, escritura, envio y suscripciones siguen usando la logica de
+   red de v3.9.2.
+   ====================================================================== */
+.room-chat-toggle {
+  right: 16px;
+  bottom: 106px;
+  min-width: 132px;
+  min-height: 38px;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid #29487d;
+  border-radius: 0;
+  color: #fff;
+  background: #3b5998;
+  box-shadow: 0 3px 10px rgba(20, 35, 65, .28);
+  font: 700 .78rem/1.1 Arial, Helvetica, sans-serif;
+}
+.room-chat-toggle:hover {
+  transform: none;
+  background: #324f87;
+}
+.room-chat-toggle:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+.room-chat-toggle.is-offline { opacity: .82; }
+.room-chat-toggle b {
+  min-width: 18px;
+  height: 18px;
+  margin-left: auto;
+  padding: 0 4px;
+  border-radius: 0;
+  background: #d83b3e;
+  font: 700 .65rem/1 Arial, Helvetica, sans-serif;
+}
+
+.room-chat-panel {
+  right: 16px;
+  bottom: 150px;
+  width: min(400px, calc(100% - 32px));
+  height: min(510px, calc(100% - 170px));
+  max-height: none;
+  border: 1px solid #29487d;
+  border-radius: 0;
+  color: #1c2a3a;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(20, 35, 65, .3);
+  backdrop-filter: none;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.room-chat-panel:not([hidden]) {
+  grid-template-rows: auto auto auto minmax(150px, 1fr) auto;
+}
+.room-chat-panel header {
+  min-height: 48px;
+  gap: 10px;
+  padding: 7px 8px 7px 10px;
+  border-bottom: 1px solid #29487d;
+  color: #fff;
+  background: #3b5998;
+}
+.room-chat-panel header > div {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 1px;
+}
+.room-chat-panel header .hud-eyebrow {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 9px;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 50%;
+  color: transparent;
+  background: #62c46f;
+  letter-spacing: 0;
+}
+.room-chat-panel header strong {
+  grid-column: 2;
+  font: 700 .9rem/1.1 Arial, Helvetica, sans-serif;
+}
+.room-chat-participants {
+  grid-column: 2;
+  color: rgba(255, 255, 255, .78);
+  font-size: .67rem;
+  font-weight: 400;
+}
+.room-chat-panel header button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  background: transparent;
+  font: 700 1.15rem/1 Arial, Helvetica, sans-serif;
+}
+.room-chat-panel header button:hover,
+.room-chat-panel header button:focus-visible { background: #29487d; }
+
+.room-chat-status {
+  min-height: 25px;
+  padding: 6px 10px 5px;
+  border-bottom: 1px solid #d8dfea;
+  color: #52657e;
+  background: #f5f6f8;
+  font-size: .67rem;
+}
+.room-chat-typing {
+  min-height: 23px;
+  padding: 5px 10px 4px;
+  border-bottom: 1px solid #e4e8ef;
+  color: #52657e;
+  background: #fff;
+  font-size: .68rem;
+}
+.room-chat-messages {
+  gap: 0;
+  min-height: 150px;
+  padding: 0;
+  background: #fff;
+  scrollbar-color: #9ba8bd #eef1f5;
+  scrollbar-width: thin;
+}
+.room-chat-messages::-webkit-scrollbar { width: 11px; }
+.room-chat-messages::-webkit-scrollbar-track { background: #eef1f5; }
+.room-chat-messages::-webkit-scrollbar-thumb {
+  border: 2px solid #eef1f5;
+  border-radius: 0;
+  background: #9ba8bd;
+}
+.room-chat-message,
+.room-chat-message.is-own {
+  justify-items: stretch;
+  gap: 3px;
+  padding: 8px 10px 9px;
+  border-bottom: 1px solid #e4e8ef;
+  background: #fff;
+}
+.room-chat-message.is-own { background: #f5f7fb; }
+.room-chat-message-meta {
+  color: #3b5998;
+  font-size: .68rem;
+  font-weight: 700;
+}
+.room-chat-message-body,
+.room-chat-message.is-own .room-chat-message-body {
+  max-width: none;
+  padding: 0;
+  border-radius: 0;
+  color: #1c2a3a;
+  background: transparent;
+  font-size: .8rem;
+  line-height: 1.32;
+}
+.room-chat-empty {
+  margin: 20px 34px;
+  color: #6b778b;
+  font-size: .75rem;
+  line-height: 1.4;
+}
+.room-chat-form {
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid #bdc7d8;
+  background: #f5f6f8;
+}
+.room-chat-form input {
+  min-height: 36px;
+  padding: 8px 9px;
+  border: 1px solid #9aa9bf;
+  border-radius: 0;
+  background: #fff;
+  font: 400 .78rem/1.2 Arial, Helvetica, sans-serif;
+}
+.room-chat-form input:focus {
+  border-color: #3b5998;
+  outline: 1px solid #3b5998;
+}
+.room-chat-form button {
+  min-width: 68px;
+  padding: 8px 11px;
+  border: 1px solid #29487d;
+  border-radius: 0;
+  background: #3b5998;
+  font: 700 .75rem/1 Arial, Helvetica, sans-serif;
+}
+.room-chat-form button:hover:not(:disabled) { background: #29487d; }
+
+/* En la notebook objetivo el resto de la interfaz se compacta, pero el chat
+   conserva una superficie generosa para no volver al problema original. */
+@media (min-width: 1300px) and (max-width: 1700px) and (min-resolution: 1.15dppx) {
+  .room-chat-toggle {
+    right: 12px;
+    bottom: 82px;
+    min-width: 112px;
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: .66rem;
+  }
+  .room-chat-toggle b { min-width: 16px; height: 16px; font-size: .56rem; }
+  .room-chat-panel {
+    right: 12px;
+    bottom: 120px;
+    width: min(340px, calc(100% - 24px));
+    height: min(430px, calc(100% - 138px));
+  }
+}
+
+@media (max-width: 640px) {
+  .room-chat-toggle {
+    right: 8px;
+    bottom: 92px;
+    min-width: 112px;
+  }
+  .room-chat-panel {
+    right: 8px;
+    bottom: 136px;
+    width: calc(100% - 16px);
+    height: min(440px, calc(100% - 152px));
+  }
 }

@@ -1,5 +1,27 @@
 # Mascotito Alpha
 
+## v3.9.2.2
+
+### Chat ampliado con estética de mensajería clásica
+
+- La ventana de chat ahora es más ancha y alta, con mayor superficie útil para leer conversaciones.
+- Se adoptó una estética inspirada en el Facebook clásico: cabecera azul, estructura rectangular, lista de mensajes blanca y controles compactos.
+- Se eliminaron los bordes redondeados del panel, el botón de acceso, los mensajes, el campo de texto, el botón de envío y el contador.
+- Los mensajes dejaron de mostrarse como burbujas: cada intervención ocupa una fila clara, con autor, hora y texto legible.
+- La caja de escritura permanece fija en la zona inferior mientras el historial se desplaza de manera independiente.
+- Se mantuvieron sin cambios la sincronización en tiempo real, los mensajes no leídos, la presencia y el indicador de escritura.
+- Indicador de versión actualizado a Alpha v3.9.2.2.
+
+## v3.9.2.1
+
+### Corrección visual para notebooks 1920×1200
+
+- La interfaz conserva a zoom 100% las proporciones que antes sólo se obtenían reduciendo Chrome a 75% en pantallas 1920×1200 con escalado del sistema.
+- Se ajustaron de forma coordinada el encabezado, la casa, las tarjetas de estado y objetivos, la mascota, el dock de acciones, las notificaciones, la visita y el chat.
+- El ajuste se activa únicamente en el rango de viewport y densidad correspondiente a notebooks con escalado alto, sin modificar el diseño móvil ni reducir nuevamente la interfaz cuando el navegador ya está a 75%.
+- No se usa `zoom` global: los tamaños y áreas interactivas siguen alineados.
+- Indicador de versión actualizado a Alpha v3.9.2.1.
+
 ## v3.9.2
 
 ### Cierre y pulido de la etapa online
