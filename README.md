@@ -1,5 +1,14 @@
 # Mascotito Alpha
 
+## v3.9.4
+
+### Selector de piezas/colores centrado en Crear/Editar
+
+- Corregido: en la pantalla de personalización, el recuadro donde aparecen las piezas y los colores para elegir (debajo de la fila de pestañas Color/Cabeza/Orejas/Ojos/Nariz/Boca/Cejas) quedaba corrido bien a la izquierda, sin alinear con esa fila de pestañas, que sí estaba centrada.
+- Causa real: ese recuadro reutiliza el mismo contenedor que la barra de acciones del juego (`.stage-actions-row`), y la regla que lo reposiciona para Crear/Editar (`left`/`width`) no anulaba una propiedad `transform` heredada de esa barra, pensada para otro tipo de centrado. Esa propiedad sumaba un corrimiento extra hacia la izquierda por encima del `left`/`width` ya definidos, sacando el recuadro de su posición centrada (en casos extremos, arrancando fuera de la pantalla por la izquierda).
+- Verificado en escritorio (1536×960, el caso del reporte) y mobile (390×844): el recuadro de piezas/colores queda alineado borde a borde con la fila de pestañas de arriba en ambos anchos.
+- Indicador de versión actualizado a Alpha v3.9.4.
+
 ## v3.9.2.2
 
 ### Chat ampliado con estética de mensajería clásica

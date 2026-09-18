@@ -3532,11 +3532,21 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   cursor: default;
 }
 
-/* La barra mantiene su ancho original fuera de Crear/Editar. */
+/* La barra mantiene su ancho original fuera de Crear/Editar.
+   v3.9.4 fix: el selector de partes/colores (Crear/Editar) quedaba
+   corrido bien a la izquierda, sin alinear con la fila de pestañas de
+   arriba (que sí está centrada, ver .editor-tabs-row) — el bug real era
+   que esta regla no resetea `transform`, así que seguía heredando el
+   `translateX(-50%)` de la regla general de .stage-actions-row (pensada
+   para cuando el dock usa left:50%). Con left:10% + width:80%, ese
+   translateX(-50%) corre la caja un 40% extra del ancho del escenario
+   hacia la izquierda (la mitad de su propio 80% de ancho), dejándola
+   arrancando fuera de pantalla por la izquierda en vez de centrada. */
 #stage-floor.is-editing .stage-actions-row {
   width: 80%;
   left: 10%;
   right: auto;
+  transform: none;
 }
 /* ---------- Pestañas de categoría + Guardar/Cancelar: flotan arriba del
    selector de partes/colores (mismo criterio que #feed-menu arriba del
