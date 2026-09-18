@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Alpha v3.7</title>
+  <title>Mascotito — Alpha v3.9.2</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Alpha v3.7</span>
+      <span class="badge" id="app-version-badge">Alpha v3.9.2</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -219,43 +219,6 @@
     </section>
   </div>
 
-  <!-- ---------- v3.5: Visita a la casa de un amigo (pantalla completa,
-       sólo lectura) ----------
-       Pedido explícito v3.5: "debería ir tu personaje a la casa de la
-       otra persona... debería cargar en toda la escena la casa de la otra
-       persona y deberían estar las dos mascotas juntas en esa casa: tu
-       mascota y el anfitrión... (ahora es en un recuadro chico, debería
-       ser en toda la escena)". Antes (v3.4) esto era un modal chico
-       centrado (.modal-overlay/.modal-window) con SÓLO la mascota del
-       amigo, encogido con overrides de tamaño fijo. Ahora ocupa todo el
-       viewport (igual que la pantalla de juego real) y muestra DOS
-       mascotas paradas juntas en el mismo escenario: la propia
-       (#visit-walker-mine, con el look actual de state.look — "salió de
-       tu casa y entró a la de la otra") y la del anfitrión
-       (#visit-walker-host, con el look que llega de Cloud.subscribeToPlayer).
-       Sigue sin ningún manejador de click adentro: es sólo una foto en
-       vivo, nunca se puede interactuar con nada de esta casa (ver
-       openVisit/renderVisit en js/app.js). -->
-  <div id="visit-overlay" class="visit-overlay" hidden>
-    <div class="visit-topbar">
-      <h2 id="visit-title">Casa de...</h2>
-      <button id="visit-close" type="button" class="notice-close-btn" aria-label="Volver a tu mascota">×</button>
-    </div>
-    <p id="visit-status-line" class="visit-status-line" aria-live="polite"></p>
-    <div id="visit-stage-floor" class="stage-floor visit-stage-floor" aria-hidden="true">
-      <div id="visit-location-deco" class="location-deco"></div>
-      <div id="visit-walker-host" class="walker visit-walker visit-walker-host">
-        <div class="pet-shadow" aria-hidden="true"></div>
-        <div id="visit-pet-stage-host" class="pet-stage" role="img" aria-label="Mascota de tu amigo"></div>
-      </div>
-      <div id="visit-walker-mine" class="walker visit-walker visit-walker-mine">
-        <div class="pet-shadow" aria-hidden="true"></div>
-        <div id="visit-pet-stage-mine" class="pet-stage" role="img" aria-label="Tu mascota"></div>
-      </div>
-    </div>
-    <p class="visit-hint">Estás de visita: sólo podés mirar, no podés alimentar, jugar ni tocar nada de esta casa.</p>
-  </div>
-
   <!-- Región para anuncios cortos a lectores de pantalla (elegir una
        opción, avisos de guardado, ánimo urgente, cambio de lugar) —
        visualmente oculta, pero role="status" + aria-live hace que se lea
@@ -303,6 +266,37 @@
              cuidado y el botón de Salir/Entrar ahora viven DENTRO de este
              escenario en vez de alrededor — pedido explícito. -->
         <div id="stage-floor" class="stage-floor">
+          <!-- v3.8: la visita usa esta misma casa, sin overlay ni escenario
+               duplicado. La barra identifica al anfitrión y permite volver. -->
+          <section id="visit-context" class="visit-context play-only" hidden aria-live="polite">
+            <div>
+              <span class="hud-eyebrow">DE VISITA</span>
+              <strong id="visit-title">Casa de...</strong>
+              <span id="visit-status-line">Conectando...</span>
+              <span id="visit-room-count" class="visit-room-count">Comprobando presencia...</span>
+            </div>
+            <button id="visit-close" type="button" class="secondary-btn">Volver a casa</button>
+          </section>
+          <!-- v3.9.2: chat instantáneo asociado a la sala actual, con
+               participantes e indicador efímero de escritura. -->
+          <button id="room-chat-toggle" class="room-chat-toggle play-only" type="button" hidden aria-controls="room-chat-panel" aria-expanded="false">
+            <span aria-hidden="true">💬</span><span>Chat</span><b id="room-chat-badge" hidden>0</b>
+          </button>
+          <section id="room-chat-panel" class="room-chat-panel play-only" hidden aria-label="Chat de la casa">
+            <header>
+              <div><span class="hud-eyebrow">EN VIVO</span><strong id="room-chat-title">Chat de la casa</strong><span id="room-chat-participants" class="room-chat-participants">0 presentes</span></div>
+              <button id="room-chat-close" type="button" aria-label="Cerrar chat">×</button>
+            </header>
+            <p id="room-chat-status" class="room-chat-status" role="status">Conectando...</p>
+            <p id="room-chat-typing" class="room-chat-typing" aria-live="polite" hidden></p>
+            <ol id="room-chat-messages" class="room-chat-messages" aria-live="polite"></ol>
+            <p id="room-chat-empty" class="room-chat-empty">Todavía no hay mensajes. La elegancia exige que alguien salude primero.</p>
+            <form id="room-chat-form" class="room-chat-form">
+              <label class="sr-only" for="room-chat-input">Mensaje</label>
+              <input id="room-chat-input" type="text" maxlength="180" autocomplete="off" placeholder="Escribí un mensaje..." required />
+              <button id="room-chat-send" type="submit">Enviar</button>
+            </form>
+          </section>
           <!-- Panel de bienestar (v2.4: "dentro del juego deberían estar
                las necesidades del bienestar"; v2.5: agrandado, el borde
                del círculo es semáforo de felicidad, la carita refleja
@@ -406,6 +400,20 @@
             <div id="bath-fx" class="bath-fx" aria-hidden="true"></div>
             <div id="zzz-fx" class="zzz-fx" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div>
           </div>
+          <!-- Segunda mascota dentro de la casa principal. En v3.8.2 su
+               posición y animación llegan desde Realtime Database cuando
+               el anfitrión está presente; desconectado vuelve al NPC. -->
+          <div id="visit-walker-host" class="walker visit-host-walker play-only" hidden>
+            <div class="pet-shadow" aria-hidden="true"></div>
+            <div id="visit-pet-stage-host" class="pet-stage game-stage" role="img" aria-label="Mascota anfitriona"></div>
+            <div class="speech-bubble remote-action-bubble" hidden></div>
+            <div class="bath-fx remote-bath-fx" aria-hidden="true"></div>
+            <div class="visit-host-tag"><span id="visit-host-name">Anfitrión</span><span id="visit-host-presence"></span></div>
+            <div class="zzz-fx" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div>
+          </div>
+          <!-- v3.8.2: visitantes y otros jugadores presentes en esta sala.
+               Se crean dinámicamente con sus posiciones de Realtime Database. -->
+          <div id="remote-players-layer" class="remote-players-layer play-only" aria-hidden="true"></div>
           <!-- Juguete de la actividad "Jugar" (sección 4) — aparece en un
                punto al azar del escenario, hay que tocarlo antes de que se
                vaya solo. -->
@@ -518,7 +526,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.7 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.9.2 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
@@ -533,6 +541,7 @@
   <script src="js/state.js"></script>
   <script src="js/world.js"></script>
   <script type="module" src="js/cloud.js"></script>
+  <script type="module" src="js/multiplayer.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -156,20 +156,31 @@ const el = {
   addFriendForm: document.getElementById("add-friend-form"),
   addFriendInput: document.getElementById("add-friend-input"),
   addFriendResult: document.getElementById("add-friend-result"),
-  // v3.4/v3.5: visita a la casa de un amigo (sólo lectura) — ver openVisit()/
-  // renderVisit() más abajo. v3.5: pantalla completa con las DOS mascotas
-  // (visitWalkerHost/visitPetStageHost = la del amigo, visitWalkerMine/
-  // visitPetStageMine = la propia).
-  visitOverlay: document.getElementById("visit-overlay"),
+  // v3.8: la visita vive dentro del escenario principal. Sólo se agrega
+  // una segunda mascota y una barra de contexto; ya no existe overlay.
+  visitContext: document.getElementById("visit-context"),
   visitClose: document.getElementById("visit-close"),
   visitTitle: document.getElementById("visit-title"),
   visitStatusLine: document.getElementById("visit-status-line"),
-  visitStageFloor: document.getElementById("visit-stage-floor"),
-  visitLocationDeco: document.getElementById("visit-location-deco"),
+  visitRoomCount: document.getElementById("visit-room-count"),
   visitWalkerHost: document.getElementById("visit-walker-host"),
   visitPetStageHost: document.getElementById("visit-pet-stage-host"),
-  visitWalkerMine: document.getElementById("visit-walker-mine"),
-  visitPetStageMine: document.getElementById("visit-pet-stage-mine"),
+  visitHostName: document.getElementById("visit-host-name"),
+  visitHostPresence: document.getElementById("visit-host-presence"),
+  remotePlayersLayer: document.getElementById("remote-players-layer"),
+  roomChatToggle: document.getElementById("room-chat-toggle"),
+  roomChatBadge: document.getElementById("room-chat-badge"),
+  roomChatPanel: document.getElementById("room-chat-panel"),
+  roomChatClose: document.getElementById("room-chat-close"),
+  roomChatTitle: document.getElementById("room-chat-title"),
+  roomChatParticipants: document.getElementById("room-chat-participants"),
+  roomChatStatus: document.getElementById("room-chat-status"),
+  roomChatTyping: document.getElementById("room-chat-typing"),
+  roomChatMessages: document.getElementById("room-chat-messages"),
+  roomChatEmpty: document.getElementById("room-chat-empty"),
+  roomChatForm: document.getElementById("room-chat-form"),
+  roomChatInput: document.getElementById("room-chat-input"),
+  roomChatSend: document.getElementById("room-chat-send"),
 };
 
 // ---------- Render de la mascota (capas de SVG apiladas) ----------
@@ -482,6 +493,7 @@ let walkState = "idle";
 let walkStateUntil = 0;
 let walkStridePhase = 0;
 let walkLastTs = null;
+let walkDirection = "right";
 const WALK_PAD = 16;
 const WALK_SPEED_MIN = 38;
 const WALK_SPEED_MAX = 82;
@@ -541,6 +553,24 @@ function pickNewWalkTarget() {
   walkSpeed = WALK_SPEED_MIN + Math.random() * (WALK_SPEED_MAX - WALK_SPEED_MIN);
 }
 
+function publishLocalMovement(animationOverride) {
+  const Multiplayer = window.Multiplayer;
+  if (!Multiplayer || !Multiplayer.enabled || !Multiplayer.connected || !state || el.game.hidden) return;
+  const expectedRoom = activeVisit?.usernameLower || currentUsername;
+  if (!expectedRoom || Multiplayer.currentRoom !== expectedRoom) return;
+  const floorWidth = el.stageFloor.clientWidth;
+  const walkerWidth = el.walker.offsetWidth || 200;
+  if (!floorWidth) return;
+  const centerX = walkX + WALK_PAD + walkerWidth / 2;
+  const xPct = clamp(centerX / floorWidth * 100, 4, 96);
+  const animation = animationOverride || (state.sleep.dormida
+    ? "sleeping"
+    : walkState === "walking"
+      ? (isRunning ? "running" : "walking")
+      : "idle");
+  Multiplayer.publishMovement({ xPct, direction: walkDirection, animation });
+}
+
 function walkFrame(ts) {
   if (walkLastTs == null) walkLastTs = ts;
   const dt = Math.min((ts - walkLastTs) / 1000, 0.1);
@@ -556,6 +586,7 @@ function walkFrame(ts) {
 
   if (walkMax <= 0 || !canWalk()) {
     if (state && state.sleep.dormida && walkState !== "idle") startIdle(200, 400);
+    publishLocalMovement();
     requestAnimationFrame(walkFrame);
     return;
   }
@@ -574,6 +605,7 @@ function walkFrame(ts) {
     }
   } else {
     const dist = walkTarget - walkX;
+    if (Math.abs(dist) > 0.1) walkDirection = dist < 0 ? "left" : "right";
     const step = walkSpeed * dt;
     if (Math.abs(dist) <= step) {
       walkX = walkTarget;
@@ -589,6 +621,7 @@ function walkFrame(ts) {
   }
 
   el.walker.style.transform = `translateX(${(walkX + WALK_PAD).toFixed(1)}px)`;
+  publishLocalMovement();
   requestAnimationFrame(walkFrame);
 }
 
@@ -600,6 +633,8 @@ function setupVisibilityRecalc() {
       refreshUI();
       updateCooldownButtons();
       maybeGreet(info);
+    } else if (document.visibilityState === "hidden" && state) {
+      publishLocalMovement("idle");
     }
   });
 }
@@ -739,7 +774,7 @@ let navLock = false;
  * toca state.location y la posición de #walker; todo lo demás del estado
  * sigue su curso normal (el tick de necesidades no se detiene). */
 async function goToLocation(targetId) {
-  if (!state || navLock || el.game.hidden) return;
+  if (!state || navLock || el.game.hidden || activeVisit) return;
   if (targetId === state.location || minigame) return;
   if (debugSnapshot) { state.location = targetId; setLocationVisuals(targetId); refreshUI(); computeWalkBounds(); return; }
   if (state.sleep.dormida) {
@@ -1190,6 +1225,7 @@ function setStageEditing(active) {
 }
 
 function openOnboarding(existingState) {
+  if (activeVisit) closeVisit();
   document.getElementById("game-selector").hidden = true;
   if (navLock) return;
   finishMinigame(true);
@@ -1609,18 +1645,26 @@ function updateFlies() {
 function renderDirt() {
   el.dirtLayer.removeAttribute("aria-hidden");
   el.dirtLayer.innerHTML = "";
-  state.dirt[state.location].forEach((d) => {
+  const visibleDirt = activeVisit
+    ? activeVisit.data?.petState?.dirt?.casa || []
+    : state.dirt[state.location];
+  visibleDirt.forEach((d) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "dirt-item";
     btn.style.left = d.xPct + "%";
     btn.style.top = d.yPct + "%";
-    btn.setAttribute("aria-label", "Retirar suciedad del escenario");
+    btn.setAttribute("aria-label", activeVisit ? "Suciedad de la casa anfitriona" : "Retirar suciedad del escenario");
     btn.innerHTML = '<img src="assets/items/poop.svg" alt="" />';
-    btn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      removeDirt(d.id);
-    });
+    if (activeVisit) {
+      btn.disabled = true;
+      btn.tabIndex = -1;
+    } else {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        removeDirt(d.id);
+      });
+    }
     el.dirtLayer.appendChild(btn);
   });
 }
@@ -1636,6 +1680,7 @@ function removeDirt(id) {
   trySave(state);
   refreshUI();
   showBubble("¡Gracias por limpiar!");
+  emitRealtimeAction("clean");
 }
 
 // ---------- Refresco general ----------
@@ -1675,6 +1720,7 @@ function tick() {
     el.gameStage.classList.add("is-pooping");
     setTimeout(() => el.gameStage.classList.remove("is-pooping"), 1000);
     notifySystem(`${state.name} hizo caca. Limpiá el piso para cuidar su bienestar.`);
+    emitRealtimeAction("poop");
   }
   trySave(state);
   refreshUI();
@@ -2130,6 +2176,7 @@ function doComer(key) {
   if (food.felicidad) gainFelicidad(food.felicidad);
   addBond(2);
   startCooldown(key);
+  emitRealtimeAction("eat", { item: key });
 
   if (key === "golosina") {
     const now = Date.now();
@@ -2174,6 +2221,7 @@ function doBeber() {
   state.stats.hidratacion = clamp(state.stats.hidratacion + PET_CONFIG.actionGain.beber.hidratacion, 0, 100);
   addBond(2);
   startCooldown("beber");
+  emitRealtimeAction("drink");
   trySave(state);
   refreshUI();
   updateCooldownButtons();
@@ -2190,6 +2238,7 @@ function doBañar() {
   state.stats.higiene = clamp(state.stats.higiene + PET_CONFIG.actionGain.bañar.higiene, 0, 100);
   addBond(3);
   startCooldown("bañar");
+  emitRealtimeAction("bathe");
   trySave(state);
   refreshUI();
   updateCooldownButtons();
@@ -2273,6 +2322,7 @@ function finishMinigame(cancelled = false) {
   }
 
   const success = finished.score >= finished.type.goal;
+  emitRealtimeAction("play_end", { game: finished.type.id, result: success ? "win" : "finish" });
   const fishCaught = finished.type.id === "pesca" ? finished.score : 0;
   state.inventory.pescado += fishCaught;
   const happiness = success ? PET_CONFIG.play.felicidad : Math.max(2, Math.round(PET_CONFIG.play.felicidad * .45));
@@ -2307,6 +2357,7 @@ function launchMinigame(type) {
   startIdle(15000, 16000);
   document.getElementById("game-selector").hidden = true;
   minigame = { type, score: 0, remaining: type.duration };
+  emitRealtimeAction("play", { game: type.id });
   el.minigameArena.dataset.game = type.id;
   el.minigameArena.dataset.phase = "waiting";
   delete el.minigameTarget.dataset.phase;
@@ -2423,6 +2474,7 @@ function toggleSueño() {
     state.sleep.dormida = false;
     state.sleep.since = null;
     showBubble("¡Buenos días!");
+    emitRealtimeAction("wake");
   } else {
     state.sleep.dormida = true;
     state.sleep.since = Date.now();
@@ -2433,6 +2485,7 @@ function toggleSueño() {
     el.speechBubble.hidden = true;
     clearTimeout(bubbleHideTimer);
     clearTimeout(bubbleRemoveTimer);
+    emitRealtimeAction("sleep");
     // v3.2, pedido explícito: "durmiendo" ya no es un aviso puntual de
     // 12s — es la tarjeta estática #sleep-notice-card (ver
     // renderNotifications), que se actualiza sola en el refreshUI() de
@@ -2451,6 +2504,7 @@ function doMedicina() {
   state.health.malestar = clamp(state.health.malestar - PET_CONFIG.health.medicinaAlivio, 0, 100);
   gainFelicidad(2);
   startCooldown("medicina");
+  emitRealtimeAction("medicine");
   if (state.health.malestar <= PET_CONFIG.health.curadaUmbral) {
     state.health.enferma = false;
     state.health.causa = null;
@@ -2499,6 +2553,7 @@ function doAcariciar() {
   updateCooldownButtons();
   popHearts();
   playMouthAnim(el.gameStage, "feliz", 480);
+  emitRealtimeAction("pet");
 }
 
 /** Click directo sobre el personaje (juego) = acariciar. Ver también la
@@ -2538,6 +2593,7 @@ function doHablar() {
   if (dailyReward) notifySystem("¡Objetivos del día completos! +50 monedas +100 XP");
   showBubble(frase, 3200);
   playMouthAnim(el.gameStage, "hablar", dailyReward ? 3800 : 3200);
+  emitRealtimeAction("talk", { text: frase });
 }
 
 // ---------- Menú de Opciones (Editar / Modo prueba / Reiniciar) ----------
@@ -2595,6 +2651,7 @@ function closeOptionsMenu(returnFocus) {
 
 function doReiniciar() {
   if (confirm("¿Reiniciar y borrar tu mascota actual? Esta acción no se puede deshacer.")) {
+    closeVisit();
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
     if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
@@ -2611,6 +2668,11 @@ function doReiniciar() {
 // (ver updateOptCambiarUsuario).
 async function doCambiarUsuario() {
   if (!confirm("¿Cambiar de usuario? Tu mascota queda guardada en la nube en tu cuenta actual.")) return;
+  closeVisit();
+  if (window.Multiplayer && typeof window.Multiplayer.stopSession === "function") {
+    try { await window.Multiplayer.stopSession(); } catch (e) { /* onDisconnect completa la limpieza */ }
+  }
+  stopRoomPlayerWatch();
   flushCloudSaveNow();
   if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
@@ -2707,6 +2769,11 @@ async function handleDeleteAccountSubmit() {
     closeDeleteAccountModal();
     // Misma limpieza de sesión que "Cambiar de usuario" (doCambiarUsuario)
     // pero sin la sesión de nube que borrar — la cuenta ya no existe.
+    closeVisit();
+    if (window.Multiplayer && typeof window.Multiplayer.stopSession === "function") {
+      try { await window.Multiplayer.stopSession(); } catch (e) { /* onDisconnect completa la limpieza */ }
+    }
+    stopRoomPlayerWatch();
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
     if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
@@ -3073,6 +3140,7 @@ document.addEventListener("keydown", ev => {
   setupLoginUI();
   setupFriendsUI();
   setupVisitUI();
+  setupRoomChatUI();
   setupDeleteAccountUI();
   boot();
 })();
@@ -3097,6 +3165,42 @@ async function waitForCloud(timeoutMs) {
     await wait(50);
   }
   return window.Cloud;
+}
+
+async function waitForMultiplayer(timeoutMs) {
+  const start = Date.now();
+  while (!window.Multiplayer) {
+    if (Date.now() - start > timeoutMs) return null;
+    await wait(50);
+  }
+  return window.Multiplayer;
+}
+
+let realtimePresencePromise = Promise.resolve(false);
+let realtimeRoomSwitchPromise = Promise.resolve(false);
+
+function switchRealtimeRoom(room) {
+  const Multiplayer = window.Multiplayer;
+  if (!Multiplayer || !room) return Promise.resolve(false);
+  realtimeRoomSwitchPromise = realtimeRoomSwitchPromise
+    .catch(() => false)
+    .then(() => Multiplayer.enterRoom(room));
+  return realtimeRoomSwitchPromise;
+}
+
+async function startRealtimePresence() {
+  if (!currentUsername) return false;
+  const Multiplayer = await waitForMultiplayer(4000);
+  if (!Multiplayer || !Multiplayer.enabled) return false;
+  try {
+    await Multiplayer.ready;
+    const started = await Multiplayer.startSession(currentUsername, currentDisplayName || currentUsername);
+    if (started) watchRoomPlayers(currentUsername);
+    return started;
+  } catch (err) {
+    console.warn("[Mascotito] La sesión continúa sin presencia en tiempo real.", err);
+    return false;
+  }
 }
 
 async function boot() {
@@ -3155,6 +3259,7 @@ function startSessionWithData(data) {
   updateOptCambiarUsuario();
   updateAdminUI();
   subscribeFriendsLive();
+  realtimePresencePromise = startRealtimePresence();
   const cloudPet = data && data.petState ? normalizeState(data.petState) : null;
   if (cloudPet) {
     state = cloudPet;
@@ -3613,102 +3718,567 @@ function setupFriendsUI() {
   });
 }
 
-// ---------- v3.4/v3.5: Visita a la casa de un amigo (sólo lectura) ----------
-// Pedido explícito v3.4: "Visita a amigos. Cuando añadís un amigo te da la
-// opción de visitar su casa y si esa persona está activa ves lo que hace
-// en ese momento, sino su personaje anda por ahí como cuando dejás al
-// personaje sin hacer nada idle."
-// Pedido explícito v3.5 ("reinventar el sistema de visita"): deja de ser
-// un modal chico con sólo la mascota del amigo — ahora ocupa toda la
-// pantalla (#visit-overlay, ver css/style.css e index.html) y muestra las
-// DOS mascotas juntas en la casa del amigo: la propia (con el look actual
-// de `state.look`, "como si saliera de tu casa y entrara a la de la
-// otra") y la del anfitrión (con el look que llega en vivo de
-// Cloud.subscribeToPlayer). Reutiliza las piezas puras de render que ya
-// usa la mascota propia (renderPetLayers + manifest, computeEyeScale/
-// moodFromStats de js/state.js, isNightNow, HOME_SCENE_INLINE/
-// LOCATION_DECO_HTML) pero nunca toca `state` ni el loop de juego real ni
-// guarda nada — así no hay forma de que visitar interfiera con la propia
-// partida. Nada del escenario de visita tiene manejadores de click (la
-// mascota propia se muestra tal cual está, sin mobiliario — ver v3.5
-// tarea "quitar los items interactivos" — así que no hay nada más que
-// dibujar en la escena aparte de las dos mascotas).
-//
-// "Activa" = guardó su estado en la nube hace poco. El guardado normal
-// tiene como máximo CLOUD_SAVE_DEBOUNCE_MS (20s) de demora mientras juega,
-// y se fuerza un guardado inmediato al cambiar de pestaña/cerrar
-// (flushCloudSaveNow) — se deja un margen extra acá para conexiones
-// lentas antes de considerarla desconectada.
+// ---------- v3.9.2: visita unificada y capa online completa ----------
+// La visita ya no crea una segunda pantalla. #stage-floor conserva el HUD,
+// el tamaño y la caminata de la partida normal; temporalmente muestra la
+// casa/heces del anfitrión y suma su mascota como una segunda entidad. Las
+// pertenencias ajenas son de sólo lectura. Firestore conserva el progreso;
+// Realtime Database administra presencia, movimiento, acciones, chat y el
+// indicador efímero de escritura de la sala actual.
 const VISIT_ACTIVE_THRESHOLD_MS = 45000;
 
 let visitUnsubscribe = null;
-let visitHomeSceneMarkupCache = null;
+let activeVisit = null;
+let roomPlayersUnsubscribe = null;
+let roomActionsUnsubscribe = null;
+let roomChatUnsubscribe = null;
+let roomConnectionUnsubscribe = null;
+let roomMembersUnsubscribe = null;
+let roomTypingUnsubscribe = null;
+let watchedRoom = null;
+const remoteProfileCache = new Map();
+const pendingRemoteActions = new Map();
+const REMOTE_ACTION_QUEUE_MAX_AGE_MS = 7000;
+let roomChatInitialized = false;
+const knownRoomChatIds = new Set();
+let localChatTyping = false;
+let lastTypingPublishAt = 0;
+let localChatTypingTimer = null;
+let offlineHostRaf = null;
+let offlineHostRunning = false;
+let npcTransitionTimer = null;
 
-/* Mismo arte que HOME_SCENE_INLINE (ver js/manifest.js), pero con sus dos
- * ids únicos (scene-noche-overlay/scene-puerta) renombrados: la visita
- * puede estar abierta AL MISMO TIEMPO que la casa real del jugador queda
- * detrás, así que no puede repetir esos ids. Los ids nuevos (visit-*) no
- * tienen manejador de click propio (ver css/style.css, #visit-scene-puerta
- * queda con pointer-events:none — la puerta de una visita no lleva a
- * ningún lado). */
-function visitDecoMarkup() {
-  // v3.5: el Jardín se saca del todo — la única escena de visita posible
-  // ahora es la Casa (ver locationId más abajo en renderVisit, que ya
-  // fuerza cualquier location guardada distinta de "casa" a "casa").
-  if (visitHomeSceneMarkupCache === null) {
-    visitHomeSceneMarkupCache = HOME_SCENE_INLINE
-      .replace('id="scene-noche-overlay"', 'id="visit-scene-noche-overlay"')
-      .replace('id="scene-puerta"', 'id="visit-scene-puerta"');
-  }
-  return visitHomeSceneMarkupCache;
+function roomChatLabel(room) {
+  if (activeVisit?.usernameLower === room) return `Chat · Casa de ${activeVisit.displayName}`;
+  return "Chat · Tu casa";
 }
 
-/** Pinta la propia mascota (tal cual está ahora mismo, con su look/ánimo/
- * sueño reales) parada en la escena de visita — no depende de `data` de
- * Cloud, así que se pinta una sola vez al abrir la visita (no cambia
- * mientras el modal está abierto: no se puede seguir jugando mientras se
- * visita a alguien). */
-function renderVisitOwnPet() {
-  if (!el.visitPetStageMine || !state) return;
-  renderPetLayers(el.visitPetStageMine, state.look || defaultLook());
-  const mood = state.health && state.health.enferma ? "triste" : moodFromStats(state.stats || {});
-  el.visitPetStageMine.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
-  el.visitPetStageMine.classList.add("mood-" + mood);
-  el.visitPetStageMine.classList.toggle("sleeping", !!state.sleep.dormida);
-  el.visitPetStageMine.classList.toggle("sick", !!(state.health && state.health.enferma));
-  el.visitPetStageMine.style.setProperty(
-    "--eye-scale",
-    state.sleep.dormida ? 0.04 : computeEyeScale(state.stats || {}, state.health || {})
-  );
-  if (el.visitWalkerMine) el.visitWalkerMine.classList.toggle("is-sleeping", !!state.sleep.dormida);
+function updateRoomChatBadge(count = 0) {
+  if (!el.roomChatBadge) return;
+  const safeCount = Math.max(0, Math.min(99, Number(count) || 0));
+  el.roomChatBadge.textContent = safeCount >= 99 ? "99+" : String(safeCount);
+  el.roomChatBadge.hidden = safeCount === 0;
+  el.roomChatToggle.dataset.unread = String(safeCount);
+  el.roomChatToggle?.classList.toggle("has-unread", safeCount > 0);
+}
+
+function setRoomChatOpen(open) {
+  if (!el.roomChatPanel || !el.roomChatToggle) return;
+  el.roomChatPanel.hidden = !open;
+  el.roomChatToggle.setAttribute("aria-expanded", String(open));
+  if (open) {
+    updateRoomChatBadge(0);
+    requestAnimationFrame(() => {
+      el.roomChatMessages.scrollTop = el.roomChatMessages.scrollHeight;
+      el.roomChatInput?.focus();
+    });
+  } else {
+    stopLocalChatTyping();
+  }
+}
+
+function stopLocalChatTyping() {
+  clearTimeout(localChatTypingTimer);
+  localChatTypingTimer = null;
+  if (localChatTyping && typeof window.Multiplayer?.setTyping === "function") {
+    window.Multiplayer.setTyping(false).catch(() => {});
+  }
+  localChatTyping = false;
+  lastTypingPublishAt = 0;
+}
+
+function updateLocalChatTyping() {
+  const hasText = !!el.roomChatInput?.value.trim();
+  if (!hasText || !window.Multiplayer?.connected || typeof window.Multiplayer?.setTyping !== "function") {
+    stopLocalChatTyping();
+    return;
+  }
+  const now = Date.now();
+  if (!localChatTyping || now - lastTypingPublishAt >= 3000) {
+    window.Multiplayer.setTyping(true).catch(() => {});
+    localChatTyping = true;
+    lastTypingPublishAt = now;
+  }
+  clearTimeout(localChatTypingTimer);
+  localChatTypingTimer = setTimeout(stopLocalChatTyping, 1600);
+}
+
+function renderRoomChat(messages) {
+  if (!el.roomChatMessages) return;
+  if (messages === null) {
+    el.roomChatStatus.textContent = "No se pudo cargar el chat. Revisá la conexión o las reglas de Firebase.";
+    return;
+  }
+  const incomingIds = new Set(messages.map((message) => message.id));
+  if (roomChatInitialized && el.roomChatPanel.hidden) {
+    const unread = messages.filter((message) => !knownRoomChatIds.has(message.id) && message.actor !== currentUsername).length;
+    if (unread) updateRoomChatBadge((Number(el.roomChatToggle.dataset.unread) || 0) + unread);
+  }
+  knownRoomChatIds.clear();
+  incomingIds.forEach((id) => knownRoomChatIds.add(id));
+  roomChatInitialized = true;
+
+  el.roomChatMessages.innerHTML = "";
+  messages.forEach((message) => {
+    const item = document.createElement("li");
+    item.className = "room-chat-message" + (message.actor === currentUsername ? " is-own" : "");
+    const meta = document.createElement("span");
+    meta.className = "room-chat-message-meta";
+    const time = new Date(message.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    meta.textContent = `${message.displayName} · ${time}`;
+    const body = document.createElement("span");
+    body.className = "room-chat-message-body";
+    body.textContent = message.text;
+    item.append(meta, body);
+    el.roomChatMessages.appendChild(item);
+  });
+  el.roomChatEmpty.hidden = messages.length > 0;
+  el.roomChatStatus.textContent = window.Multiplayer?.connected
+    ? `${messages.length} ${messages.length === 1 ? "mensaje reciente" : "mensajes recientes"}`
+    : "Reconectando...";
+  if (!el.roomChatPanel.hidden) requestAnimationFrame(() => { el.roomChatMessages.scrollTop = el.roomChatMessages.scrollHeight; });
+}
+
+function resetRoomChat(room) {
+  roomChatInitialized = false;
+  knownRoomChatIds.clear();
+  updateRoomChatBadge(0);
+  if (el.roomChatTitle) el.roomChatTitle.textContent = roomChatLabel(room);
+  if (el.roomChatMessages) el.roomChatMessages.innerHTML = "";
+  if (el.roomChatEmpty) el.roomChatEmpty.hidden = false;
+  if (el.roomChatStatus) el.roomChatStatus.textContent = "Conectando...";
+  if (el.roomChatParticipants) el.roomChatParticipants.textContent = "0 presentes";
+  if (el.roomChatTyping) { el.roomChatTyping.hidden = true; el.roomChatTyping.textContent = ""; }
+}
+
+function renderRoomMembers(room) {
+  if (!el.roomChatParticipants) return;
+  if (!room) {
+    el.roomChatParticipants.textContent = "Presencia no disponible";
+    if (activeVisit) el.visitRoomCount.textContent = "Presencia no disponible";
+    return;
+  }
+  const names = room.members.map((member) => member.displayName || member.username);
+  const preview = names.slice(0, 2).join(" · ");
+  const extra = names.length > 2 ? ` +${names.length - 2}` : "";
+  el.roomChatParticipants.textContent = `${room.count} ${room.count === 1 ? "presente" : "presentes"}${preview ? ` · ${preview}${extra}` : ""}`;
+  el.roomChatParticipants.title = names.join(", ");
+  if (activeVisit) el.visitRoomCount.textContent = `${room.count} ${room.count === 1 ? "mascota presente" : "mascotas presentes"}`;
+}
+
+function renderRoomTyping(users) {
+  if (!el.roomChatTyping) return;
+  const others = Array.isArray(users) ? users.filter((user) => user.username !== currentUsername) : [];
+  if (!others.length) {
+    el.roomChatTyping.hidden = true;
+    el.roomChatTyping.textContent = "";
+    return;
+  }
+  const first = others[0].displayName || others[0].username;
+  el.roomChatTyping.textContent = others.length === 1
+    ? `${first} está escribiendo…`
+    : `${first} y ${others.length - 1} más están escribiendo…`;
+  el.roomChatTyping.hidden = false;
+}
+
+function updateRoomRealtimeConnection(online) {
+  if (!online) stopLocalChatTyping();
+  el.roomChatToggle?.classList.toggle("is-offline", !online);
+  if (el.roomChatSend) el.roomChatSend.disabled = !online;
+  if (el.roomChatStatus) el.roomChatStatus.textContent = online ? "En línea" : "Reconectando...";
+}
+
+function setupRoomChatUI() {
+  if (!el.roomChatToggle || !el.roomChatPanel || !el.roomChatForm) return;
+  el.roomChatToggle.addEventListener("click", () => setRoomChatOpen(el.roomChatPanel.hidden));
+  el.roomChatClose.addEventListener("click", () => setRoomChatOpen(false));
+  el.roomChatInput.addEventListener("input", updateLocalChatTyping);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stopLocalChatTyping(); });
+  window.addEventListener("pagehide", stopLocalChatTyping);
+  el.roomChatForm.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const text = el.roomChatInput.value.replace(/\s+/g, " ").trim().slice(0, 180);
+    if (!text) return;
+    const Multiplayer = window.Multiplayer;
+    if (!Multiplayer?.connected || typeof Multiplayer.sendChatMessage !== "function") {
+      el.roomChatStatus.textContent = "Sin conexión. El mensaje no fue enviado.";
+      return;
+    }
+    el.roomChatSend.disabled = true;
+    const result = await Multiplayer.sendChatMessage(text).catch(() => ({ ok: false, reason: "write_failed" }));
+    el.roomChatSend.disabled = false;
+    if (result.ok) {
+      el.roomChatInput.value = "";
+      stopLocalChatTyping();
+      el.roomChatStatus.textContent = "Mensaje enviado.";
+    } else if (result.reason === "rate_limit") {
+      el.roomChatStatus.textContent = "Esperá un instante antes de enviar otro mensaje.";
+    } else {
+      el.roomChatStatus.textContent = "No se pudo enviar. Revisá la conexión.";
+    }
+    el.roomChatInput.focus();
+  });
+}
+
+function emitRealtimeAction(type, data = {}) {
+  const Multiplayer = window.Multiplayer;
+  if (!Multiplayer?.enabled || typeof Multiplayer.emitAction !== "function") return false;
+  const expectedRoom = activeVisit?.usernameLower || currentUsername;
+  if (!expectedRoom || Multiplayer.currentRoom !== expectedRoom) return false;
+  Multiplayer.emitAction(type, data).catch(() => {});
+  return true;
+}
+
+function remoteActionTarget(username) {
+  if (activeVisit?.usernameLower === username && el.visitWalkerHost && !el.visitWalkerHost.hidden) {
+    return { walker: el.visitWalkerHost, stage: el.visitPetStageHost };
+  }
+  const walker = el.remotePlayersLayer?.querySelector(`.remote-player-walker[data-username="${username}"]`);
+  return walker ? { walker, stage: walker.querySelector(".remote-player-stage") } : null;
+}
+
+function showRemoteBubble(walker, text, ms = 2200) {
+  const bubble = walker?.querySelector(".remote-action-bubble");
+  if (!bubble || !text) return;
+  clearTimeout(bubble._hideTimer);
+  clearTimeout(bubble._removeTimer);
+  bubble.textContent = String(text).slice(0, 180);
+  bubble.classList.remove("speech-bubble-hide");
+  bubble.hidden = false;
+  void bubble.offsetWidth;
+  bubble._hideTimer = setTimeout(() => {
+    bubble.classList.add("speech-bubble-hide");
+    bubble._removeTimer = setTimeout(() => {
+      bubble.hidden = true;
+      bubble.classList.remove("speech-bubble-hide");
+    }, prefersReducedMotion() ? 0 : BUBBLE_FADE_OUT_MS);
+  }, ms);
+}
+
+function popRemoteHearts(walker) {
+  for (let i = 0; i < 3; i += 1) {
+    const heart = document.createElement("span");
+    heart.className = "heart-pop";
+    heart.textContent = PET_REACTIONS[Math.floor(Math.random() * PET_REACTIONS.length)];
+    heart.style.left = `${42 + Math.random() * 16}%`;
+    heart.style.animationDelay = `${i * 90}ms`;
+    walker.appendChild(heart);
+    setTimeout(() => heart.remove(), 1400);
+  }
+}
+
+function scheduleRemoteEffect(walker, key, callback, delay) {
+  walker._remoteEffectTimers = walker._remoteEffectTimers || {};
+  clearTimeout(walker._remoteEffectTimers[key]);
+  walker._remoteEffectTimers[key] = setTimeout(() => {
+    delete walker._remoteEffectTimers[key];
+    if (walker.isConnected) callback();
+  }, delay);
+}
+
+function replayRemoteAction(event, allowQueue = true) {
+  if (!event || event.actor === currentUsername) return;
+  const target = remoteActionTarget(event.actor);
+  if (!target) {
+    const eventAge = (window.Multiplayer?.serverNow || Date.now()) - (Number(event.createdAt) || 0);
+    if (allowQueue && eventAge >= -5000 && eventAge <= REMOTE_ACTION_QUEUE_MAX_AGE_MS) {
+      const queue = pendingRemoteActions.get(event.actor) || [];
+      queue.push(event);
+      pendingRemoteActions.set(event.actor, queue.slice(-4));
+    }
+    return;
+  }
+  const { walker, stage } = target;
+  const fx = walker.querySelector(".remote-bath-fx");
+  const gameNames = { pesca: "la pesca", luciernagas: "las luciérnagas" };
+  switch (event.type) {
+    case "eat":
+      playMouthAnim(stage, "comer", 900);
+      showRemoteBubble(walker, "¡Ñam!");
+      break;
+    case "drink":
+      playMouthAnim(stage, "beber", 650);
+      showRemoteBubble(walker, "¡Glup!");
+      break;
+    case "talk":
+      playMouthAnim(stage, "hablar", 3200);
+      showRemoteBubble(walker, event.data?.text || "¡Hola!", 3200);
+      break;
+    case "pet":
+      popRemoteHearts(walker);
+      playMouthAnim(stage, "feliz", 520);
+      break;
+    case "bathe":
+      fx?.classList.remove("bathing");
+      void fx?.offsetWidth;
+      fx?.classList.add("bathing");
+      scheduleRemoteEffect(walker, "bathe", () => fx?.classList.remove("bathing"), 1300);
+      showRemoteBubble(walker, "¡Qué fresquito!");
+      break;
+    case "sleep":
+      walker.classList.add("is-sleeping");
+      stage?.classList.add("sleeping");
+      stage?.style.setProperty("--eye-scale", 0.04);
+      break;
+    case "wake":
+      walker.classList.remove("is-sleeping");
+      stage?.classList.remove("sleeping");
+      stage?.style.setProperty("--eye-scale", 1);
+      showRemoteBubble(walker, "¡Buenos días!");
+      break;
+    case "play":
+      walker.classList.add("remote-action-playing");
+      scheduleRemoteEffect(walker, "play", () => walker.classList.remove("remote-action-playing"), 30000);
+      showRemoteBubble(walker, `¡A jugar ${gameNames[event.data?.game] || ""}!`.trim());
+      break;
+    case "play_end":
+      clearTimeout(walker._remoteEffectTimers?.play);
+      walker.classList.remove("remote-action-playing");
+      playMouthAnim(stage, "feliz", 900);
+      showRemoteBubble(walker, event.data?.result === "win" ? "¡Ganamos!" : "¡Buen juego!");
+      break;
+    case "medicine":
+      walker.classList.remove("remote-action-medicine");
+      void walker.offsetWidth;
+      walker.classList.add("remote-action-medicine");
+      scheduleRemoteEffect(walker, "medicine", () => walker.classList.remove("remote-action-medicine"), 1000);
+      showRemoteBubble(walker, "¡Ya me siento mejor!");
+      break;
+    case "poop":
+      stage?.classList.remove("is-pooping");
+      void stage?.offsetWidth;
+      stage?.classList.add("is-pooping");
+      scheduleRemoteEffect(walker, "poop", () => stage?.classList.remove("is-pooping"), 1000);
+      break;
+    case "clean":
+      showRemoteBubble(walker, "¡Gracias por limpiar!");
+      break;
+    default:
+      break;
+  }
+}
+
+function drainRemoteActions(username) {
+  const now = window.Multiplayer?.serverNow || Date.now();
+  const queue = (pendingRemoteActions.get(username) || []).filter((event) => now - (Number(event.createdAt) || 0) <= REMOTE_ACTION_QUEUE_MAX_AGE_MS);
+  pendingRemoteActions.delete(username);
+  queue.forEach((event) => replayRemoteAction(event, false));
+}
+
+function stableStringHash(value) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function deterministicWaypoint(username, index) {
+  let x = (stableStringHash(username) ^ Math.imul(index + 1, 2654435761)) >>> 0;
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  return 18 + (x >>> 0) % 65;
+}
+
+function smoothStep(t) {
+  const n = clamp(t, 0, 1);
+  return n * n * (3 - 2 * n);
+}
+
+function offlineHostFrame() {
+  if (!offlineHostRunning || !activeVisit || !el.visitWalkerHost) return;
+  const username = activeVisit.usernameLower;
+  const now = window.Multiplayer?.serverNow || Date.now();
+  const cycleMs = 18000;
+  const cycle = Math.floor(now / cycleMs);
+  const phase = (now % cycleMs) / cycleMs;
+  const from = deterministicWaypoint(username, cycle);
+  const to = deterministicWaypoint(username, cycle + 1);
+  let xPct = from;
+  let animation = "idle";
+  if (phase >= 0.16 && phase < 0.78) {
+    xPct = from + (to - from) * smoothStep((phase - 0.16) / 0.62);
+    animation = "walking";
+  } else if (phase >= 0.78) {
+    xPct = to;
+    if ((stableStringHash(username) + cycle) % 6 === 0 && phase > 0.84) animation = "sleeping";
+  }
+
+  el.visitWalkerHost.style.left = `${xPct.toFixed(2)}%`;
+  el.visitWalkerHost.classList.toggle("is-facing-left", to < from);
+  el.visitWalkerHost.classList.toggle("is-moving", animation === "walking");
+  el.visitWalkerHost.classList.remove("is-running");
+  el.visitWalkerHost.classList.toggle("is-sleeping", animation === "sleeping");
+  el.visitPetStageHost.classList.toggle("sleeping", animation === "sleeping");
+  if (animation === "sleeping") {
+    el.visitPetStageHost.style.setProperty("--eye-scale", 0.04);
+  } else {
+    const petState = activeVisit.data?.petState;
+    el.visitPetStageHost.style.setProperty("--eye-scale", computeEyeScale(petState?.stats || {}, petState?.health || {}));
+  }
+  activeVisit.npcAction = animation;
+  el.visitHostPresence.title = animation === "walking" ? "Anfitrión ausente · NPC caminando" : animation === "sleeping" ? "Anfitrión ausente · NPC durmiendo" : "Anfitrión ausente · NPC descansando";
+  offlineHostRaf = requestAnimationFrame(offlineHostFrame);
+}
+
+function startOfflineHostNpc() {
+  if (!activeVisit || offlineHostRunning) return;
+  clearTimeout(npcTransitionTimer);
+  el.visitWalkerHost.classList.remove("npc-to-live");
+  el.visitWalkerHost.classList.add("is-npc");
+  offlineHostRunning = true;
+  offlineHostFrame();
+}
+
+function stopOfflineHostNpc(transitionToLive) {
+  const wasRunning = offlineHostRunning;
+  offlineHostRunning = false;
+  if (offlineHostRaf) cancelAnimationFrame(offlineHostRaf);
+  offlineHostRaf = null;
+  if (!el.visitWalkerHost) return;
+  el.visitWalkerHost.classList.remove("is-npc");
+  if (wasRunning && transitionToLive) {
+    el.visitWalkerHost.classList.add("npc-to-live");
+    clearTimeout(npcTransitionTimer);
+    npcTransitionTimer = setTimeout(() => el.visitWalkerHost?.classList.remove("npc-to-live"), 850);
+  } else if (!transitionToLive) {
+    el.visitWalkerHost.classList.remove("npc-to-live");
+  }
+}
+
+function stopRoomPlayerWatch() {
+  stopLocalChatTyping();
+  if (roomPlayersUnsubscribe) roomPlayersUnsubscribe();
+  if (roomActionsUnsubscribe) roomActionsUnsubscribe();
+  if (roomChatUnsubscribe) roomChatUnsubscribe();
+  if (roomConnectionUnsubscribe) roomConnectionUnsubscribe();
+  if (roomMembersUnsubscribe) roomMembersUnsubscribe();
+  if (roomTypingUnsubscribe) roomTypingUnsubscribe();
+  roomPlayersUnsubscribe = null;
+  roomActionsUnsubscribe = null;
+  roomChatUnsubscribe = null;
+  roomConnectionUnsubscribe = null;
+  roomMembersUnsubscribe = null;
+  roomTypingUnsubscribe = null;
+  watchedRoom = null;
+  pendingRemoteActions.clear();
+  if (el.remotePlayersLayer) el.remotePlayersLayer.innerHTML = "";
+  if (el.roomChatToggle) el.roomChatToggle.hidden = true;
+  setRoomChatOpen(false);
+}
+
+function applyRemoteMovement(node, movement) {
+  node.style.left = `${movement.xPct}%`;
+  node.classList.toggle("is-facing-left", movement.direction === "left");
+  node.classList.toggle("is-moving", movement.animation === "walking" || movement.animation === "running");
+  node.classList.toggle("is-running", movement.animation === "running");
+  node.classList.toggle("is-sleeping", movement.animation === "sleeping");
+}
+
+async function loadRemoteProfile(username, node) {
+  if (!window.Cloud || !node) return;
+  let request = remoteProfileCache.get(username);
+  if (!request) {
+    request = window.Cloud.getPlayerData(username);
+    remoteProfileCache.set(username, request);
+  }
+  const result = await request.catch(() => null);
+  if (!result?.ok || !result.data?.petState || !node.isConnected) return;
+  const petState = result.data.petState;
+  const stage = node.querySelector(".remote-player-stage");
+  const label = node.querySelector(".remote-player-name");
+  if (!stage) return;
+  renderPetLayers(stage, petState.look || defaultLook());
+  const mood = petState.health?.enferma ? "triste" : moodFromStats(petState.stats || {});
+  stage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
+  stage.classList.add("mood-" + mood);
+  stage.classList.toggle("sick", !!petState.health?.enferma);
+  stage.style.setProperty("--eye-scale", computeEyeScale(petState.stats || {}, petState.health || {}));
+  if (label) label.textContent = petState.name || result.data.username || username;
+}
+
+function createRemotePlayerNode(player) {
+  const node = document.createElement("div");
+  node.className = "walker remote-player-walker";
+  node.dataset.username = player.username;
+  node.innerHTML = '<div class="pet-shadow" aria-hidden="true"></div><div class="pet-stage remote-player-stage" role="img"></div><div class="speech-bubble remote-action-bubble" hidden></div><div class="bath-fx remote-bath-fx" aria-hidden="true"></div><div class="remote-player-tag"><span class="remote-player-name"></span><span class="remote-live-dot" title="En línea"></span></div><div class="zzz-fx" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div>';
+  node.querySelector(".remote-player-name").textContent = player.displayName || player.username;
+  node.querySelector(".remote-player-stage").setAttribute("aria-label", `Mascota de ${player.displayName || player.username}`);
+  renderPetLayers(node.querySelector(".remote-player-stage"), defaultLook());
+  el.remotePlayersLayer.appendChild(node);
+  loadRemoteProfile(player.username, node);
+  drainRemoteActions(player.username);
+  return node;
+}
+
+function renderRoomPlayers(players) {
+  if (!el.remotePlayersLayer) return;
+  const remotePlayers = players.filter((player) => player.username !== currentUsername);
+  const hostUsername = activeVisit?.usernameLower || null;
+  const hostMovement = hostUsername ? remotePlayers.find((player) => player.username === hostUsername) || null : null;
+  if (activeVisit) {
+    activeVisit.hostMovement = hostMovement;
+    if (hostMovement) {
+      stopOfflineHostNpc(true);
+      applyRemoteMovement(el.visitWalkerHost, hostMovement);
+    } else {
+      el.visitWalkerHost.classList.remove("is-facing-left", "is-moving", "is-running");
+    }
+    if (activeVisit.data) renderVisit(activeVisit.displayName, activeVisit.data);
+  }
+
+  const visible = remotePlayers.filter((player) => player.username !== hostUsername);
+  const wanted = new Set(visible.map((player) => player.username));
+  el.remotePlayersLayer.querySelectorAll(".remote-player-walker").forEach((node) => {
+    if (!wanted.has(node.dataset.username)) node.remove();
+  });
+  visible.forEach((player) => {
+    let node = el.remotePlayersLayer.querySelector(`.remote-player-walker[data-username="${player.username}"]`);
+    if (!node) node = createRemotePlayerNode(player);
+    applyRemoteMovement(node, player);
+  });
+}
+
+function watchRoomPlayers(room) {
+  const Multiplayer = window.Multiplayer;
+  if (!Multiplayer || !Multiplayer.enabled || !room) return;
+  if (watchedRoom === room && roomPlayersUnsubscribe && roomActionsUnsubscribe && roomChatUnsubscribe && roomMembersUnsubscribe && roomTypingUnsubscribe) return;
+  stopRoomPlayerWatch();
+  watchedRoom = room;
+  resetRoomChat(room);
+  if (el.roomChatToggle) el.roomChatToggle.hidden = false;
+  roomPlayersUnsubscribe = Multiplayer.subscribeRoomPlayers(room, renderRoomPlayers);
+  roomActionsUnsubscribe = Multiplayer.subscribeRoomActions(room, replayRemoteAction);
+  roomChatUnsubscribe = Multiplayer.subscribeRoomChat(room, renderRoomChat);
+  roomMembersUnsubscribe = Multiplayer.subscribeRoom(room, renderRoomMembers);
+  roomTypingUnsubscribe = Multiplayer.subscribeRoomTyping(room, renderRoomTyping);
+  roomConnectionUnsubscribe = Multiplayer.subscribeConnection(updateRoomRealtimeConnection);
 }
 
 function renderVisit(displayName, data) {
-  if (!el.visitStageFloor || el.visitOverlay.hidden) return;
+  if (!activeVisit || !el.stageFloor.classList.contains("is-visiting")) return;
+  activeVisit.data = data || null;
   if (!data || !data.petState) {
     el.visitStatusLine.textContent = `No se pudo cargar la casa de ${displayName} ahora mismo.`;
     delete el.visitPetStageHost.dataset.lookKey;
     el.visitPetStageHost.innerHTML = "";
-    el.visitLocationDeco.innerHTML = "";
+    el.visitWalkerHost.hidden = true;
+    renderDirt();
     return;
   }
   const petState = data.petState;
   const petName = petState.name || displayName;
-  const active = typeof data.lastActive === "number" && Date.now() - data.lastActive < VISIT_ACTIVE_THRESHOLD_MS;
-  // Sin conexión reciente: se ignoran location/sleep guardados y se la
-  // muestra en la Casa, deambulando sola (mismo criterio que el idle
-  // autónomo de la propia mascota cuando se la deja sin hacer nada).
-  // v3.5: el Jardín se saca del todo — aunque el guardado de un amigo
-  // todavía diga location:"jardin" (de antes de esta versión), la visita
-  // se muestra siempre en la Casa, que es el único lugar que existe.
-  const locationId = "casa";
-  const asleep = active && !!(petState.sleep && petState.sleep.dormida);
+  const estimatedActive = typeof data.lastActive === "number" && Date.now() - data.lastActive < VISIT_ACTIVE_THRESHOLD_MS;
+  const hasRealtimePresence = activeVisit.presenceKnown;
+  const online = hasRealtimePresence ? !!activeVisit.presence?.online || !!activeVisit.hostMovement : estimatedActive;
+  const atHome = hasRealtimePresence
+    ? !!activeVisit.hostMovement || (online && activeVisit.presence.currentRooms.includes(activeVisit.usernameLower))
+    : estimatedActive;
+  const hasLiveMovement = atHome && !!activeVisit.hostMovement;
+  const asleep = hasLiveMovement && (activeVisit.hostMovement.animation === "sleeping" || !!(petState.sleep && petState.sleep.dormida));
 
-  el.visitStageFloor.classList.remove(...PET_LOCATIONS.map((l) => "location-" + l.id));
-  el.visitStageFloor.classList.add("location-" + locationId);
-  el.visitStageFloor.classList.toggle("is-night", isNightNow(new Date()));
-  el.visitLocationDeco.innerHTML = visitDecoMarkup();
-
+  el.visitWalkerHost.hidden = false;
+  drainRemoteActions(activeVisit.usernameLower);
   renderPetLayers(el.visitPetStageHost, petState.look || defaultLook());
   const mood = petState.health && petState.health.enferma ? "triste" : moodFromStats(petState.stats || {});
   el.visitPetStageHost.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
@@ -3720,14 +4290,55 @@ function renderVisit(displayName, data) {
     asleep ? 0.04 : computeEyeScale(petState.stats || {}, petState.health || {})
   );
   el.visitWalkerHost.classList.toggle("is-sleeping", asleep);
-  el.visitWalkerHost.classList.toggle("is-wandering", !active);
+  el.visitWalkerHost.classList.remove("is-wandering");
+  el.visitWalkerHost.classList.toggle("is-moving", hasLiveMovement && ["walking", "running"].includes(activeVisit.hostMovement?.animation));
+  el.visitWalkerHost.classList.toggle("is-running", hasLiveMovement && activeVisit.hostMovement?.animation === "running");
+  el.visitWalkerHost.classList.toggle("is-online", online);
+  el.visitHostName.textContent = petName;
+  el.visitHostPresence.title = online ? "Conectado" : "Desconectado";
+  renderDirt();
 
-  if (!active) {
-    el.visitStatusLine.textContent = `${displayName} no está conectada ahora — ${petName} anda por ahí, sin hacer nada en particular.`;
-  } else if (asleep) {
-    el.visitStatusLine.textContent = `${petName} está durmiendo.`;
+  if (hasLiveMovement) {
+    if (offlineHostRunning) stopOfflineHostNpc(true);
   } else {
-    el.visitStatusLine.textContent = `${petName} está en casa ahora mismo.`;
+    startOfflineHostNpc();
+  }
+
+  if (hasRealtimePresence && online && !atHome) {
+    el.visitStatusLine.textContent = `${displayName} está conectado, pero visitando otra casa · ${petName} queda al cuidado automático de la casa.`;
+  } else if (!online) {
+    el.visitStatusLine.textContent = `${displayName} está desconectado · ${petName} está activo como NPC compartido.`;
+  } else if (!hasLiveMovement) {
+    el.visitStatusLine.textContent = `${displayName} está conectado · sincronizando su movimiento...`;
+  } else if (asleep) {
+    el.visitStatusLine.textContent = `${displayName} está conectado · ${petName} está durmiendo.`;
+  } else {
+    el.visitStatusLine.textContent = `${displayName} está conectado · estado actualizado desde la nube.`;
+  }
+}
+
+async function connectVisitPresence(visit) {
+  const Multiplayer = await waitForMultiplayer(4000);
+  if (!activeVisit || activeVisit !== visit) return;
+  if (!Multiplayer || !Multiplayer.enabled) {
+    el.visitRoomCount.textContent = "Presencia aproximada · activá Realtime Database para verla en vivo";
+    return;
+  }
+  try {
+    await Multiplayer.ready;
+    await realtimePresencePromise;
+    if (!activeVisit || activeVisit !== visit) return;
+    await switchRealtimeRoom(visit.usernameLower);
+    if (!activeVisit || activeVisit !== visit) return;
+    watchRoomPlayers(visit.usernameLower);
+    visit.presenceUnsubscribe = Multiplayer.subscribeUserPresence(visit.usernameLower, (presence) => {
+      if (!activeVisit || activeVisit !== visit) return;
+      visit.presenceKnown = true;
+      visit.presence = presence || { online: false, currentRooms: [], connections: 0 };
+      renderVisit(visit.displayName, visit.data);
+    });
+  } catch (err) {
+    if (activeVisit === visit) el.visitRoomCount.textContent = "Presencia temporalmente no disponible";
   }
 }
 
@@ -3735,23 +4346,37 @@ function openVisit(usernameLower, displayName) {
   if (!window.Cloud || !window.Cloud.enabled || !usernameLower) return;
   closeVisit();
   closeFriendsPanel();
+  activeVisit = {
+    usernameLower,
+    displayName,
+    data: null,
+    presence: null,
+    presenceKnown: false,
+    presenceUnsubscribe: null,
+    hostMovement: null,
+  };
+  // La interfaz deja de escuchar la sala anterior de inmediato; durante
+  // el breve cambio de sala no se envían chat, movimiento ni acciones al
+  // destino equivocado.
+  stopRoomPlayerWatch();
+  const visit = activeVisit;
   el.visitTitle.textContent = `Casa de ${displayName}`;
   el.visitStatusLine.textContent = "Conectando...";
+  el.visitRoomCount.textContent = "Comprobando presencia...";
   delete el.visitPetStageHost.dataset.lookKey;
   el.visitPetStageHost.innerHTML = "";
-  // "game-stage" (además de "pet-stage") es lo que le da a este escenario
-  // la respiración/expresión de ánimo real (ver .game-stage en
-  // css/style.css) — .visit-walker .pet-stage en ese mismo archivo le
-  // saca el cursor de "acariciable" que trae esa clase, ya que acá no se
-  // puede interactuar con nada.
   el.visitPetStageHost.className = "pet-stage game-stage";
-  el.visitPetStageMine.className = "pet-stage game-stage";
-  el.visitLocationDeco.innerHTML = "";
-  el.visitWalkerHost.classList.remove("is-sleeping", "is-wandering");
-  el.visitWalkerMine.classList.remove("is-sleeping");
-  el.visitOverlay.hidden = false;
-  renderVisitOwnPet();
+  el.visitWalkerHost.classList.remove("is-sleeping", "is-wandering", "is-online");
+  el.visitWalkerHost.hidden = true;
+  el.visitContext.hidden = false;
+  el.stageFloor.classList.add("is-visiting");
+  setLocationVisuals("casa");
+  renderDirt();
+  updateActionsAvailability();
+  computeWalkBounds();
+  announce(`Entraste a la casa de ${displayName}.`);
   visitUnsubscribe = window.Cloud.subscribeToPlayer(usernameLower, (data) => renderVisit(displayName, data));
+  connectVisitPresence(visit);
 }
 
 function closeVisit() {
@@ -3759,13 +4384,42 @@ function closeVisit() {
     visitUnsubscribe();
     visitUnsubscribe = null;
   }
-  if (el.visitOverlay) el.visitOverlay.hidden = true;
+  const previousVisit = activeVisit;
+  const wasVisiting = !!previousVisit;
+  if (previousVisit?.presenceUnsubscribe) previousVisit.presenceUnsubscribe();
+  if (wasVisiting) stopRoomPlayerWatch();
+  stopOfflineHostNpc(false);
+  activeVisit = null;
+  if (wasVisiting && window.Multiplayer && window.Multiplayer.enabled && currentUsername) {
+    switchRealtimeRoom(currentUsername).then(() => {
+      if (!activeVisit) watchRoomPlayers(currentUsername);
+    }).catch(() => {});
+  }
+  if (el.visitContext) el.visitContext.hidden = true;
+  if (el.visitWalkerHost) {
+    el.visitWalkerHost.hidden = true;
+    el.visitWalkerHost.style.removeProperty("left");
+    el.visitWalkerHost.classList.remove("is-sleeping", "is-wandering", "is-online", "is-facing-left", "is-moving", "is-running", "is-npc", "npc-to-live");
+  }
+  if (el.stageFloor) el.stageFloor.classList.remove("is-visiting");
+  if (wasVisiting && state) {
+    setLocationVisuals(state.location);
+    refreshUI();
+    updateCooldownButtons();
+    computeWalkBounds();
+    announce("Volviste a tu casa.");
+  }
 }
 
 function setupVisitUI() {
-  if (!el.visitOverlay || !el.visitClose) return;
+  if (!el.visitContext || !el.visitClose) return;
   el.visitClose.addEventListener("click", closeVisit);
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && !el.visitOverlay.hidden) closeVisit();
+    if (ev.key !== "Escape") return;
+    if (el.roomChatPanel && !el.roomChatPanel.hidden) {
+      setRoomChatOpen(false);
+      return;
+    }
+    if (activeVisit) closeVisit();
   });
 }

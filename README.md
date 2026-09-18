@@ -1,5 +1,127 @@
 # Mascotito Alpha
 
+## v3.9.2
+
+### Cierre y pulido de la etapa online
+
+- El chat muestra cuántos usuarios están presentes en la casa y una vista breve de sus nombres.
+- Se agregó el indicador **“está escribiendo…”**, sincronizado por sala y compatible con varias pestañas del mismo usuario.
+- La escritura se detiene al enviar, borrar el texto, dejar de escribir, cerrar el chat, ocultar la pestaña, cambiar de casa o cerrar sesión.
+- Cada pestaña registra su propio estado temporal y `onDisconnect` lo elimina automáticamente ante un cierre o una pérdida abrupta de conexión.
+- Los indicadores de escritura caducan visualmente después de ocho segundos aunque un cliente remoto no alcance a limpiar su estado.
+- Movimiento, acciones, chat y escritura permanecen bloqueados durante la recuperación de presencia después de una reconexión; vuelven a habilitarse cuando la membresía de la sala está publicada.
+- La lista de participantes reutiliza una única suscripción de sala. Se eliminó la lectura duplicada que antes se abría únicamente durante las visitas.
+- Todas las suscripciones y temporizadores del chat se cancelan juntos al cambiar de casa o terminar la sesión.
+- `database.rules.json` incorpora la ruta temporal `rooms/{room}/typing` y exige membresía activa para publicar el estado.
+- Indicador de versión actualizado a Alpha v3.9.2.
+
+Esta entrega cierra el bloque iniciado en v3.8: casa unificada, presencia real, movimiento, anfitrión desconectado, acciones y chat. Para activar las últimas validaciones, publicá nuevamente `database.rules.json` en Firebase Realtime Database.
+
+## v3.9.1
+
+### Chat por casa y acciones online reforzadas
+
+- Cada casa incorpora un chat instantáneo asociado a su sala de Realtime Database. Al visitar a otra mascota, la conversación cambia automáticamente; al volver, se recupera la de la casa propia.
+- El botón flotante muestra mensajes no leídos y el panel distingue visualmente los mensajes propios de los ajenos.
+- Se muestran los 40 mensajes más recientes de las últimas 24 horas. Cada sala conserva como máximo 60 mensajes y depura los más antiguos al enviar uno nuevo.
+- Los mensajes admiten hasta 180 caracteres, se normalizan antes de enviarse y tienen una espera mínima de 800 ms para reducir spam accidental.
+- La interfaz informa envío, reconexión, límite de frecuencia y errores de reglas/conexión sin inventar mensajes locales que nunca llegaron a Firebase.
+- Los mensajes se construyen con nodos de texto, sin insertar HTML recibido desde la red.
+- Las reglas nuevas validan usuario, nombre, contenido y longitud; además exigen que el actor figure como miembro actual de la sala para publicar mensajes o acciones.
+- Las acciones remotas ahora rechazan eventos demasiado antiguos o con fechas futuras anómalas, tanto al recibirlos como al vaciar la cola de una mascota que todavía no apareció.
+- Los efectos repetidos reinician correctamente sus animaciones y temporizadores. Juego tiene un cierre de seguridad si se pierde el evento final; baño, medicina y deposición ya no acumulan temporizadores visuales.
+- Las suscripciones a movimiento, acciones, chat y conexión se cancelan juntas al cambiar de casa o cerrar sesión.
+- Indicador de versión actualizado a Alpha v3.9.1.
+
+Para usar chat y acciones con estas validaciones, reemplazá y publicá nuevamente `database.rules.json` en Firebase Realtime Database.
+
+## v3.9
+
+### Acciones en tiempo real
+
+- Comer, beber, bañarse, dormir, despertar, acariciar, hablar, jugar, terminar un juego, tomar medicina, hacer caca y limpiar se publican como eventos efímeros de la sala.
+- Cada evento incluye un identificador único y la hora del servidor. Al entrar a una casa se descartan acciones anteriores y cada evento se reproduce una sola vez.
+- Las mascotas remotas reutilizan las animaciones existentes: boca, globo de diálogo, corazones, burbujas de baño, sueño, juego, medicina y deposición.
+- Las frases de **Hablar** se muestran en vivo a todos los presentes, con un máximo de 180 caracteres validado tanto en el cliente como en las reglas.
+- Las acciones remotas son exclusivamente visuales: no cambian estadísticas, inventario, monedas ni progreso de otra cuenta.
+- Durante una visita se habilitan las acciones de la mascota propia. Los muebles, la suciedad y las pertenencias del anfitrión continúan siendo de sólo lectura.
+- Si un evento llega antes que el movimiento/perfil de una mascota remota, queda en una cola breve y se reproduce apenas aparece su representación.
+- Los eventos se eliminan automáticamente del Realtime Database después de aproximadamente un minuto y la suscripción sólo conserva los 40 más recientes.
+- `database.rules.json` agrega la ruta `rooms/{room}/events` con una lista cerrada de tipos y límites para cada campo.
+- Indicador de versión actualizado a Alpha v3.9.
+
+Para activar esta versión, además de configurar `databaseURL`, reemplazá nuevamente las reglas de Realtime Database por el contenido actualizado de `database.rules.json` y publicalas.
+
+## v3.8.3
+
+### Anfitrión desconectado como NPC compartido
+
+- La mascota anfitriona permanece visible cuando su dueño está desconectado o visitando otra casa.
+- Su recorrido se calcula de forma determinista utilizando el nombre de la sala y el reloj del servidor de Firebase; todos los visitantes observan la misma posición y conducta sin guardar movimientos artificiales.
+- El NPC alterna entre caminar, permanecer quieto y descansos ocasionales. Su dirección y animación coinciden con el recorrido calculado.
+- El comportamiento automático no modifica estadísticas, posición persistente, sueño real, monedas ni progreso del anfitrión.
+- Si el dueño se conecta mientras alguien está de visita, el NPC entrega el control a la posición multijugador real mediante una transición suave.
+- Si el dueño sale o pierde la conexión, la mascota vuelve automáticamente al recorrido NPC compartido.
+- Cuando el anfitrión está conectado pero en otra casa, su mascota local también queda representada por el NPC automático.
+- Realtime Database aporta `serverTimeOffset`; si no está disponible se utiliza el reloj local como respaldo.
+- Al cerrar la visita se detiene completamente la simulación y se limpia cualquier transición pendiente.
+- Indicador de versión actualizado a Alpha v3.8.3.
+
+Esta versión utiliza la misma `databaseURL` y las mismas reglas publicadas para v3.8.2; no agrega nuevas rutas persistentes a la base.
+
+## v3.8.2
+
+### Movimiento sincronizado
+
+- Cada jugador publica en Realtime Database la posición horizontal normalizada de su mascota, dirección y animación actual (`idle`, `walking`, `running` o `sleeping`).
+- Los envíos se limitan a un máximo aproximado de 10 actualizaciones por segundo y los estados idénticos no generan escrituras repetidas.
+- Las mascotas remotas interpolan su posición entre actualizaciones para que el movimiento se vea continuo aun con pequeñas variaciones de latencia.
+- El visitante ve el movimiento real del anfitrión cuando está presente. Si está desconectado o en otra casa, se conserva el comportamiento NPC de la v3.8.1.
+- El anfitrión ahora también ve a los visitantes que entran en su casa, y los visitantes pueden verse entre ellos.
+- Cada mascota remota carga su apariencia, nombre, ánimo y enfermedad desde Firestore, mientras su movimiento temporal llega desde Realtime Database.
+- Al cambiar de casa, cerrar sesión, perder conexión o cerrar la pestaña se eliminan automáticamente los datos temporales de movimiento.
+- Se admiten varias pestañas por cuenta: para cada usuario se utiliza la conexión que tenga la actualización de movimiento más reciente.
+- Las reglas de `database.rules.json` incorporan validación de posición, dirección, animación y secuencia.
+- Indicador de versión actualizado a Alpha v3.8.2.
+
+Esta versión requiere la misma configuración de Realtime Database explicada en v3.8.1. Todavía no incorpora chat ni sincronización de acciones como comer, beber o hablar.
+
+## v3.8.1
+
+### Presencia real en las casas
+
+- Se agregó `js/multiplayer.js`, una capa independiente para presencia efímera con Firebase Realtime Database.
+- Cada pestaña registra una conexión propia y Firebase la elimina automáticamente con `onDisconnect` si se cierra, pierde Internet o termina de forma inesperada.
+- Cada jugador informa en qué casa se encuentra. Al visitar a un amigo, abandona temporalmente su sala propia y aparece en la sala del anfitrión; al volver, regresa a su casa.
+- La visita distingue tres estados reales del anfitrión: **en su casa**, **conectado pero visitando otra casa** y **desconectado**.
+- La barra de visita muestra cuántas mascotas están presentes en esa casa.
+- Abrir varias pestañas no genera una desconexión falsa al cerrar solamente una: cada pestaña tiene un identificador de conexión independiente.
+- Firestore conserva progreso, apariencia y heces; Realtime Database guarda únicamente presencia temporal.
+- Si Realtime Database no está configurada o falla, la app vuelve automáticamente al cálculo aproximado de v3.8 mediante `lastActive`.
+- Indicador de versión actualizado a Alpha v3.8.1.
+
+### Activar Realtime Database
+
+1. En Firebase Console abrí **Compilación → Realtime Database** y creá la base de datos.
+2. Copiá la URL exacta que aparece en la parte superior de la sección **Datos**.
+3. Pegala en `databaseURL` dentro de `js/firebase-config.js`.
+4. Abrí la pestaña **Reglas**, reemplazá su contenido por `database.rules.json` y publicalo.
+5. Reabrí Mascotito. No hace falta cambiar la configuración de Firestore ni las cuentas existentes.
+
+Mientras `databaseURL` permanezca vacía, el juego funciona normalmente pero muestra presencia aproximada. No conviene inventar la URL: algunas regiones usan `firebaseio.com` y otras `firebasedatabase.app`.
+
+## v3.8
+
+### Casa y visita unificadas
+
+- Visitar a un amigo ya no abre un escenario de pantalla completa separado: la casa visitada se carga en el mismo `#stage-floor` usado por la partida normal.
+- La mascota propia conserva su movimiento normal dentro de la casa visitada y la mascota anfitriona aparece como una segunda entidad.
+- Se muestran las heces persistentes guardadas en la casa del anfitrión, pero no se pueden limpiar ni modificar.
+- Una barra dentro del escenario indica de quién es la casa, el estado reciente del anfitrión y ofrece **Volver a casa**.
+- Mientras se visita, las acciones de cuidado, los muebles, la mascota anfitriona y las pertenencias ajenas son de sólo lectura.
+- La suscripción existente a Firestore sigue actualizando apariencia, ánimo, sueño, enfermedad, presencia aproximada y suciedad del anfitrión. El movimiento multijugador real no forma parte todavía de esta versión.
+- Indicador de versión actualizado a Alpha v3.8.
+
 ## v3.7
 
 - Mascota grande y centrada verticalmente en la escena de creación/modificación, con proporciones cuadradas y tamaño adaptable a la ventana.

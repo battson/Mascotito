@@ -1978,7 +1978,9 @@ body {
   color: var(--muted);
 }
 #walker:has(.game-stage.sleeping) .zzz-fx,
-#walker.is-sleeping .zzz-fx {
+#walker.is-sleeping .zzz-fx,
+.remote-player-walker.is-sleeping .zzz-fx,
+.visit-host-walker.is-sleeping .zzz-fx {
   display: block;
 }
 .zzz-fx span {
@@ -3220,80 +3222,229 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   #add-friend-form { flex-direction: column; align-items: stretch; }
 }
 
-/* ---------- v3.5: Visita a la casa de un amigo (pantalla completa,
-   sólo lectura) ----------
-   v3.4 mostraba esto en un modal chico centrado con la mascota del amigo
-   sola, encogida a la fuerza. v3.5 (pedido explícito: "debería cargar en
-   toda la escena la casa de la otra persona... las dos mascotas juntas")
-   lo reemplaza por una capa fija a pantalla completa, por encima del
-   header, que reutiliza .stage-floor/.walker/.pet-stage TAL CUAL las usa
-   el juego real (mismas reglas de tamaño por media query — a propósito,
-   ya no hay overrides que la encojan) para que la casa visitada se vea
-   igual de grande que la propia. Todo queda con pointer-events:none: es
-   sólo una foto en vivo, nunca se puede interactuar con nada de acá. */
-.visit-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: flex;
-  flex-direction: column;
-  padding: 10px clamp(10px, 3vw, 28px) 18px;
-  background: var(--bg, #fff3de);
-}
-.visit-topbar {
+/* ---------- v3.8: la visita reutiliza la casa principal ---------- */
+.visit-context {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 12;
+  transform: translateX(-50%);
+  width: min(430px, calc(100% - 32px));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 6px 2px 8px;
-  flex: 0 0 auto;
-}
-.visit-topbar h2 { margin: 0; font: 800 1.3rem/1 "Baloo 2", sans-serif; color: var(--ui-navy, #17233f); }
-.visit-status-line {
-  margin: 0 0 8px;
-  font: 700 0.92rem/1.3 "Baloo 2", sans-serif;
+  gap: 14px;
+  padding: 10px 12px;
   color: var(--ui-navy, #17233f);
-  flex: 0 0 auto;
+  background: rgba(255, 249, 236, .95);
+  border: 1px solid rgba(23, 35, 63, .12);
+  box-shadow: 0 12px 28px rgba(26, 20, 16, .16);
+  backdrop-filter: blur(9px);
 }
-.visit-stage-floor {
-  flex: 1 1 auto;
-  min-height: 0;
-  pointer-events: none;
-}
-.visit-hint {
-  margin: 10px 2px 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  flex: 0 0 auto;
-}
-/* La puerta de una visita no lleva a ningún lado (ver visitDecoMarkup en
-   js/app.js, que le cambia el id a #visit-scene-puerta para evitar que la
-   casa real y la visitada, abiertas al mismo tiempo, repitan ids). */
-#visit-scene-puerta { pointer-events: none; cursor: default; }
-#visit-scene-noche-overlay { opacity: 0; transition: opacity 0.4s ease; }
-.visit-stage-floor.location-casa.is-night #visit-scene-noche-overlay { opacity: 0.4; }
+.visit-context > div { min-width: 0; display: grid; gap: 1px; }
+.visit-context strong { font: 800 1.05rem/1.1 "Baloo 2", sans-serif; }
+.visit-context #visit-status-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .78rem; color: var(--muted); }
+.visit-room-count { font-size: .72rem; font-weight: 800; color: #526079; }
+.visit-context .secondary-btn { flex: 0 0 auto; white-space: nowrap; }
 
-/* Dos mascotas paradas juntas: el anfitrión un poco más al centro/derecha
-   (ya estaba "en su casa"), la propia entrando desde la izquierda (pedido
-   explícito: "como si tu mascota saliera de tu casa y entrara a la casa
-   de la otra mascota"). .is-wandering (mascota del anfitrión cuando no
-   está conectada) agrega un ida-y-vuelta lento — "anda por ahí sin hacer
-   nada", mismo criterio que el idle de la propia mascota al dejarla sola. */
-.visit-walker.walker {
+/* ---------- v3.9.1: chat de la sala ---------- */
+.room-chat-toggle {
+  position: absolute;
+  right: 16px;
+  bottom: 116px;
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 9px 13px;
+  border: 1px solid rgba(23, 35, 63, .16);
+  border-radius: 999px;
+  color: var(--ui-navy, #17233f);
+  background: rgba(255, 249, 236, .96);
+  box-shadow: 0 9px 24px rgba(26, 20, 16, .18);
+  font: 800 .82rem/1 "Baloo 2", sans-serif;
+  cursor: pointer;
+}
+.room-chat-toggle:hover { transform: translateY(-2px); }
+.room-chat-toggle.is-offline { opacity: .72; }
+.room-chat-toggle.is-offline::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #d64545; }
+.room-chat-toggle b {
+  display: grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  color: #fff;
+  background: #d64545;
+  font: 800 .68rem/1 system-ui, sans-serif;
+}
+.room-chat-toggle b[hidden] { display: none; }
+.room-chat-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 166px;
+  z-index: 16;
+  width: min(350px, calc(100% - 32px));
+  max-height: min(430px, calc(100% - 190px));
+  overflow: hidden;
+  color: var(--ui-navy, #17233f);
+  background: rgba(255, 249, 236, .98);
+  border: 1px solid rgba(23, 35, 63, .14);
+  border-radius: 18px;
+  box-shadow: 0 20px 48px rgba(26, 20, 16, .24);
+  backdrop-filter: blur(12px);
+}
+.room-chat-panel:not([hidden]) { display: grid; grid-template-rows: auto auto auto minmax(80px, 1fr) auto; }
+.room-chat-panel header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 14px 9px; border-bottom: 1px solid rgba(23, 35, 63, .1); }
+.room-chat-panel header > div { display: grid; gap: 2px; min-width: 0; }
+.room-chat-panel header strong { font: 800 1rem/1.1 "Baloo 2", sans-serif; }
+.room-chat-participants { overflow: hidden; color: #68738a; font-size: .68rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.room-chat-panel header button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(23, 35, 63, .08); color: inherit; font-size: 1.2rem; cursor: pointer; }
+.room-chat-status { min-height: 1.3em; margin: 0; padding: 7px 14px 0; color: var(--muted); font-size: .72rem; }
+.room-chat-typing { min-height: 1.25em; margin: 0; padding: 2px 14px 0; color: #41577f; font-size: .72rem; font-style: italic; }
+.room-chat-messages { display: grid; align-content: start; gap: 8px; min-height: 90px; margin: 0; padding: 10px 12px; overflow-y: auto; list-style: none; }
+.room-chat-messages { grid-row: 4; }
+.room-chat-message { display: grid; justify-items: start; gap: 2px; }
+.room-chat-message.is-own { justify-items: end; }
+.room-chat-message-meta { color: #69748a; font-size: .66rem; font-weight: 700; }
+.room-chat-message-body { max-width: 86%; padding: 7px 10px; border-radius: 12px 12px 12px 3px; background: #edf0f5; overflow-wrap: anywhere; font-size: .8rem; line-height: 1.25; }
+.room-chat-message.is-own .room-chat-message-body { border-radius: 12px 12px 3px 12px; color: #fff; background: #31466f; }
+.room-chat-empty { grid-row: 4; align-self: center; z-index: 1; margin: 12px 22px; color: var(--muted); text-align: center; font-size: .76rem; line-height: 1.3; pointer-events: none; }
+.room-chat-form { grid-row: 5; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; padding: 10px 12px 12px; border-top: 1px solid rgba(23, 35, 63, .1); }
+.room-chat-form input { min-width: 0; padding: 9px 10px; border: 1px solid rgba(23, 35, 63, .18); border-radius: 10px; color: inherit; background: #fff; font: 600 .8rem/1.2 system-ui, sans-serif; }
+.room-chat-form button { padding: 9px 12px; border: 0; border-radius: 10px; color: #fff; background: #31466f; font-weight: 800; cursor: pointer; }
+.room-chat-form button:disabled { opacity: .5; cursor: wait; }
+
+.visit-host-walker.walker {
+  left: 62%;
   right: auto;
   transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  transition: left 120ms linear;
 }
-.visit-walker-host.walker { left: 62%; }
-.visit-walker-mine.walker { left: 38%; }
-.visit-walker.is-wandering { animation: visitWander 10s ease-in-out infinite; }
+.visit-host-walker.is-npc { transition: none !important; }
+.visit-host-walker.npc-to-live { transition: left 780ms cubic-bezier(.2,.8,.2,1) !important; }
+.visit-host-walker.is-wandering { animation: visitWander 10s ease-in-out infinite; }
 @keyframes visitWander {
   0%, 100% { left: 46%; }
   50% { left: 78%; }
 }
-.visit-walker .pet-stage { cursor: default; }
+.visit-host-walker .pet-stage { cursor: default; }
+.visit-host-tag {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  max-width: 90%;
+  color: var(--ui-navy, #17233f);
+  background: rgba(255, 249, 236, .92);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(26, 20, 16, .14);
+  font: 800 .75rem/1 "Baloo 2", sans-serif;
+  white-space: nowrap;
+}
+.visit-host-tag span:first-child { overflow: hidden; text-overflow: ellipsis; }
+#visit-host-presence { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #8b94a7; }
+.visit-host-walker.is-online #visit-host-presence { background: #35a853; box-shadow: 0 0 0 3px rgba(53, 168, 83, .16); }
+.visit-host-walker.is-facing-left .pet-stage { scale: -1 1; }
+
+/* v3.8.2 — jugadores remotos dentro del mismo #stage-floor. `left` llega
+   como porcentaje de la sala y la transición interpola entre paquetes de
+   red (10 por segundo como máximo), evitando saltos visibles. */
+.remote-players-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.remote-player-walker.walker {
+  right: auto;
+  transform: translateX(-50%);
+  transition: left 120ms linear;
+  pointer-events: none;
+}
+.remote-player-stage {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+  animation: remoteIdle 2.8s ease-in-out infinite;
+}
+.remote-player-walker.is-facing-left .remote-player-stage { scale: -1 1; }
+.remote-player-walker.is-moving .remote-player-stage,
+.visit-host-walker.is-moving .pet-stage { animation-duration: .48s; }
+.remote-player-walker.is-running .remote-player-stage,
+.visit-host-walker.is-running .pet-stage { animation-duration: .28s; }
+@keyframes remoteIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.remote-player-tag {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 90%;
+  padding: 4px 8px;
+  color: var(--ui-navy, #17233f);
+  background: rgba(255, 249, 236, .92);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(26, 20, 16, .14);
+  font: 800 .75rem/1 "Baloo 2", sans-serif;
+  white-space: nowrap;
+}
+.remote-player-name { overflow: hidden; text-overflow: ellipsis; }
+.remote-live-dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #35a853; box-shadow: 0 0 0 3px rgba(53, 168, 83, .16); }
+
+/* v3.9 — las acciones remotas reutilizan los efectos visuales locales.
+   Sólo se anima la representación: nunca se escriben estadísticas ajenas. */
+.remote-action-bubble { top: -10px; max-width: 180px; z-index: 12; }
+.remote-action-playing .pet-stage { animation: remotePlay .42s ease-in-out infinite alternate; }
+.remote-action-medicine::after {
+  content: "✚";
+  position: absolute;
+  top: 18%;
+  right: 16%;
+  color: #35a853;
+  font: 900 1.45rem/1 system-ui, sans-serif;
+  animation: remoteMedicine 1s ease-out forwards;
+}
+@keyframes remotePlay { to { transform: translateY(-10px) rotate(2deg); } }
+@keyframes remoteMedicine { from { opacity: 0; transform: scale(.6); } 45% { opacity: 1; } to { opacity: 0; transform: translateY(-28px) scale(1.2); } }
+
+/* La casa se puede recorrer, pero los controles y pertenencias del
+   anfitrión no se pueden accionar ni limpiar. */
+#stage-floor.is-visiting #location-deco,
+#stage-floor.is-visiting #dirt-layer { pointer-events: none !important; }
+#stage-floor.is-visiting #daily-card,
+#stage-floor.is-visiting #notification-card,
+#stage-floor.is-visiting #sleep-notice-card,
+#stage-floor.is-visiting #system-notice-card { opacity: .42; }
 
 @media (prefers-reduced-motion: reduce) {
-  .visit-walker.is-wandering { animation: none; }
+  .visit-host-walker.is-wandering { animation: none; }
+  .visit-host-walker.walker { transition: none !important; }
+  .remote-player-walker.walker { transition: none; }
+  .remote-player-stage { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .visit-context { top: 8px; width: calc(100% - 16px); padding: 8px; }
+  .visit-context .secondary-btn { padding: 8px 10px; font-size: .78rem; }
+  .room-chat-toggle { right: 8px; bottom: 92px; }
+  .room-chat-panel { right: 8px; bottom: 142px; width: calc(100% - 16px); max-height: min(410px, calc(100% - 158px)); }
+  .visit-host-walker.walker { left: 68%; width: min(250px, 58vw); }
+  .remote-player-walker.walker { width: min(250px, 58vw); }
 }
 
 /* ======================================================================

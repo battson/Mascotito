@@ -1,0 +1,59 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "presence": {
+      "$username": {
+        ".read": "auth != null",
+        "connections": {
+          "$clientId": {
+            ".write": "auth != null && $username.matches(/^[a-z][a-z0-9_]{2,15}$/)",
+            ".validate": "!newData.exists() || (newData.hasChildren(['displayName', 'currentRoom', 'connectedAt', 'updatedAt']) && newData.child('displayName').isString() && newData.child('displayName').val().length <= 32 && newData.child('currentRoom').isString() && newData.child('currentRoom').val().matches(/^[a-z][a-z0-9_]{2,15}$/))"
+          }
+        }
+      }
+    },
+    "rooms": {
+      "$room": {
+        ".read": "auth != null && $room.matches(/^[a-z][a-z0-9_]{2,15}$/)",
+        "members": {
+          "$username": {
+            "$clientId": {
+              ".write": "auth != null && $room.matches(/^[a-z][a-z0-9_]{2,15}$/) && $username.matches(/^[a-z][a-z0-9_]{2,15}$/)",
+              ".validate": "!newData.exists() || (newData.hasChildren(['displayName', 'role', 'joinedAt']) && newData.child('displayName').isString() && newData.child('displayName').val().length <= 32 && (newData.child('role').val() == 'owner' || newData.child('role').val() == 'visitor'))"
+            }
+          }
+        },
+        "players": {
+          "$username": {
+            "$clientId": {
+              ".write": "auth != null && $room.matches(/^[a-z][a-z0-9_]{2,15}$/) && $username.matches(/^[a-z][a-z0-9_]{2,15}$/)",
+              ".validate": "!newData.exists() || (newData.hasChildren(['displayName', 'xPct', 'direction', 'animation', 'sequence', 'updatedAt']) && newData.child('displayName').isString() && newData.child('displayName').val().length <= 32 && newData.child('xPct').isNumber() && newData.child('xPct').val() >= 4 && newData.child('xPct').val() <= 96 && (newData.child('direction').val() == 'left' || newData.child('direction').val() == 'right') && (newData.child('animation').val() == 'idle' || newData.child('animation').val() == 'walking' || newData.child('animation').val() == 'running' || newData.child('animation').val() == 'sleeping') && newData.child('sequence').isNumber())"
+            }
+          }
+        },
+        "events": {
+          "$eventId": {
+            ".write": "auth != null && $room.matches(/^[a-z][a-z0-9_]{2,15}$/) && (!newData.exists() || root.child('rooms').child($room).child('members').child(newData.child('actor').val()).exists())",
+            ".validate": "!newData.exists() || (newData.hasChildren(['actor', 'displayName', 'type', 'createdAt']) && newData.child('actor').isString() && newData.child('actor').val().matches(/^[a-z][a-z0-9_]{2,15}$/) && newData.child('displayName').isString() && newData.child('displayName').val().length <= 32 && newData.child('createdAt').isNumber() && (newData.child('type').val() == 'eat' || newData.child('type').val() == 'drink' || newData.child('type').val() == 'bathe' || newData.child('type').val() == 'sleep' || newData.child('type').val() == 'wake' || newData.child('type').val() == 'pet' || newData.child('type').val() == 'talk' || newData.child('type').val() == 'play' || newData.child('type').val() == 'play_end' || newData.child('type').val() == 'medicine' || newData.child('type').val() == 'poop' || newData.child('type').val() == 'clean') && (!newData.child('data').child('text').exists() || (newData.child('data').child('text').isString() && newData.child('data').child('text').val().length <= 180)) && (!newData.child('data').child('item').exists() || (newData.child('data').child('item').isString() && newData.child('data').child('item').val().length <= 32)) && (!newData.child('data').child('game').exists() || (newData.child('data').child('game').isString() && newData.child('data').child('game').val().length <= 32)) && (!newData.child('data').child('result').exists() || (newData.child('data').child('result').isString() && newData.child('data').child('result').val().length <= 32)))"
+          }
+        },
+        "chat": {
+          ".indexOn": ["createdAt"],
+          "$messageId": {
+            ".write": "auth != null && $room.matches(/^[a-z][a-z0-9_]{2,15}$/) && (!newData.exists() || root.child('rooms').child($room).child('members').child(newData.child('actor').val()).exists())",
+            ".validate": "!newData.exists() || (newData.hasChildren(['actor', 'displayName', 'text', 'createdAt']) && newData.child('actor').isString() && newData.child('actor').val().matches(/^[a-z][a-z0-9_]{2,15}$/) && newData.child('displayName').isString() && newData.child('displayName').val().length <= 32 && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 180 && newData.child('createdAt').isNumber())"
+          }
+        },
+        "typing": {
+          "$username": {
+            "$clientId": {
+              ".write": "auth != null && $room.matches(/^[a-z][a-z0-9_]{2,15}$/) && $username.matches(/^[a-z][a-z0-9_]{2,15}$/) && (!newData.exists() || root.child('rooms').child($room).child('members').child($username).exists())",
+              ".validate": "!newData.exists() || (newData.hasChildren(['displayName', 'updatedAt']) && newData.child('displayName').isString() && newData.child('displayName').val().length <= 32 && newData.child('updatedAt').isNumber())"
+            }
+          }
+        }
+      }
+    }
+  }
+}

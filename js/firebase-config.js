@@ -21,6 +21,11 @@ const FIREBASE_CONFIG = {
   storageBucket: "mascotito-84b36.firebasestorage.app",
   messagingSenderId: "331394610630",
   appId: "1:331394610630:web:044abb336ff02931e3eec7",
+  // v3.8.1: pegá acá la URL exacta que muestra Firebase Console al crear
+  // Realtime Database. Ejemplos válidos terminan en firebaseio.com o
+  // firebasedatabase.app. Si queda vacío, el juego conserva el sistema de
+  // presencia aproximada de v3.8 y todo lo demás sigue funcionando.
+  databaseURL: "",
 };
 
 // Se considera "sin configurar" mientras el apiKey siga siendo el
@@ -30,4 +35,8 @@ const CLOUD_ENABLED = !!(
   FIREBASE_CONFIG.apiKey !== "TU_API_KEY" &&
   FIREBASE_CONFIG.projectId &&
   FIREBASE_CONFIG.projectId !== "TU_PROYECTO"
+);
+
+const MULTIPLAYER_ENABLED = CLOUD_ENABLED && /^https:\/\/.+(firebaseio\.com|firebasedatabase\.app)\/?$/.test(
+  FIREBASE_CONFIG.databaseURL || ""
 );
