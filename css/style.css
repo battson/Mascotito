@@ -2233,7 +2233,13 @@ body {
 .stage-floor {
   width: 100%;
   height: calc(100dvh - 110px);
-  min-height: 620px;
+  /* v3.6.3 (pedido explícito): "responsive desktop, que el alto/ancho no
+     exceda lo que entra en el browser" — antes 620px era un piso fijo
+     que, en ventanas bajas, terminaba empujando a #stage-floor por
+     encima del viewport (scroll de página entera). Con min() el piso
+     cede solo en ventanas realmente bajas (deja algo de margen para
+     header/padding), en vez de pelear contra el 100dvh de arriba. */
+  min-height: min(620px, calc(100dvh - 150px));
   max-height: 920px;
   aspect-ratio: auto;
   margin: 0;
@@ -2866,8 +2872,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
  .debug-window { padding:20px; max-height:calc(100dvh - 24px); }
 }
 .creator-pet-stage { height:auto; }
-/* Reserve vertical room for the enlarged pet and its balloon below the HUD. */
-@media(min-width:641px) { .stage-floor { min-height:890px; } }
 #game-stage { -webkit-tap-highlight-color:transparent; }
 @media(max-width:640px) {
  .daily-card-header { flex-wrap:wrap; }
@@ -3290,4 +3294,230 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 
 @media (prefers-reduced-motion: reduce) {
   .visit-walker.is-wandering { animation: none; }
+}
+
+/* ======================================================================
+   v3.6.2 (pedido explícito) — "hacer que #stage-floor sea multiuso, donde
+   puedas estar en tu casa/en otras localizaciones y hasta en la edición
+   de la mascota. Así juntamos todo en una sola ventana de juego" +
+   rediseño completo de Crear/Editar. Reemplaza a la vieja pantalla
+   #onboarding (aparte del juego, con su propio <main> — ver
+   .creator-stage-wrap/.creator-controls/.creator-layout/.creator-panel/
+   .creator-random-btn/.creator-pet-pos/.creator-pet-stage más arriba, que
+   quedan de referencia sin uso: ya ningún elemento del HTML tiene esas
+   clases). Ahora todo vive DENTRO de #stage-floor: los elementos "de
+   juego" llevan la clase .play-only y los "del editor" .editor-only (ver
+   index.html) — se ocultan/muestran enteros según la clase
+   #stage-floor.is-editing (ver setStageEditing() en js/app.js), sin pisar
+   la lógica interna propia de cada uno (p.ej. #creator-color-icons sigue
+   ocultándose sólo cuando la categoría activa no tiene color, ver
+   renderCreatorRow() en js/app.js).
+   Nota: #brand-emblem/#onboarding-title/.name-field/.name-input siguen
+   viviendo dentro de este nuevo layout con su apariencia ya definida más
+   arriba (colores/tipografía de la era "v2.9" — #brand-emblem 100px,
+   #onboarding-title navy 2rem, input plano con línea inferior naranja):
+   no hacía falta repetirla, sólo reposicionarla dentro de #stage-floor. */
+#stage-floor.is-editing .play-only { display: none !important; }
+/* Red de seguridad: cualquier elemento .editor-only queda oculto apenas
+   se sale del editor, sin importar en qué quedó su propio atributo
+   `hidden` (ver setStageEditing() en js/app.js, que sólo se ocupa de
+   volver a mostrarlos al ABRIR el editor). */
+#stage-floor:not(.is-editing) .editor-only { display: none !important; }
+
+/* ---------- Bienvenida (emblema + título, sólo al crear por primera
+   vez — pedido explícito de mantener eso igual que siempre) ---------- */
+.editor-welcome {
+  position: absolute;
+  left: 50%;
+  top: 7%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  pointer-events: none;
+}
+.editor-welcome #onboarding-title { text-align: center; }
+
+/* ---------- Nombre (siempre visible mientras se edita/crea) ---------- */
+.editor-name-card {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 7;
+  width: 260px;
+  padding: 14px;
+}
+.editor-name-card .name-field { width: 100%; max-width: none; margin: 0; }
+.editor-name-card .name-label { margin-top: 0; }
+
+/* ---------- Aleatorio ---------- */
+.editor-random-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 7;
+}
+
+/* ---------- Mascota en vista previa: mismo lenguaje visual/tamaño que
+   .walker en el juego (pedido explícito, "misma ventana de juego"),
+   centrada, un poco arriba del selector para no taparse con las
+   pestañas/dock. ---------- */
+.editor-pet-pos {
+  position: absolute;
+  left: 50%;
+  bottom: 55px;
+  transform: translateX(-50%);
+  width: clamp(300px, 28vw, 400px);
+  z-index: 3;
+  pointer-events: none;
+}
+.editor-pet-stage {
+  width: 100%;
+  aspect-ratio: 1;
+  animation: bob 3.2s ease-in-out infinite;
+  transform-origin: 50% 100%;
+  cursor: default;
+}
+
+/* ---------- Pestañas de categoría + Guardar/Cancelar: flotan arriba del
+   selector de partes/colores (mismo criterio que #feed-menu arriba del
+   dock de acciones — la posición real la calcula syncHudLayout() en
+   js/app.js, esto es sólo el valor de arranque antes del primer cálculo)
+   con el mismo lenguaje visual que .stage-actions-row. ---------- */
+.editor-tabs-row {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(880px, calc(100% - 360px));
+  padding: 8px 12px;
+  background: rgba(255, 249, 236, .94);
+  box-shadow: 0 -1px 0 rgba(69, 35, 15, .08), 0 14px 30px rgba(26, 20, 16, .18);
+  backdrop-filter: blur(9px);
+}
+.editor-tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Clase nueva a propósito ("editor-tab", no "creator-tab") — "creator-tab"
+   sigue en uso, sin tocar, en las pestañas del panel de Amigos (ver
+   #friends-tabs en index.html), que sería un choque de estilos si se
+   reutilizara acá con un look distinto. */
+.editor-tab {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 12px;
+  padding: 8px 14px;
+  background: transparent;
+  color: #6a4a30;
+  font: 700 .82rem/1 "Baloo 2", sans-serif;
+  box-shadow: none;
+  white-space: nowrap;
+}
+.editor-tab[aria-selected="true"] { background: #244962; color: #fff8e8; }
+.editor-final-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* ---------- Selector de partes/colores: pedido explícito "que el
+   selector de partes sea igual a la ventana de acciones cuando jugás
+   (.stage-actions-row)". En vez de un look aparte, createEditorTile() en
+   js/app.js arma cada opción con la MISMA estructura que el dock
+   (.action-circle-wrap > .cooldown-ring > .action-circle), así hereda
+   pixel a pixel el aspecto ya definido para .stage-actions-row más arriba
+   (incluidos sus propios breakpoints responsive) sin duplicar nada acá.
+   Partes 80% a la izquierda / color 20% chiquito a la derecha cuando
+   conviven (hoy sólo Ojos) — pedido explícito — vía flex-grow 4:1; con
+   uno solo de los dos visible (el otro con `hidden`), el que queda pasa a
+   ocupar el 100% solo. */
+.stage-actions-row .editor-part-icons,
+.stage-actions-row .editor-color-icons {
+  /* .stage-actions-row .actions (más arriba) hereda justify-content:center
+     de .actions — con overflow-x:auto y más tiles de los que entran, un
+     "center" real deja el contenido arrancando ANTES del borde izquierdo
+     del propio contenedor (scroll negativo inalcanzable), pisando al
+     hermano de la izquierda y tapándole los clics — bug real encontrado
+     al verificar con Playwright (el primer swatch de color quedaba fuera
+     de su propia caja, encima de #creator-part-icons). "safe center" ya
+     se usaba en la vieja .creator-part-icons para este mismo problema:
+     centra sólo si entra, si no cae a flex-start (con fallback para
+     navegadores sin soporte de "safe"). */
+  justify-content: flex-start;
+  justify-content: safe center;
+}
+.stage-actions-row .editor-part-icons {
+  flex: 4 1 0;
+  /* min-width:0 — sin esto, un flex-item con overflow-x:auto no respeta
+     su flex-basis y crece hasta el ancho de su contenido (una fila de
+     tiles de 92px puede ser más ancha que el 80% asignado), invadiendo el
+     lado de los colores y tapándole los clics — mismo tipo de bug que el
+     de justify-content de arriba. */
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.stage-actions-row .editor-color-icons {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Sin barra de cooldown (no aplica a partes/colores del editor). */
+.editor-part-icons .cooldown-ring::before,
+.editor-color-icons .cooldown-ring::before { display: none; }
+/* Selección: mismo lenguaje que el subrayado de hover del dock
+   (.action-circle::after), pedido explícito de quedar "igual" al dock —
+   se deja prendido de forma permanente en vez de sólo al pasar el mouse. */
+.action-circle.selected { background: rgba(217, 130, 38, .14); }
+.action-circle.selected::after { background: #d98226; transform: scaleX(1.12); }
+
+/* Colores: "cuadrados chiquitos" (pedido explícito) — mismo tile que las
+   partes pero bien más chico; quedan cuadrados de verdad porque heredan
+   el border-radius:0 ya forzado para .action-circle/.cooldown-ring más
+   arriba (era "Modern action rail"), que era justo lo pedido. */
+#creator-color-icons .action-circle-wrap { width: 40px; }
+#creator-color-icons .cooldown-ring { width: 40px; height: 40px; }
+.editor-color-locked { opacity: .55; cursor: not-allowed; }
+.editor-color-locked .swatch-lock-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+}
+
+@media (max-width: 1240px) {
+  .editor-tabs-row { width: min(760px, calc(100% - 250px)); }
+}
+@media (max-width: 900px) {
+  .editor-tabs-row { width: calc(100% - 24px); }
+  .editor-name-card { width: 230px; top: 10px; left: 10px; }
+  .editor-random-btn { top: 10px; right: 10px; }
+  /* En mobile la tarjeta de nombre (arriba a la izquierda) es ancha
+     relativo a la pantalla y se solapaba con el emblema/título
+     centrados (#editor-welcome, verificado con Playwright) — se bajan
+     lo suficiente como para quedar siempre debajo de la tarjeta. */
+  .editor-welcome { top: 108px; }
+  .editor-pet-pos { width: 260px; bottom: 55px; }
+}
+@media (max-width: 640px) {
+  .editor-tabs-row { padding: 6px 8px; gap: 6px; }
+  .editor-name-card { width: calc(60% - 15px); padding: 10px; }
+  .editor-random-btn { padding: 8px 10px; }
+  .editor-pet-pos { width: min(220px, calc(100% - 32px)); bottom: 60px; }
+  #creator-color-icons .action-circle-wrap { width: 34px; }
+  #creator-color-icons .cooldown-ring { width: 34px; height: 34px; }
 }
