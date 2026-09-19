@@ -203,7 +203,7 @@ body {
 /* Insignia única "Alpha v2.1" (antes .badge + .version-badge por
    separado) — se actualiza a mano en index.html en cada entrega. */
 .badge {
-  background: #87b5ff;
+  background: var(--accent);
   color: white;
   font-size: 0.72rem;
   font-weight: 700;
@@ -4365,4 +4365,87 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .beta-welcome-choice img { height: 165px; }
   .room-chat-friend-item { grid-template-columns: 10px minmax(0,1fr); }
   .room-chat-friend-actions { grid-column: 2; }
+}
+
+/* ---------- Beta v1.1 ---------- */
+/* Orden visual: torso de la prenda < brazos de la mascota < mangas. */
+.pet-layer-clothing-upper-body .ropa-brazo { display: none; }
+.pet-layer-clothing-upper-sleeves .ropa-cuerpo { display: none; }
+
+@keyframes clothingArmSwing {
+  0%, 100% { transform: rotate(-6deg) scale(1.04); }
+  50% { transform: rotate(6deg) scale(1.04); }
+}
+.ropa-brazo { animation-name: clothingArmSwing; }
+.ropa-pierna { transform: scale(1.04); }
+.ropa-calzado { transform: scale(1.045); }
+
+/* Dock, compositor de sala y Amigos comparten la línea inferior. */
+.room-quick-chat {
+  left: 392px;
+  right: 212px;
+  bottom: 16px;
+  width: auto;
+  min-width: 0;
+  transform: none;
+}
+.room-chat-toggle {
+  right: 16px;
+  bottom: 16px;
+}
+.room-chat-panel {
+  right: 16px;
+  bottom: 62px;
+  height: min(510px, calc(100% - 82px));
+}
+
+.room-chat-tools {
+  display: flex;
+  justify-content: center;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto 12px;
+}
+
+.inventory-item-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 105px;
+}
+.inventory-item-visual img { width: 100%; height: 100%; object-fit: contain; }
+.inventory-fish-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(69,35,15,.2);
+  color: #fff;
+  background: rgba(48,31,20,.68);
+  font: 800 .9rem/1 Arial, sans-serif;
+  text-shadow: 0 1px 2px #000;
+}
+.inventory-fish-overlay[hidden] { display: none; }
+.inventory-fish-catch { background: rgba(217,130,38,.88); }
+#inventory-fish:disabled { opacity: 1; }
+#inventory-fish:disabled .inventory-item-visual img { opacity: .42; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 18px 18px;
+}
+.modal-actions .secondary-btn { min-width: 96px; border-radius: 0; }
+.wardrobe-item { min-height: 132px; }
+.wardrobe-item img { height: 112px; }
+
+@media (max-width: 900px) {
+  .room-quick-chat {
+    left: 12px;
+    right: 12px;
+    bottom: 72px !important;
+    width: auto;
+  }
+  .room-chat-toggle { right: 8px; bottom: 8px; }
+  .room-chat-panel { right: 8px; bottom: 54px; width: calc(100% - 16px); height: min(440px, calc(100% - 70px)); }
 }

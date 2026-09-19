@@ -1,6 +1,6 @@
 /**
  * Lógica principal de la app: onboarding/personalización, pantalla de
- * juego, loop de necesidades y acciones de cuidado. Beta v1.0 suma
+ * juego, loop de necesidades y acciones de cuidado. Beta v1.1 suma
  * inventario y ropa por capas; la enfermedad/medicina queda archivada y
  * la mascota habla por iniciativa propia según su estado.
  */
@@ -201,12 +201,16 @@ const el = {
   friendsManageBadge: document.getElementById("friends-manage-badge"),
   inventoryOverlay: document.getElementById("inventory-overlay"),
   inventoryClose: document.getElementById("inventory-close"),
+  inventoryCloseAction: document.getElementById("inventory-close-action"),
   inventoryFish: document.getElementById("inventory-fish"),
+  inventoryFishCooldown: document.getElementById("inventory-fish-cooldown"),
+  inventoryFishCatch: document.getElementById("inventory-fish-catch"),
   inventoryWater: document.getElementById("inventory-water"),
   inventoryFishCount: document.getElementById("inventory-fish-count"),
   inventoryStatus: document.getElementById("inventory-status"),
   wardrobeOverlay: document.getElementById("wardrobe-overlay"),
   wardrobeClose: document.getElementById("wardrobe-close"),
+  wardrobeCloseAction: document.getElementById("wardrobe-close-action"),
   wardrobeTabs: document.getElementById("wardrobe-tabs"),
   wardrobeGrid: document.getElementById("wardrobe-grid"),
   wardrobeEmpty: document.getElementById("wardrobe-empty"),
@@ -372,10 +376,15 @@ function renderPetLayers(stageEl, look, wardrobe = null) {
     stageEl.appendChild(makeInlineLayer(orejasOpt.inline, "pet-layer-orejas"));
   }
 
+  // Beta v1.1: la remera/cuerpo va debajo de los brazos de la mascota.
+  // Las mangas se renderizan en una segunda copia, encima de esos brazos.
+  const upperBodyLayer = makeClothingLayer("superior", equipped.superior, "pet-layer-clothing-upper pet-layer-clothing-upper-body");
+  if (upperBodyLayer) stageEl.appendChild(upperBodyLayer);
+
   stageEl.appendChild(makeInlineLayer(PET_ARMS_INLINE, "pet-layer-arms"));
 
-  const upperLayer = makeClothingLayer("superior", equipped.superior, "pet-layer-clothing-upper");
-  if (upperLayer) stageEl.appendChild(upperLayer);
+  const upperSleevesLayer = makeClothingLayer("superior", equipped.superior, "pet-layer-clothing-upper pet-layer-clothing-upper-sleeves");
+  if (upperSleevesLayer) stageEl.appendChild(upperSleevesLayer);
 
   const cabezaOpt = findOption("cabeza", look.cabeza);
   if (cabezaOpt && cabezaOpt.inline) {
@@ -564,20 +573,24 @@ function computeWalkBounds() {
 
 function restLegs() {
   el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
-    node.style.transform = "rotate(0deg)";
+    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    node.style.transform = `rotate(0deg) scale(${scale})`;
   });
   el.gameStage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der").forEach((node) => {
-    node.style.transform = "rotate(0deg)";
+    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    node.style.transform = `rotate(0deg) scale(${scale})`;
   });
 }
 
 function applyLegSwing(stridePhase, intensity) {
   const swing = Math.sin(stridePhase) * LEG_SWING_MAX_DEG * intensity;
   el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
-    node.style.transform = `rotate(${swing.toFixed(1)}deg)`;
+    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    node.style.transform = `rotate(${swing.toFixed(1)}deg) scale(${scale})`;
   });
   el.gameStage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der").forEach((node) => {
-    node.style.transform = `rotate(${(-swing).toFixed(1)}deg)`;
+    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    node.style.transform = `rotate(${(-swing).toFixed(1)}deg) scale(${scale})`;
   });
 }
 
@@ -2028,6 +2041,7 @@ function updateCooldownButtons() {
   });
   updateActionsAvailability();
   if (!el.feedMenu.hidden) refreshFeedMenuState();
+  if (el.inventoryOverlay && !el.inventoryOverlay.hidden) refreshInventory();
 }
 
 /** Cosas que no dependen de cooldown: mostrar/ocultar el botón de
@@ -2122,7 +2136,7 @@ function buildActionsDock() {
   updateSleepToggle();
 }
 
-// ---------- Beta v1.0: inventario, vestidor y regalo de bienvenida ----------
+// ---------- Beta v1.1: inventario, vestidor y regalo de bienvenida ----------
 
 function refreshInventory() {
   if (!state) return;
@@ -2130,7 +2144,18 @@ function refreshInventory() {
   const sleeping = !!state.sleep?.dormida;
   const fishCooldown = isOnCooldown("pescado");
   const waterCooldown = isOnCooldown("beber");
-  if (el.inventoryFish) el.inventoryFish.disabled = sleeping || fishCooldown || !state.inventory?.pescado || state.stats.saciedad >= PET_CONFIG.llenaUmbral;
+  const fishStock = Math.max(0, Number(state.inventory?.pescado) || 0);
+  if (el.inventoryFish) {
+    // Sin stock, el mismo recuadro se transforma en acceso a Pesca.
+    el.inventoryFish.disabled = fishStock > 0 && (sleeping || fishCooldown || state.stats.saciedad >= PET_CONFIG.llenaUmbral);
+    el.inventoryFish.setAttribute("aria-label", fishStock > 0 ? "Dar pescado" : "Pescar para conseguir comida");
+  }
+  if (el.inventoryFishCooldown) {
+    const remaining = Math.max(0, (state.cooldowns?.pescado || 0) - Date.now());
+    el.inventoryFishCooldown.hidden = !fishCooldown || fishStock === 0;
+    el.inventoryFishCooldown.textContent = fishCooldown ? formatCooldownLabel(remaining) : "";
+  }
+  if (el.inventoryFishCatch) el.inventoryFishCatch.hidden = fishStock > 0;
   if (el.inventoryWater) el.inventoryWater.disabled = sleeping || waterCooldown || state.stats.hidratacion >= PET_CONFIG.llenaUmbral;
   if (el.inventoryStatus) {
     el.inventoryStatus.textContent = sleeping
@@ -2174,9 +2199,7 @@ function renderWardrobe() {
     const image = document.createElement("img");
     image.src = item.asset;
     image.alt = "";
-    const label = document.createElement("strong");
-    label.textContent = `Opción ${index + 1}`;
-    button.append(image, label);
+    button.append(image);
     el.wardrobeGrid.appendChild(button);
   });
   if (el.wardrobeEmpty) el.wardrobeEmpty.hidden = items.length > 0;
@@ -2202,12 +2225,12 @@ function renderBetaWelcomeOptions() {
     button.type = "button";
     button.className = "beta-welcome-choice";
     button.dataset.setId = set.id;
-    button.setAttribute("aria-label", `Elegir conjunto ${index + 1}`);
+    button.setAttribute("aria-label", `Opción ${index + 1}`);
     const image = document.createElement("img");
     image.src = set.preview;
     image.alt = `Ilustración del conjunto ${index + 1}`;
     const label = document.createElement("strong");
-    label.textContent = `Elegir conjunto ${index + 1}`;
+    label.textContent = `Opción ${index + 1}`;
     button.append(image, label);
     el.betaWelcomeOptions.appendChild(button);
   });
@@ -2239,10 +2262,20 @@ function claimBetaWelcomeSet(setId) {
 
 function setupBetaInventoryUI() {
   el.inventoryClose?.addEventListener("click", closeInventory);
+  el.inventoryCloseAction?.addEventListener("click", closeInventory);
   el.inventoryOverlay?.addEventListener("click", (ev) => { if (ev.target === el.inventoryOverlay) closeInventory(); });
-  el.inventoryFish?.addEventListener("click", () => { doComer("pescado"); refreshInventory(); });
+  el.inventoryFish?.addEventListener("click", () => {
+    if ((Number(state.inventory?.pescado) || 0) <= 0) {
+      closeInventory();
+      openGameSelector("pesca");
+      return;
+    }
+    doComer("pescado");
+    refreshInventory();
+  });
   el.inventoryWater?.addEventListener("click", () => { doBeber(); refreshInventory(); });
   el.wardrobeClose?.addEventListener("click", closeWardrobe);
+  el.wardrobeCloseAction?.addEventListener("click", closeWardrobe);
   el.wardrobeOverlay?.addEventListener("click", (ev) => { if (ev.target === el.wardrobeOverlay) closeWardrobe(); });
   el.wardrobeTabs?.addEventListener("click", (ev) => {
     const button = ev.target.closest("button[data-slot]:not(:disabled)");
@@ -3248,9 +3281,10 @@ function syncHudLayout() {
   // — mismo cálculo que ya usa #feed-menu para flotar arriba de este mismo
   // dock, reutilizado tal cual (ver comentario ahí arriba).
   if (el.creatorTabsRow) el.creatorTabsRow.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+12)+"px";
-  // v3.9.7: la escritura rápida acompaña siempre el borde superior real
-  // del dock, incluso en el modo compacto de notebooks o en mobile.
-  if (el.roomQuickChat) el.roomQuickChat.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+10)+"px";
+  // Beta v1.1: compositor, dock y botón de amigos comparten la misma
+  // línea inferior. En pantallas angostas el CSS lo sube para evitar
+  // superposiciones.
+  if (el.roomQuickChat) el.roomQuickChat.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop-dock.offsetHeight)+"px";
   computeWalkBounds();
   el.walker.style.transform = `translateX(${walkX + WALK_PAD}px)`;
   if (minigame) positionMinigameTarget();

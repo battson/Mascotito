@@ -1,5 +1,15 @@
 # Mascotito Beta
 
+## Beta v1.1
+
+- Orden de vestuario corregido: torso de la prenda, brazos de la mascota y mangas por encima.
+- Mangas, pantalones y calzado ampliados levemente para ocultar desajustes durante las animaciones.
+- Elección inicial renombrada como Opción 1 y Opción 2.
+- Barra de sala y botón de Amigos alineados con la barra inferior de acciones en escritorio.
+- Inventario con cierre visible, cooldown sobre la imagen del pescado y acceso directo a Pesca al quedarse sin stock.
+- Vestidor sin nombres bajo las prendas y con botón de cierre visible.
+- Herramientas de amigos centradas y título redundante de la lista eliminado.
+
 ## Beta v1.0
 
 - Ropa por capas con tres ranuras combinables: prenda superior, prenda inferior y calzado.
