@@ -3193,7 +3193,8 @@ async function startRealtimePresence() {
   const Multiplayer = await waitForMultiplayer(4000);
   if (!Multiplayer || !Multiplayer.enabled) return false;
   try {
-    await Multiplayer.ready;
+    const ready = await Multiplayer.ready;
+    if (!ready) return false;
     const started = await Multiplayer.startSession(currentUsername, currentDisplayName || currentUsername);
     if (started) watchRoomPlayers(currentUsername);
     return started;
@@ -3855,7 +3856,10 @@ function renderRoomMembers(room) {
   if (!el.roomChatParticipants) return;
   if (!room) {
     el.roomChatParticipants.textContent = "Presencia no disponible";
-    if (activeVisit) el.visitRoomCount.textContent = "Presencia no disponible";
+    if (activeVisit) {
+      el.visitRoomCount.textContent = "Estado estimado · tiempo real no disponible";
+      el.visitRoomCount.title = "La app usa la última actividad guardada porque no pudo conectarse a Realtime Database.";
+    }
     return;
   }
   const names = room.members.map((member) => member.displayName || member.username);
@@ -3863,7 +3867,10 @@ function renderRoomMembers(room) {
   const extra = names.length > 2 ? ` +${names.length - 2}` : "";
   el.roomChatParticipants.textContent = `${room.count} ${room.count === 1 ? "presente" : "presentes"}${preview ? ` · ${preview}${extra}` : ""}`;
   el.roomChatParticipants.title = names.join(", ");
-  if (activeVisit) el.visitRoomCount.textContent = `${room.count} ${room.count === 1 ? "mascota presente" : "mascotas presentes"}`;
+  if (activeVisit) {
+    el.visitRoomCount.textContent = `${room.count} ${room.count === 1 ? "mascota presente" : "mascotas presentes"}`;
+    el.visitRoomCount.removeAttribute("title");
+  }
 }
 
 function renderRoomTyping(users) {
@@ -4321,11 +4328,17 @@ async function connectVisitPresence(visit) {
   const Multiplayer = await waitForMultiplayer(4000);
   if (!activeVisit || activeVisit !== visit) return;
   if (!Multiplayer || !Multiplayer.enabled) {
-    el.visitRoomCount.textContent = "Presencia aproximada · activá Realtime Database para verla en vivo";
+    el.visitRoomCount.textContent = "Estado estimado · tiempo real no configurado";
+    el.visitRoomCount.title = "La app usa la última actividad guardada; el chat y la presencia en vivo requieren Realtime Database.";
     return;
   }
   try {
-    await Multiplayer.ready;
+    const ready = await Multiplayer.ready;
+    if (!ready) {
+      el.visitRoomCount.textContent = "Estado estimado · tiempo real no disponible";
+      el.visitRoomCount.title = "No se pudo abrir Realtime Database. Revisá su URL, las reglas publicadas y la conexión.";
+      return;
+    }
     await realtimePresencePromise;
     if (!activeVisit || activeVisit !== visit) return;
     await switchRealtimeRoom(visit.usernameLower);
@@ -4338,7 +4351,10 @@ async function connectVisitPresence(visit) {
       renderVisit(visit.displayName, visit.data);
     });
   } catch (err) {
-    if (activeVisit === visit) el.visitRoomCount.textContent = "Presencia temporalmente no disponible";
+    if (activeVisit === visit) {
+      el.visitRoomCount.textContent = "Estado estimado · tiempo real no disponible";
+      el.visitRoomCount.title = "No se pudo abrir Realtime Database. Revisá su URL, las reglas publicadas y la conexión.";
+    }
   }
 }
 

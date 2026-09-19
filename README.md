@@ -1,5 +1,19 @@
 # Mascotito Alpha
 
+## v3.9.5
+
+### Reactivación del chat y explicación de la presencia estimada
+
+- Se corrigió `databaseURL`, que había quedado vacío en la v3.9.4 y desactivaba por completo la capa multijugador.
+- El chat, la presencia, el movimiento y las acciones vuelven a inicializarse mediante Firebase Realtime Database.
+- La inicialización ahora comprueba que Realtime Database haya arrancado realmente antes de abrir suscripciones de sala.
+- El antiguo mensaje técnico **“Presencia aproximada · activá Realtime Database…”** fue reemplazado por un estado más claro y discreto: **“Estado estimado · tiempo real no disponible”**.
+- Ese estado significa que la app calcula si el anfitrión estuvo activo recientemente usando `lastActive` de Firestore; no representa una conexión en vivo.
+- El estado incorpora una explicación al pasar el cursor y desaparece automáticamente cuando la presencia real está disponible.
+- Indicador de versión actualizado a Alpha v3.9.5.
+
+Para que el chat pueda leer y escribir, publicá en Firebase Realtime Database el contenido de `database.rules.json`. La entrega usa la URL estándar `https://mascotito-84b36-default-rtdb.firebaseio.com`; si la consola de Firebase muestra una URL regional diferente, esa dirección exacta debe reemplazarla en `js/firebase-config.js`.
+
 ## v3.9.4
 
 ### Selector de piezas/colores centrado en Crear/Editar

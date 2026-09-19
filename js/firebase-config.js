@@ -21,11 +21,12 @@ const FIREBASE_CONFIG = {
   storageBucket: "mascotito-84b36.firebasestorage.app",
   messagingSenderId: "331394610630",
   appId: "1:331394610630:web:044abb336ff02931e3eec7",
-  // v3.8.1: pegá acá la URL exacta que muestra Firebase Console al crear
-  // Realtime Database. Ejemplos válidos terminan en firebaseio.com o
-  // firebasedatabase.app. Si queda vacío, el juego conserva el sistema de
-  // presencia aproximada de v3.8 y todo lo demás sigue funcionando.
-  databaseURL: "",
+  // v3.9.5: URL de Realtime Database del proyecto de Mascotito. En la
+  // v3.9.4 este valor llegó vacío: MULTIPLAYER_ENABLED quedaba en false y,
+  // por eso, presencia, movimiento, acciones y chat nunca se iniciaban.
+  // Si Firebase Console muestra una URL regional terminada en
+  // firebasedatabase.app, reemplazá esta por ESA dirección exacta.
+  databaseURL: "https://mascotito-84b36-default-rtdb.firebaseio.com",
 };
 
 // Se considera "sin configurar" mientras el apiKey siga siendo el
