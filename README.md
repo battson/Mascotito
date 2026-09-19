@@ -1,5 +1,18 @@
 # Mascotito Alpha
 
+## v3.9.7
+
+### Barra rápida y globos del chat de sala
+
+- Se agregó una barra de escritura discreta inmediatamente arriba de las acciones. Gana opacidad al hacer clic o al presionar `Enter` mientras se juega.
+- Con la barra activa, `Enter` envía el mensaje a la sala actual; al enviarlo, la barra vuelve a su estado tenue.
+- La barra rápida y la conversación **Tu casa / Casa de [anfitrión]** usan el mismo historial de Realtime Database.
+- Todo mensaje de sala enviado desde cualquiera de los dos lugares aparece también en un globo sobre la mascota del autor y activa su animación de hablar.
+- Los demás jugadores presentes ven el globo sobre la mascota remota correspondiente. Los mensajes antiguos se cargan en el historial sin volver a reproducirse como globos.
+- Los mensajes privados continúan siendo privados y no producen globos dentro de la casa.
+- No se agregaron rutas nuevas a Firebase: si ya estaban publicadas las reglas de v3.9.6, esta actualización no exige volver a publicarlas.
+- Indicador de versión actualizado a Alpha v3.9.7.
+
 ## v3.9.6
 
 ### Bandeja de conversaciones y mensajes privados persistentes

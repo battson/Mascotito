@@ -188,6 +188,9 @@ const el = {
   roomChatForm: document.getElementById("room-chat-form"),
   roomChatInput: document.getElementById("room-chat-input"),
   roomChatSend: document.getElementById("room-chat-send"),
+  roomQuickChat: document.getElementById("room-quick-chat"),
+  roomQuickChatInput: document.getElementById("room-quick-chat-input"),
+  roomQuickChatSend: document.getElementById("room-quick-chat-send"),
 };
 
 // ---------- Render de la mascota (capas de SVG apiladas) ----------
@@ -3111,6 +3114,9 @@ function syncHudLayout() {
   // — mismo cálculo que ya usa #feed-menu para flotar arriba de este mismo
   // dock, reutilizado tal cual (ver comentario ahí arriba).
   if (el.creatorTabsRow) el.creatorTabsRow.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+12)+"px";
+  // v3.9.7: la escritura rápida acompaña siempre el borde superior real
+  // del dock, incluso en el modo compacto de notebooks o en mobile.
+  if (el.roomQuickChat) el.roomQuickChat.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+10)+"px";
   computeWalkBounds();
   el.walker.style.transform = `translateX(${walkX + WALK_PAD}px)`;
   if (minigame) positionMinigameTarget();
@@ -3856,9 +3862,11 @@ function stopLocalChatTyping() {
   lastTypingPublishAt = 0;
 }
 
-function updateLocalChatTyping() {
-  const hasText = !!el.roomChatInput?.value.trim();
-  if (activeChatKind !== "room" || !hasText || !window.Multiplayer?.connected || typeof window.Multiplayer?.setTyping !== "function") {
+function updateLocalChatTyping(source = el.roomChatInput) {
+  const input = source?.target || source;
+  const hasText = !!input?.value.trim();
+  const isRoomComposer = input === el.roomQuickChatInput || activeChatKind === "room";
+  if (!isRoomComposer || !hasText || !window.Multiplayer?.connected || typeof window.Multiplayer?.setTyping !== "function") {
     stopLocalChatTyping();
     return;
   }
@@ -3902,6 +3910,9 @@ function renderRoomChat(messages) {
     return;
   }
   const incomingIds = new Set(messages.map((message) => message.id));
+  const newRemoteMessages = roomChatInitialized
+    ? messages.filter((message) => !knownRoomChatIds.has(message.id) && message.actor !== currentUsername)
+    : [];
   const roomConversationVisible = !el.roomChatPanel.hidden && activeChatKind === "room";
   if (roomChatInitialized && !roomConversationVisible) {
     const unread = messages.filter((message) => !knownRoomChatIds.has(message.id) && message.actor !== currentUsername).length;
@@ -3911,6 +3922,15 @@ function renderRoomChat(messages) {
   incomingIds.forEach((id) => knownRoomChatIds.add(id));
   roomChatInitialized = true;
   roomChatMessagesCache = messages;
+  // Los mensajes previos sólo construyen el historial. A partir de la
+  // primera carga, cada mensaje nuevo habla también desde la mascota que
+  // realmente lo envió, tanto en casa propia como durante una visita.
+  newRemoteMessages.forEach((message) => {
+    const target = remoteActionTarget(message.actor);
+    if (!target) return;
+    showRemoteBubble(target.walker, message.text, 3400);
+    playMouthAnim(target.stage, "hablar", 3400);
+  });
   if (roomConversationVisible) {
     setChatStatus(window.Multiplayer?.connected ? "" : "Reconectando...");
     renderChatMessages(messages, "Todavía no hay mensajes en esta casa.");
@@ -3987,6 +4007,8 @@ function updateRoomRealtimeConnection(online) {
   el.roomChatToggle?.classList.toggle("is-offline", !online);
   if (el.roomChatContactStatus) el.roomChatContactStatus.textContent = online ? "Chat en vivo" : "Sin conexión";
   if (el.roomChatSend) el.roomChatSend.disabled = !online;
+  if (el.roomQuickChatSend) el.roomQuickChatSend.disabled = !online;
+  if (el.roomQuickChatInput) el.roomQuickChatInput.disabled = !online;
   if (activeChatKind) setChatStatus(online ? "" : "Reconectando...");
   if (!el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
 }
@@ -4123,6 +4145,42 @@ function startDirectInboxWatch() {
   });
 }
 
+function showOwnRoomChatBubble(text) {
+  if (!text || state?.sleep?.dormida) return;
+  showBubble(text, 3400);
+  playMouthAnim(el.gameStage, "hablar", 3400);
+}
+
+async function sendCurrentRoomMessage(text) {
+  const Multiplayer = window.Multiplayer;
+  if (!Multiplayer?.connected) return { ok: false, reason: "offline" };
+  const result = await Multiplayer.sendChatMessage(text).catch(() => ({ ok: false, reason: "write_failed" }));
+  if (result.ok) showOwnRoomChatBubble(text);
+  return result;
+}
+
+function setQuickChatActive(active) {
+  if (!el.roomQuickChat) return;
+  el.roomQuickChat.classList.toggle("is-active", active);
+  if (active && !el.roomQuickChatInput?.disabled) el.roomQuickChatInput.focus();
+}
+
+function reportQuickChatError(reason) {
+  if (!el.roomQuickChatInput) return;
+  const message = reason === "rate_limit"
+    ? "Esperá un instante antes de enviar otro mensaje."
+    : reason === "offline"
+      ? "Sin conexión. El mensaje no fue enviado."
+      : "No se pudo enviar el mensaje.";
+  el.roomQuickChat.classList.add("has-error");
+  el.roomQuickChatInput.placeholder = message;
+  clearTimeout(el.roomQuickChat._errorTimer);
+  el.roomQuickChat._errorTimer = setTimeout(() => {
+    el.roomQuickChat?.classList.remove("has-error");
+    if (el.roomQuickChatInput) el.roomQuickChatInput.placeholder = "Presioná Enter para hablar en la sala...";
+  }, 2800);
+}
+
 function setupRoomChatUI() {
   if (!el.roomChatToggle || !el.roomChatPanel || !el.roomChatForm) return;
   el.roomChatToggle.addEventListener("click", () => setRoomChatOpen(el.roomChatPanel.hidden));
@@ -4140,6 +4198,40 @@ function setupRoomChatUI() {
     if (username) openDirectChatConversation(username, displayName);
   });
   el.roomChatInput.addEventListener("input", updateLocalChatTyping);
+  el.roomQuickChatInput?.addEventListener("input", updateLocalChatTyping);
+  el.roomQuickChat?.addEventListener("click", () => setQuickChatActive(true));
+  el.roomQuickChatInput?.addEventListener("focus", () => setQuickChatActive(true));
+  el.roomQuickChatInput?.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (!el.roomQuickChat?.contains(document.activeElement) && !el.roomQuickChatInput?.value.trim()) setQuickChatActive(false);
+    }, 0);
+  });
+  el.roomQuickChat?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const text = el.roomQuickChatInput.value.replace(/\s+/g, " ").trim().slice(0, 180);
+    if (!text) return;
+    el.roomQuickChatSend.disabled = true;
+    const result = await sendCurrentRoomMessage(text);
+    el.roomQuickChatSend.disabled = !window.Multiplayer?.connected;
+    if (result.ok) {
+      el.roomQuickChatInput.value = "";
+      stopLocalChatTyping();
+      setQuickChatActive(false);
+      el.roomQuickChatInput.blur();
+    } else {
+      reportQuickChatError(result.reason);
+      el.roomQuickChatInput.focus();
+    }
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.defaultPrevented || ev.key !== "Enter" || ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey || ev.shiftKey) return;
+    if (!el.roomQuickChat || el.roomQuickChat.hidden || el.game?.hidden || el.stageFloor?.classList.contains("is-editing") || minigame) return;
+    if (!el.roomChatPanel?.hidden || document.querySelector(".modal-overlay:not([hidden])") || !document.getElementById("game-selector")?.hidden) return;
+    const target = ev.target;
+    if (target instanceof Element && target.closest("input, textarea, select, button, a, [contenteditable='true']")) return;
+    ev.preventDefault();
+    setQuickChatActive(true);
+  });
   document.addEventListener("visibilitychange", () => { if (document.hidden) stopLocalChatTyping(); });
   window.addEventListener("pagehide", stopLocalChatTyping);
   el.roomChatForm.addEventListener("submit", async (ev) => {
@@ -4155,7 +4247,7 @@ function setupRoomChatUI() {
     const sendingDirect = activeChatKind === "direct";
     const result = sendingDirect
       ? await Multiplayer.sendDirectMessage(activeDirectUsername, activeDirectDisplayName, text).catch(() => ({ ok: false, reason: "write_failed" }))
-      : await Multiplayer.sendChatMessage(text).catch(() => ({ ok: false, reason: "write_failed" }));
+      : await sendCurrentRoomMessage(text);
     el.roomChatSend.disabled = false;
     if (result.ok) {
       el.roomChatInput.value = "";
@@ -4414,6 +4506,14 @@ function stopRoomPlayerWatch() {
   pendingRemoteActions.clear();
   if (el.remotePlayersLayer) el.remotePlayersLayer.innerHTML = "";
   if (el.roomChatToggle) el.roomChatToggle.hidden = true;
+  if (el.roomQuickChat) {
+    el.roomQuickChat.hidden = true;
+    el.roomQuickChat.classList.remove("is-active", "has-error");
+  }
+  if (el.roomQuickChatInput) {
+    el.roomQuickChatInput.value = "";
+    el.roomQuickChatInput.blur();
+  }
   setRoomChatOpen(false);
 }
 
@@ -4497,6 +4597,7 @@ function watchRoomPlayers(room) {
   watchedRoom = room;
   resetRoomChat(room);
   if (el.roomChatToggle) el.roomChatToggle.hidden = false;
+  if (el.roomQuickChat) el.roomQuickChat.hidden = false;
   roomPlayersUnsubscribe = Multiplayer.subscribeRoomPlayers(room, renderRoomPlayers);
   roomActionsUnsubscribe = Multiplayer.subscribeRoomActions(room, replayRemoteAction);
   roomChatUnsubscribe = Multiplayer.subscribeRoomChat(room, renderRoomChat);

@@ -1,5 +1,5 @@
 /**
- * v3.9.6 — Presencia, movimiento, acciones, chat de sala y mensajes privados.
+ * v3.9.7 — Presencia, movimiento, acciones, chat de sala y mensajes privados.
  *
  * Firestore sigue guardando la mascota. Este módulo sólo administra datos
  * efímeros: qué navegador está conectado y en qué casa se encuentra. Cada
