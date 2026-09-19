@@ -203,7 +203,7 @@ body {
 /* Insignia única "Alpha v2.1" (antes .badge + .version-badge por
    separado) — se actualiza a mano en index.html en cada entrega. */
 .badge {
-  background: var(--accent);
+  background: #87b5ff;
   color: white;
   font-size: 0.72rem;
   font-weight: 700;
@@ -4289,4 +4289,80 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   }
   .room-quick-chat input { height: 30px; font-size: .72rem; }
   .room-quick-chat button { min-width: 56px; padding-inline: 8px; font-size: .68rem; }
+}
+
+/* ---------- Beta v1.0: acciones compactas, inventario y vestidor ---------- */
+#stage-floor:not(.is-editing) .stage-actions-row {
+  left: 16px; right: auto; bottom: 16px;
+  width: auto; max-width: calc(100% - 32px);
+  transform: none; justify-content: flex-start;
+  padding: 0; border: 0; border-radius: 0; box-shadow: none;
+  background: transparent; backdrop-filter: none;
+}
+#stage-floor:not(.is-editing) .stage-actions-row .actions { flex: 0 1 auto; justify-content: flex-start; gap: 8px; }
+#stage-floor:not(.is-editing) .stage-actions-row .action-circle-wrap { width: 54px; gap: 2px; }
+#stage-floor:not(.is-editing) .stage-actions-row .cooldown-ring { width: 54px; height: 50px; border-radius: 0; }
+#stage-floor:not(.is-editing) .stage-actions-row .action-circle {
+  border-radius: 0; background: rgba(255, 249, 236, .94);
+  border: 1px solid rgba(85, 52, 28, .28); box-shadow: 0 4px 10px rgba(42, 26, 15, .18);
+}
+#stage-floor:not(.is-editing) .stage-actions-row .action-circle-caption { font-size: .58rem; margin-top: 2px; }
+#stage-floor:not(.is-editing) .stage-actions-row .action-circle .icon { width: 1.35rem; height: 1.35rem; }
+.action-circle-wrap.is-disabled { opacity: .45; }
+
+.inventory-window, .wardrobe-window { width: min(680px, 100%); border-radius: 0; }
+.inventory-tabs { display: flex; gap: 0; padding: 0 18px; overflow-x: auto; border-bottom: 1px solid #dfd1ba; }
+.inventory-tab {
+  flex: 0 0 auto; padding: 10px 13px; border: 0; border-bottom: 3px solid transparent;
+  border-radius: 0; background: transparent; color: #624936;
+  font: 700 .76rem/1 Arial, sans-serif; cursor: pointer;
+}
+.inventory-tab.is-active { border-bottom-color: #d98226; color: #352316; }
+.inventory-tab:disabled { opacity: .38; cursor: not-allowed; }
+.inventory-grid, .wardrobe-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px; padding: 18px; overflow-y: auto;
+}
+.inventory-item, .wardrobe-item, .beta-welcome-choice {
+  min-height: 150px; display: grid; place-items: center; gap: 8px; padding: 12px;
+  border: 1px solid #ddc9a8; border-radius: 0; background: #fffdf7; color: #432d1f; cursor: pointer;
+}
+.inventory-item img, .wardrobe-item img { width: 100%; height: 105px; object-fit: contain; }
+.inventory-item:disabled { opacity: .42; cursor: not-allowed; }
+.wardrobe-item.is-selected { outline: 3px solid #d98226; outline-offset: -3px; background: #fff5df; }
+.wardrobe-item-none span { font: 300 3rem/1 Arial, sans-serif; color: #9a7c65; }
+.inventory-status { margin: 0; padding: 0 18px 18px; color: #756556; font-size: .82rem; }
+
+.beta-welcome-overlay { z-index: 180; }
+.beta-welcome-window { width: min(760px, 100%); border-radius: 0; padding: 22px; }
+.beta-welcome-copy { text-align: center; }
+.beta-welcome-copy h2 { margin: 5px 0; color: #342218; }
+.beta-welcome-copy p { margin: 0 auto 18px; max-width: 590px; color: #6d5949; }
+.beta-welcome-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.beta-welcome-choice { min-height: 300px; font-size: 1rem; }
+.beta-welcome-choice img { width: 100%; height: 240px; object-fit: contain; }
+.beta-welcome-choice:hover, .beta-welcome-choice:focus-visible { outline: 3px solid #d98226; background: #fff7e7; }
+
+.ropa-brazo { animation: armSwing 2.4s ease-in-out infinite; }
+.ropa-brazo-der { animation-delay: -1.2s; animation-direction: reverse; }
+.ropa-pierna, .ropa-calzado { transition: transform .15s ease; }
+.friend-item-name { display: inline-flex; align-items: center; gap: 8px; }
+.friend-presence-dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: #43a957; box-shadow: 0 0 0 3px rgba(67,169,87,.12); }
+.friend-presence-dot.is-offline { background: #9c8c7e; box-shadow: none; }
+.friend-btn-chat { background: #ead9ba; color: #382315; }
+.room-chat-friend-actions { display: flex; gap: 5px; }
+.room-chat-friend-actions button, .room-chat-tools button {
+  border: 1px solid #d8c5a6; border-radius: 0; padding: 6px 8px;
+  background: rgba(255,249,236,.94); color: #4b301e; font: 700 .64rem/1 Arial, sans-serif; cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  #stage-floor:not(.is-editing) .stage-actions-row { left: 8px; bottom: 8px; max-width: calc(100% - 16px); overflow-x: auto; }
+  #stage-floor:not(.is-editing) .stage-actions-row .action-circle-wrap { width: 48px; }
+  #stage-floor:not(.is-editing) .stage-actions-row .cooldown-ring { width: 48px; height: 44px; }
+  .beta-welcome-options { grid-template-columns: 1fr; }
+  .beta-welcome-choice { min-height: 220px; }
+  .beta-welcome-choice img { height: 165px; }
+  .room-chat-friend-item { grid-template-columns: 10px minmax(0,1fr); }
+  .room-chat-friend-actions { grid-column: 2; }
 }

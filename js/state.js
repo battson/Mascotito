@@ -8,7 +8,7 @@
 // v2 agrega necesidades/campos nuevos (Fase 2: Cuidado) — normalizeState
 // migra un guardado v1 (hambre/sed/limpieza) a la forma nueva sin perder
 // la mascota ni su progreso.
-const STATE_VERSION = 6;
+const STATE_VERSION = 7;
 
 let lastStorageNotice = null;
 function getStorageNotice() {
@@ -87,6 +87,41 @@ function defaultCooldowns() {
   // compartía "jugar" con Pelota/Luciérnagas) — ver cooldownsMs.pesca en
   // js/config.js.
   return { pescado: 0, comidaBasica: 0, snack: 0, golosina: 0, beber: 0, bañar: 0, jugar: 0, pesca: 0, acariciar: 0, hablar: 0, medicina: 0 };
+}
+
+const WARDROBE_SLOTS = ["superior", "inferior", "calzado", "accesorios"];
+
+function defaultWardrobe() {
+  return {
+    owned: { superior: {}, inferior: {}, calzado: {}, accesorios: {} },
+    equipped: { superior: null, inferior: null, calzado: null, accesorios: null },
+    betaWelcomeClaimed: false,
+    betaWelcomeSet: null,
+  };
+}
+
+function normalizeWardrobe(raw) {
+  const base = defaultWardrobe();
+  const source = raw && typeof raw === "object" ? raw : {};
+  WARDROBE_SLOTS.forEach((slot) => {
+    const owned = source.owned?.[slot];
+    if (owned && typeof owned === "object") {
+      Object.entries(owned).forEach(([id, value]) => {
+        if (value === true && getClothingItem(slot, id)) base.owned[slot][id] = true;
+      });
+    }
+    const equipped = source.equipped?.[slot];
+    if (typeof equipped === "string" && base.owned[slot][equipped] && getClothingItem(slot, equipped)) {
+      base.equipped[slot] = equipped;
+    }
+  });
+  base.betaWelcomeClaimed = source.betaWelcomeClaimed === true;
+  base.betaWelcomeSet = typeof source.betaWelcomeSet === "string" ? source.betaWelcomeSet : null;
+  return base;
+}
+
+function getClothingItem(slot, id) {
+  return (typeof CLOTHING_CATALOG !== "undefined" && CLOTHING_CATALOG[slot] || []).find((item) => item.id === id) || null;
 }
 
 /**
@@ -252,13 +287,17 @@ function normalizeState(raw) {
     look: normalizeLook(raw.look),
     location: location,
     sleep: normalizeSleep(raw.sleep),
-    health: normalizeHealth(raw.health),
+    // Beta v1.0: enfermedad queda desactivada hasta su futuro rediseño.
+    // Se conserva el campo para poder migrar guardados viejos sin perder
+    // compatibilidad, pero ninguna mascota entra enferma en esta versión.
+    health: { malestar: 0, enferma: false, causa: null },
     bond: normalizeBond(raw.bond),
     economy: normalizeEconomy(raw.economy),
     world: normalizeWorld(raw.world),
     digestion: { pending: Array.isArray(raw.digestion?.pending) ? raw.digestion.pending.filter(Number.isFinite).slice(0,40).sort((a,b)=>a-b) : [] },
     petPosition: { xPct: clamp(raw.petPosition?.xPct || 50, 8,92), yPct: clamp(raw.petPosition?.yPct || 75,40,88) },
     inventory: { pescado: Number.isFinite(raw.inventory?.pescado) ? Math.max(0, Math.floor(raw.inventory.pescado)) : 0 },
+    wardrobe: normalizeWardrobe(raw.wardrobe),
     daily: normalizeDailyProgress(raw.daily),
     dirt: normalizeDirt(raw.dirt, location),
     golosinaLog: normalizeGolosinaLog(raw.golosinaLog),
@@ -283,6 +322,7 @@ function createNewState(name, look) {
     economy: { coins: 0 },
     world: normalizeWorld(null),
     inventory: { pescado: 0 },
+    wardrobe: defaultWardrobe(),
     digestion: { pending: [] },
     petPosition: { xPct: 50, yPct: 75 },
     daily: defaultDailyProgress(),
@@ -426,26 +466,10 @@ function applyDecay(state, now) {
   }
   state.stats.higiene = clamp(state.stats.higiene - exposure * .7, 0, 100);
   state.stats.felicidad = clamp(state.stats.felicidad - exposure * .5, 0, 100);
-  const causas = activeSicknessCauses(state.stats);
-  if (dirtHere.length >= 3) causas.push("heces acumuladas");
-  let malestarDelta = 0;
-  if (causas.length > 0) {
-    malestarDelta = cfg.health.malestarPorMinutoPorCausa * causas.length * elapsedMinutes;
-  } else if (!state.health.enferma) {
-    malestarDelta = -cfg.health.recuperacionNaturalPorMinuto * elapsedMinutes;
-  }
-  malestarDelta += exposure * .8 * Math.max(1, dirtHere.length);
-  if (wasAway) {
-    malestarDelta = clamp(malestarDelta, -cfg.absence.maxMalestarPorRegreso, cfg.absence.maxMalestarPorRegreso);
-  }
-  state.health.malestar = clamp(state.health.malestar + malestarDelta, 0, 100);
-  if (!state.health.enferma && state.health.malestar >= 100) {
-    state.health.enferma = true;
-    state.health.causa = causas[0] || state.health.causa || "necesidades";
-  } else if (state.health.enferma && state.health.malestar <= cfg.health.curadaUmbral) {
-    state.health.enferma = false;
-    state.health.causa = null;
-  }
+  // Beta v1.0: el sistema de enfermedad queda deliberadamente inactivo.
+  // Higiene, necesidades y heces siguen afectando el bienestar, pero no
+  // acumulan malestar ni generan una enfermedad imposible de tratar.
+  state.health = { malestar: 0, enferma: false, causa: null };
 
   state.lastUpdate = now;
   return { elapsedMs, wasAway, extraño: wasAway && elapsedMs >= cfg.absence.saludoCariñosoDesdeMs };

@@ -1030,6 +1030,8 @@ const PET_REQUEST_PHRASES = {
     "Mi pancita está sonando.",
     "Se me antoja algo rico para comer.",
     "¿Ya es hora de comer?",
+    "Creo que mi pancita pide un pescado.",
+    "¿Comemos algo?",
   ],
   sed: [
     "Tengo sed...",
@@ -1037,6 +1039,8 @@ const PET_REQUEST_PHRASES = {
     "Se me secó la boca.",
     "Necesito tomar algo.",
     "¿Un traguito de agua, porfa?",
+    "Una botellita de agua me vendría genial.",
+    "Tengo la garganta seca.",
   ],
   jugar: [
     "¿Jugamos un rato?",
@@ -1044,6 +1048,8 @@ const PET_REQUEST_PHRASES = {
     "¿Un ratito de juego?",
     "Me aburro un poco... ¿jugamos?",
     "¡Traé el juguete, dale!",
+    "Tengo energía para una aventura.",
+    "¿Elegimos un juego?",
   ],
   mimo: [
     "Necesito un mimo.",
@@ -1051,6 +1057,8 @@ const PET_REQUEST_PHRASES = {
     "Vení que te quiero cerca.",
     "Un poco de cariño me vendría bien.",
     "¿Me hacés upa un ratito?",
+    "Quiero un poquito de compañía.",
+    "Una caricia me alegraría.",
   ],
   sueño: [
     "Tengo sueño...",
@@ -1058,6 +1066,8 @@ const PET_REQUEST_PHRASES = {
     "Se me cierran los ojos...",
     "Estoy que me caigo de sueño.",
     "¿Puedo ir a dormir un rato?",
+    "Necesito recargar energías.",
+    "Creo que ya es hora de descansar.",
   ],
   higiene: [
     "Me siento un poco sucia...",
@@ -1065,6 +1075,8 @@ const PET_REQUEST_PHRASES = {
     "Necesito un baño ya.",
     "Estoy hecha un desastre, ayudame.",
     "¿Me limpiás? Me siento pegajosa.",
+    "El piso y yo tuvimos un pequeño accidente.",
+    "¿Me ayudás a quedar reluciente?",
   ],
   // v2.5: tono más liviano/molesto (25%-50% de felicidad, el mismo umbral
   // del borde amarillo del avatar de bienestar) — quiere atención pero
@@ -1075,6 +1087,8 @@ const PET_REQUEST_PHRASES = {
     "No estoy muy contenta, che.",
     "Podrías prestarme un poco más de atención.",
     "Estoy de mal humor hoy...",
+    "Hoy necesito un poco más de atención.",
+    "No tengo ganas de fingir que está todo bien.",
   ],
   // v2.5: tono más intenso (por debajo de 25% de felicidad, borde rojo) —
   // la necesidad de atención es más urgente que la de "enojo" arriba.
@@ -1084,16 +1098,8 @@ const PET_REQUEST_PHRASES = {
     "Esto no me está gustando nada.",
     "¿Por qué nadie me presta atención?",
     "Me siento sola acá...",
-  ],
-  // v2.5: nuevo — antes, mientras estaba enferma, no decía nada espontáneo
-  // (quedaba todo en el cartel de estado, ya desactivado); ahora también
-  // se entera por acá.
-  enferma: [
-    "No me siento nada bien...",
-    "Creo que necesito mi medicina.",
-    "Me duele un poco la pancita.",
-    "¿Me cuidás? No ando bien.",
-    "Estoy con malestar, che.",
+    "Necesito que me cuides un poquito.",
+    "Hoy no me alcanza con estar sola.",
   ],
   // v2.5: nuevo — charla positiva cuando está muy feliz (más de 50%), no
   // escala por urgencia (no es una necesidad floja), sólo aparece de vez
@@ -1104,6 +1110,8 @@ const PET_REQUEST_PHRASES = {
     "Estoy muy contenta, ¡gracias por cuidarme!",
     "¡Sos el/la mejor!",
     "Me encanta esta vida.",
+    "¡Tengo ganas de hacer de todo!",
+    "Estar con vos me pone contenta.",
   ],
 };
 

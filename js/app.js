@@ -1,9 +1,8 @@
 /**
  * Lógica principal de la app: onboarding/personalización, pantalla de
- * juego, loop de necesidades y todas las acciones de cuidado (Alimentar
- * con menú, Beber, Limpiar, Jugar, Dormir, Medicina, Afecto: Acariciar +
- * Hablar) más el sistema de salud, vínculo, pedidos espontáneos, y la
- * navegación entre Casa y Jardín (v2.1).
+ * juego, loop de necesidades y acciones de cuidado. Beta v1.0 suma
+ * inventario y ropa por capas; la enfermedad/medicina queda archivada y
+ * la mascota habla por iniciativa propia según su estado.
  */
 
 let state = null;
@@ -19,6 +18,9 @@ let cloudUnsub = null; // desuscribe el onSnapshot de amigos/solicitudes de la c
 let myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
 let pendingGoogleUid = null; // uid de Google mientras se muestra el paso de "elegí tu usuario"
 let friendsTabActive = "lista";
+let wardrobeSlotActive = "superior";
+const friendPresence = new Map();
+const friendPresenceUnsubscribers = new Map();
 const SESSION_KEY = PET_CONFIG.storageKey + ".session";
 
 function getRememberedUsername() {
@@ -153,6 +155,8 @@ const el = {
   requestsIncomingEmpty: document.getElementById("requests-incoming-empty"),
   requestsOutgoingList: document.getElementById("requests-outgoing-list"),
   requestsOutgoingEmpty: document.getElementById("requests-outgoing-empty"),
+  friendsRemoveList: document.getElementById("friends-remove-list"),
+  friendsRemoveEmpty: document.getElementById("friends-remove-empty"),
   addFriendForm: document.getElementById("add-friend-form"),
   addFriendInput: document.getElementById("add-friend-input"),
   addFriendResult: document.getElementById("add-friend-result"),
@@ -191,6 +195,23 @@ const el = {
   roomQuickChat: document.getElementById("room-quick-chat"),
   roomQuickChatInput: document.getElementById("room-quick-chat-input"),
   roomQuickChatSend: document.getElementById("room-quick-chat-send"),
+  friendsManageAdd: document.getElementById("friends-manage-add"),
+  friendsManageRequests: document.getElementById("friends-manage-requests"),
+  friendsManageRemove: document.getElementById("friends-manage-remove"),
+  friendsManageBadge: document.getElementById("friends-manage-badge"),
+  inventoryOverlay: document.getElementById("inventory-overlay"),
+  inventoryClose: document.getElementById("inventory-close"),
+  inventoryFish: document.getElementById("inventory-fish"),
+  inventoryWater: document.getElementById("inventory-water"),
+  inventoryFishCount: document.getElementById("inventory-fish-count"),
+  inventoryStatus: document.getElementById("inventory-status"),
+  wardrobeOverlay: document.getElementById("wardrobe-overlay"),
+  wardrobeClose: document.getElementById("wardrobe-close"),
+  wardrobeTabs: document.getElementById("wardrobe-tabs"),
+  wardrobeGrid: document.getElementById("wardrobe-grid"),
+  wardrobeEmpty: document.getElementById("wardrobe-empty"),
+  betaWelcomeOverlay: document.getElementById("beta-welcome-overlay"),
+  betaWelcomeOptions: document.getElementById("beta-welcome-options"),
 };
 
 // ---------- Render de la mascota (capas de SVG apiladas) ----------
@@ -316,13 +337,20 @@ window.addEventListener("offline", updateConnectionIndicator);
 function makeInlineLayer(innerMarkup, extraClass) {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", "0 0 400 400");
-  svg.classList.add("pet-layer", extraClass);
+  svg.classList.add("pet-layer");
+  String(extraClass || "").split(/\s+/).filter(Boolean).forEach((cls) => svg.classList.add(cls));
   svg.innerHTML = innerMarkup;
   return svg;
 }
 
-function renderPetLayers(stageEl, look) {
-  const lookKey = JSON.stringify(look);
+function makeClothingLayer(slot, itemId, extraClass) {
+  const item = getClothingItem(slot, itemId);
+  return item?.inline ? makeInlineLayer(item.inline, `pet-layer-clothing pet-layer-clothing-${slot} ${extraClass || ""}`) : null;
+}
+
+function renderPetLayers(stageEl, look, wardrobe = null) {
+  const equipped = wardrobe?.equipped || {};
+  const lookKey = JSON.stringify({ look, equipped });
   stageEl.style.setProperty("--pet-body-color", getBodyColorHex(look.bodyColor));
   stageEl.style.setProperty("--eye-color", getEyeColorHex(look.ojosColor));
   stageEl.style.setProperty("--eye-tint-filter", getEyeTintFilter(look.ojosColor));
@@ -334,12 +362,20 @@ function renderPetLayers(stageEl, look) {
   stageEl.appendChild(makeInlineLayer(PET_LEGS_INLINE, "pet-layer-legs"));
   stageEl.appendChild(makeInlineLayer(PET_TORSO_INLINE, "pet-layer-torso"));
 
+  const lowerLayer = makeClothingLayer("inferior", equipped.inferior, "pet-layer-clothing-lower");
+  if (lowerLayer) stageEl.appendChild(lowerLayer);
+  const shoesLayer = makeClothingLayer("calzado", equipped.calzado, "pet-layer-clothing-shoes");
+  if (shoesLayer) stageEl.appendChild(shoesLayer);
+
   const orejasOpt = findOption("orejas", look.orejas);
   if (orejasOpt && orejasOpt.inline) {
     stageEl.appendChild(makeInlineLayer(orejasOpt.inline, "pet-layer-orejas"));
   }
 
   stageEl.appendChild(makeInlineLayer(PET_ARMS_INLINE, "pet-layer-arms"));
+
+  const upperLayer = makeClothingLayer("superior", equipped.superior, "pet-layer-clothing-upper");
+  if (upperLayer) stageEl.appendChild(upperLayer);
 
   const cabezaOpt = findOption("cabeza", look.cabeza);
   if (cabezaOpt && cabezaOpt.inline) {
@@ -527,18 +563,22 @@ function computeWalkBounds() {
 }
 
 function restLegs() {
-  const legIzq = el.gameStage.querySelector("#pierna-izq");
-  const legDer = el.gameStage.querySelector("#pierna-der");
-  if (legIzq) legIzq.style.transform = "rotate(0deg)";
-  if (legDer) legDer.style.transform = "rotate(0deg)";
+  el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
+    node.style.transform = "rotate(0deg)";
+  });
+  el.gameStage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der").forEach((node) => {
+    node.style.transform = "rotate(0deg)";
+  });
 }
 
 function applyLegSwing(stridePhase, intensity) {
-  const legIzq = el.gameStage.querySelector("#pierna-izq");
-  const legDer = el.gameStage.querySelector("#pierna-der");
   const swing = Math.sin(stridePhase) * LEG_SWING_MAX_DEG * intensity;
-  if (legIzq) legIzq.style.transform = `rotate(${swing.toFixed(1)}deg)`;
-  if (legDer) legDer.style.transform = `rotate(${(-swing).toFixed(1)}deg)`;
+  el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
+    node.style.transform = `rotate(${swing.toFixed(1)}deg)`;
+  });
+  el.gameStage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der").forEach((node) => {
+    node.style.transform = `rotate(${(-swing).toFixed(1)}deg)`;
+  });
 }
 
 function startIdle(minMs, maxMs) {
@@ -555,7 +595,7 @@ function canWalk() {
   return !!state && !state.sleep.dormida && !navLock;
 }
 function canRun() {
-  return canWalk() && !state.health.enferma && state.stats.energia > PET_CONFIG.energiaMuyCansadaUmbral;
+  return canWalk() && state.stats.energia > PET_CONFIG.energiaMuyCansadaUmbral;
 }
 
 function pickNewWalkTarget() {
@@ -1346,7 +1386,7 @@ function buildPrimaryMeters() {
 
 function updateMeters() {
   const s = state.stats;
-  if (el.wellbeingAvatarStage) renderPetLayers(el.wellbeingAvatarStage, state.look);
+  if (el.wellbeingAvatarStage) renderPetLayers(el.wellbeingAvatarStage, state.look, state.wardrobe);
   NEED_DEFS.forEach(({ key }) => {
     const refs = needMeterEls[key];
     if (!refs) return;
@@ -1387,14 +1427,13 @@ function updateWellbeingAvatar() {
   const tier = fel > FELICIDAD_BORDE.feliz ? "feliz" : fel >= FELICIDAD_BORDE.enojo ? "enojo" : "critico";
 
   el.wellbeingAvatar.classList.remove("avatar-border-feliz", "avatar-border-enojo", "avatar-border-critico", "avatar-border-enferma");
-  el.wellbeingAvatar.classList.add(state.health.enferma ? "avatar-border-enferma" : "avatar-border-" + tier);
+  el.wellbeingAvatar.classList.add("avatar-border-" + tier);
 
   const stage = el.wellbeingAvatarStage;
   stage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
-  let mood = moodFromStats(state.stats);
-  if (state.health.enferma) mood = "triste";
+  const mood = moodFromStats(state.stats);
   stage.classList.add("mood-" + mood);
-  stage.classList.toggle("sick", state.health.enferma);
+  stage.classList.remove("sick");
 }
 
 function updateBondChip() {
@@ -1479,8 +1518,7 @@ function addBond(amount) {
  * puntuales que sí ameritan una expresión intencional (cansancio real,
  * malestar) en vez de salir del ánimo general — despierta/sana/con
  * energía siempre es 1, igual que el creador, como pediste. */
-function computeEyeScale(stats, health) {
-  if (health.enferma) return 0.60; // malestar: ojos entrecerrados, expresión intencional pero acotada
+function computeEyeScale(stats) {
   if (stats.energia < PET_CONFIG.energiaMuyCansadaUmbral) return 0.68; // muy cansada: ojos de sueño
   if (stats.energia < PET_CONFIG.energiaCansadaUmbral) return 0.85; // cansada: apenas entrecerrados
   return 1; // despierta, sana, con energía: proporción original del creador
@@ -1499,10 +1537,6 @@ const SICK_CAUSE_LABEL = {
 function getPriorityStatus() {
   const s = state;
   const name = s.name;
-  if (s.health.enferma) {
-    const causa = SICK_CAUSE_LABEL[s.health.causa] || "algo que no le cayó bien";
-    return { text: `${name} no se siente bien (posible causa: ${causa}). Dale su medicina y dejala descansar.`, cls: "status-enferma" };
-  }
   if (s.sleep.dormida) {
     return { text: `${name} está durmiendo — tocá "Despertar" cuando quieras que se levante.`, cls: "status-dormida" };
   }
@@ -1565,14 +1599,13 @@ function updateMood() {
   const stage = el.gameStage;
   const wasUrgent = stage.classList.contains("mood-critico");
   stage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
-  let mood = moodFromStats(state.stats);
-  if (state.health.enferma) mood = "triste";
+  const mood = moodFromStats(state.stats);
   stage.classList.add("mood-" + mood);
   stage.classList.toggle("sleeping", state.sleep.dormida);
-  stage.classList.toggle("sick", state.health.enferma);
+  stage.classList.remove("sick");
   // Respaldo para navegadores sin :has().
   el.walker.classList.toggle("is-sleeping", state.sleep.dormida);
-  stage.style.setProperty("--eye-scale", state.sleep.dormida ? 0.04 : computeEyeScale(state.stats, state.health));
+  stage.style.setProperty("--eye-scale", state.sleep.dormida ? 0.04 : computeEyeScale(state.stats));
   stage.setAttribute("aria-label", `${state.name}, tu mascota: ${describeMoodForAria(mood)}`);
   if (mood === "critico" && !wasUrgent) {
     announce(`${state.name} necesita atención urgente.`);
@@ -1580,7 +1613,6 @@ function updateMood() {
 }
 
 function describeMoodForAria(mood) {
-  if (state.health.enferma) return "no se siente bien";
   if (state.sleep.dormida) return "durmiendo";
   return { feliz: "feliz", normal: "bien", triste: "triste", critico: "necesita atención urgente" }[mood];
 }
@@ -1697,7 +1729,7 @@ function removeDirt(id) {
 
 function refreshUI() {
   el.petName.textContent = state.name;
-  renderPetLayers(el.gameStage, state.look);
+  renderPetLayers(el.gameStage, state.look, state.wardrobe);
   updateMeters();
   updateWellbeingAvatar();
   updateBondChip();
@@ -1753,6 +1785,7 @@ function startGame() {
   requestsTimer = setInterval(maybeShowRequest, PET_CONFIG.requests.checkIntervalMs);
   computeWalkBounds();
   maybeGreet(info);
+  requestAnimationFrame(maybeShowBetaWelcomeGift);
 }
 
 // ---------- Animación de boca (v2.3, pedido explícito) ----------
@@ -1869,7 +1902,6 @@ function statUrgency(value, umbral) {
 function pickRequestCategory() {
   const s = state.stats;
   const candidatos = [];
-  if (state.health.enferma) candidatos.push({ categoria: "enferma", urgencia: PET_CONFIG.requests.urgenciaEnferma });
   const hambre = statUrgency(s.saciedad, PET_CONFIG.mood.normal);
   if (hambre !== null) candidatos.push({ categoria: "hambre", urgencia: hambre });
   const sed = statUrgency(s.hidratacion, PET_CONFIG.mood.normal);
@@ -1912,8 +1944,7 @@ function maybeShowRequest() {
     // Nada urgente que decir — de vez en cuando, si está muy feliz, un
     // comentario positivo (no escala por urgencia, es sólo refuerzo).
     if (state.stats.felicidad > FELICIDAD_BORDE.feliz && now - state.lastRequestAt >= cfg.minGapMs && Math.random() < cfg.probabilidadPorChequeo) {
-      const opciones = PET_REQUEST_PHRASES.feliz;
-      showBubble(opciones[Math.floor(Math.random() * opciones.length)], cfg.burbujaVisibleMs);
+      showBubble(chooseRequestPhrase("feliz"), cfg.burbujaVisibleMs);
       state.lastRequestAt = now;
       trySave(state);
     }
@@ -1927,8 +1958,7 @@ function maybeShowRequest() {
   if (now - state.lastRequestAt < minGap) return;
   if (Math.random() >= probabilidad) return;
 
-  const opciones = PET_REQUEST_PHRASES[pick.categoria];
-  const frase = opciones[Math.floor(Math.random() * opciones.length)];
+  const frase = chooseRequestPhrase(pick.categoria);
   showBubble(frase, cfg.burbujaVisibleMs);
   state.lastRequestAt = now;
   trySave(state);
@@ -2003,21 +2033,26 @@ function updateCooldownButtons() {
 /** Cosas que no dependen de cooldown: mostrar/ocultar el botón de
  * Medicina (sólo si está enferma) y el tooltip de Jugar. */
 function updateActionsAvailability() {
-  const medicinaWrap = document.getElementById("action-wrap-medicina");
-  if (medicinaWrap) medicinaWrap.hidden = !state.health.enferma;
   const jugarWrap = document.getElementById("action-wrap-jugar");
   if (jugarWrap) jugarWrap.title = state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar ? "Está muy cansada para jugar" : "";
   const attention = {
-    comer: state.stats.saciedad < PET_CONFIG.mood.normal,
-    beber: state.stats.hidratacion < PET_CONFIG.mood.normal,
+    inventario: state.stats.saciedad < PET_CONFIG.mood.normal || state.stats.hidratacion < PET_CONFIG.mood.normal,
     bañar: state.stats.higiene < PET_CONFIG.mood.normal,
     dormir: state.stats.energia < PET_CONFIG.mood.normal,
     jugar: state.stats.felicidad < PET_CONFIG.mood.normal,
-    hablar: state.stats.felicidad < PET_CONFIG.mood.normal,
   };
   Object.entries(attention).forEach(([key, on]) => {
     document.getElementById("action-wrap-" + key)?.classList.toggle("needs-attention", !!on);
   });
+}
+
+const lastRequestPhrase = {};
+function chooseRequestPhrase(category) {
+  const options = PET_REQUEST_PHRASES[category] || PET_REQUEST_PHRASES.feliz;
+  const pool = options.length > 1 ? options.filter((phrase) => phrase !== lastRequestPhrase[category]) : options;
+  const phrase = pool[Math.floor(Math.random() * pool.length)];
+  lastRequestPhrase[category] = phrase;
+  return phrase;
 }
 
 // ---------- Construcción del dock de acciones ----------
@@ -2061,18 +2096,19 @@ function buildActionsDock() {
   // setupPetClick) y Hablar quedó como una acción normal del dock, con su
   // propio cooldown, igual que Beber/Bañar.
   const defs = [
-    { key: "comer", icon: "comer", label: "Alimentar", handler: toggleFeedMenu, noCooldown: true },
-    { key: "beber", icon: "beber", label: "Beber", handler: doBeber, isFull: () => state.stats.hidratacion >= PET_CONFIG.llenaUmbral },
-    { key: "bañar", icon: "limpiar", label: "Limpiar", visualClass: "limpiar", handler: doBañar, isFull: () => state.stats.higiene >= PET_CONFIG.llenaUmbral },
+    { key: "inventario", icon: "inventario", label: "Inventario", handler: openInventory, noCooldown: true },
+    { key: "ropa", icon: "ropa", label: "Ropa", handler: openWardrobe, noCooldown: true },
     { key: "dormir", icon: "dormir", label: "Dormir", handler: toggleSueño, noCooldown: true },
     { key: "jugar", icon: "jugar", label: "Jugar", handler: doJugar },
-    { key: "hablar", icon: "hablar", label: "Hablar", visualClass: "afecto", handler: doHablar },
-    { key: "medicina", icon: "medicina", label: "Medicina", handler: doMedicina },
+    { key: "tienda", icon: "tienda", label: "Tienda (próximamente)", handler: () => {}, noCooldown: true, disabled: true, isFull: () => true },
+    { key: "bañar", icon: "limpiar", label: "Limpiar", visualClass: "limpiar", handler: doBañar, isFull: () => state.stats.higiene >= PET_CONFIG.llenaUmbral },
   ];
 
   defs.forEach((def) => {
     const { wrap, ring, btn, cd, caption } = createActionButton({ key: def.key, icon: def.icon, label: def.label, id: "btn-" + def.key, visualClass: def.visualClass });
     btn.addEventListener("click", def.handler);
+    btn.disabled = !!def.disabled;
+    if (def.disabled) wrap.classList.add("is-disabled");
     el.actionsDock.appendChild(wrap);
     if (!def.noCooldown) {
       actionRegistry[def.key] = { btnEl: btn, ringEl: ring, labelEl: cd, captionEl: caption, isFull: def.isFull };
@@ -2080,11 +2116,160 @@ function buildActionsDock() {
       actionRegistry[def.key] = { btnEl: btn, ringEl: null, labelEl: null, captionEl: caption, isFull: def.isFull };
     }
   });
-  document.getElementById("action-wrap-medicina").hidden = true;
   // El tile de "dormir" arranca mostrando su ícono/etiqueta correctos
   // (refreshUI() lo vuelve a ajustar en cada refresco, ver
   // updateSleepToggle() más abajo).
   updateSleepToggle();
+}
+
+// ---------- Beta v1.0: inventario, vestidor y regalo de bienvenida ----------
+
+function refreshInventory() {
+  if (!state) return;
+  if (el.inventoryFishCount) el.inventoryFishCount.textContent = `×${Math.max(0, Number(state.inventory?.pescado) || 0)}`;
+  const sleeping = !!state.sleep?.dormida;
+  const fishCooldown = isOnCooldown("pescado");
+  const waterCooldown = isOnCooldown("beber");
+  if (el.inventoryFish) el.inventoryFish.disabled = sleeping || fishCooldown || !state.inventory?.pescado || state.stats.saciedad >= PET_CONFIG.llenaUmbral;
+  if (el.inventoryWater) el.inventoryWater.disabled = sleeping || waterCooldown || state.stats.hidratacion >= PET_CONFIG.llenaUmbral;
+  if (el.inventoryStatus) {
+    el.inventoryStatus.textContent = sleeping
+      ? `${state.name} está durmiendo.`
+      : "Elegí un objeto para usarlo. La botella de agua es infinita.";
+  }
+}
+
+function openInventory() {
+  refreshInventory();
+  el.inventoryOverlay.hidden = false;
+  el.inventoryFish?.focus();
+}
+
+function closeInventory() {
+  if (el.inventoryOverlay) el.inventoryOverlay.hidden = true;
+}
+
+function renderWardrobe() {
+  if (!state || !el.wardrobeGrid) return;
+  const slot = wardrobeSlotActive;
+  const owned = state.wardrobe?.owned?.[slot] || {};
+  const equipped = state.wardrobe?.equipped?.[slot] || null;
+  const items = (CLOTHING_CATALOG[slot] || []).filter((item) => owned[item.id]);
+  el.wardrobeGrid.innerHTML = "";
+
+  const none = document.createElement("button");
+  none.type = "button";
+  none.className = "wardrobe-item wardrobe-item-none" + (!equipped ? " is-selected" : "");
+  none.dataset.itemId = "";
+  none.setAttribute("aria-label", `No usar ${slot}`);
+  none.innerHTML = '<span aria-hidden="true">×</span><strong>Sin prenda</strong>';
+  el.wardrobeGrid.appendChild(none);
+
+  items.forEach((item, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "wardrobe-item" + (equipped === item.id ? " is-selected" : "");
+    button.dataset.itemId = item.id;
+    button.setAttribute("aria-label", `${slot}, opción ${index + 1}`);
+    const image = document.createElement("img");
+    image.src = item.asset;
+    image.alt = "";
+    const label = document.createElement("strong");
+    label.textContent = `Opción ${index + 1}`;
+    button.append(image, label);
+    el.wardrobeGrid.appendChild(button);
+  });
+  if (el.wardrobeEmpty) el.wardrobeEmpty.hidden = items.length > 0;
+}
+
+function openWardrobe() {
+  wardrobeSlotActive = "superior";
+  el.wardrobeTabs?.querySelectorAll("[data-slot]").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.slot === wardrobeSlotActive));
+  renderWardrobe();
+  el.wardrobeOverlay.hidden = false;
+  el.wardrobeGrid?.querySelector("button")?.focus();
+}
+
+function closeWardrobe() {
+  if (el.wardrobeOverlay) el.wardrobeOverlay.hidden = true;
+}
+
+function renderBetaWelcomeOptions() {
+  if (!el.betaWelcomeOptions) return;
+  el.betaWelcomeOptions.innerHTML = "";
+  BETA_WELCOME_SETS.forEach((set, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "beta-welcome-choice";
+    button.dataset.setId = set.id;
+    button.setAttribute("aria-label", `Elegir conjunto ${index + 1}`);
+    const image = document.createElement("img");
+    image.src = set.preview;
+    image.alt = `Ilustración del conjunto ${index + 1}`;
+    const label = document.createElement("strong");
+    label.textContent = `Elegir conjunto ${index + 1}`;
+    button.append(image, label);
+    el.betaWelcomeOptions.appendChild(button);
+  });
+}
+
+function maybeShowBetaWelcomeGift() {
+  if (!state?.wardrobe || state.wardrobe.betaWelcomeClaimed || el.game.hidden || el.stageFloor?.classList.contains("is-editing")) return;
+  renderBetaWelcomeOptions();
+  el.betaWelcomeOverlay.hidden = false;
+  requestAnimationFrame(() => el.betaWelcomeOptions?.querySelector("button")?.focus());
+}
+
+function claimBetaWelcomeSet(setId) {
+  if (!state?.wardrobe || state.wardrobe.betaWelcomeClaimed) return;
+  const set = BETA_WELCOME_SETS.find((entry) => entry.id === setId);
+  if (!set) return;
+  Object.entries(set.items).forEach(([slot, itemId]) => {
+    state.wardrobe.owned[slot][itemId] = true;
+    state.wardrobe.equipped[slot] = itemId;
+  });
+  state.wardrobe.betaWelcomeClaimed = true;
+  state.wardrobe.betaWelcomeSet = set.id;
+  el.betaWelcomeOverlay.hidden = true;
+  trySave(state);
+  flushCloudSaveNow();
+  refreshUI();
+  notifySystem("¡Regalo recibido! Ya podés combinar las tres prendas desde Ropa.");
+}
+
+function setupBetaInventoryUI() {
+  el.inventoryClose?.addEventListener("click", closeInventory);
+  el.inventoryOverlay?.addEventListener("click", (ev) => { if (ev.target === el.inventoryOverlay) closeInventory(); });
+  el.inventoryFish?.addEventListener("click", () => { doComer("pescado"); refreshInventory(); });
+  el.inventoryWater?.addEventListener("click", () => { doBeber(); refreshInventory(); });
+  el.wardrobeClose?.addEventListener("click", closeWardrobe);
+  el.wardrobeOverlay?.addEventListener("click", (ev) => { if (ev.target === el.wardrobeOverlay) closeWardrobe(); });
+  el.wardrobeTabs?.addEventListener("click", (ev) => {
+    const button = ev.target.closest("button[data-slot]:not(:disabled)");
+    if (!button) return;
+    wardrobeSlotActive = button.dataset.slot;
+    el.wardrobeTabs.querySelectorAll("[data-slot]").forEach((tab) => tab.classList.toggle("is-active", tab === button));
+    renderWardrobe();
+  });
+  el.wardrobeGrid?.addEventListener("click", (ev) => {
+    const button = ev.target.closest("button[data-item-id]");
+    if (!button) return;
+    const itemId = button.dataset.itemId || null;
+    if (itemId && !state.wardrobe.owned[wardrobeSlotActive][itemId]) return;
+    state.wardrobe.equipped[wardrobeSlotActive] = itemId;
+    trySave(state);
+    refreshUI();
+    renderWardrobe();
+  });
+  el.betaWelcomeOptions?.addEventListener("click", (ev) => {
+    const button = ev.target.closest("button[data-set-id]");
+    if (button) claimBetaWelcomeSet(button.dataset.setId);
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape" || !el.betaWelcomeOverlay?.hidden) return;
+    if (!el.inventoryOverlay?.hidden) closeInventory();
+    if (!el.wardrobeOverlay?.hidden) closeWardrobe();
+  });
 }
 
 /** v2.4: pedido explícito — "el botón de despertar debería ser el mismo
@@ -2192,20 +2377,7 @@ function doComer(key) {
     const now = Date.now();
     state.golosinaLog.push(now);
     pruneGolosinaLog(now);
-    const count = state.golosinaLog.length;
-    const cfg = PET_CONFIG.golosinaExceso;
-    if (count === cfg.avisoEn) {
-      notifySystem("Con tantas golosinas seguidas capaz que le cae mal...", 3400);
-    } else if (count === cfg.malestarEn) {
-      state.health.malestar = clamp(state.health.malestar + PET_CONFIG.health.golosinaExcesoGolpe, 0, 100);
-      if (!state.health.enferma && state.health.malestar >= 100) {
-        state.health.enferma = true;
-        state.health.causa = "golosinas";
-      }
-      notifySystem("Comió demasiadas golosinas seguidas y le cayó mal.", 3400);
-    } else {
-      showBubble("¡Ñam! Me encantó.");
-    }
+    showBubble("¡Ñam! Me encantó.");
   } else {
     showBubble(key === "comidaBasica" ? "¡Qué rico!" : "Mmm, gracias.");
   }
@@ -2232,10 +2404,12 @@ function doBeber() {
   addBond(2);
   startCooldown("beber");
   emitRealtimeAction("drink");
+  const dailyReward = recordDailyGoal("talk");
   trySave(state);
   refreshUI();
   updateCooldownButtons();
   showBubble("¡Glup, glup! Gracias.");
+  if (dailyReward) notifySystem("¡Objetivos del día completos! +50 monedas +100 XP", 3800);
 }
 
 function doBañar() {
@@ -2462,7 +2636,6 @@ function setupGameSelector() {
   document.getElementById("game-play").addEventListener("click", () => {
     const note = document.getElementById("game-selector-note");
     if (state.sleep.dormida) { note.textContent = "Despertá a tu mascota para jugar."; return; }
-    if (state.health.enferma) { note.textContent = "Tu mascota necesita curarse antes de jugar."; return; }
     if (state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar) { note.textContent = "Necesita descansar: no tiene suficiente energía."; return; }
     // v3.2, pedido explícito: la Pesca tiene su PROPIO cooldown ("pesca",
     // 15min más largo — ver cooldownsMs.pesca en js/config.js), separado
@@ -2500,27 +2673,6 @@ function toggleSueño() {
     // 12s — es la tarjeta estática #sleep-notice-card (ver
     // renderNotifications), que se actualiza sola en el refreshUI() de
     // más abajo mientras dure state.sleep.dormida.
-  }
-  trySave(state);
-  refreshUI();
-  updateCooldownButtons();
-}
-
-// ---------- Medicina / salud ----------
-
-function doMedicina() {
-  if (!state.health.enferma || isOnCooldown("medicina")) return;
-  registerInteraction();
-  state.health.malestar = clamp(state.health.malestar - PET_CONFIG.health.medicinaAlivio, 0, 100);
-  gainFelicidad(2);
-  startCooldown("medicina");
-  emitRealtimeAction("medicine");
-  if (state.health.malestar <= PET_CONFIG.health.curadaUmbral) {
-    state.health.enferma = false;
-    state.health.causa = null;
-    showBubble("¡Ya me siento mucho mejor!");
-  } else {
-    notifySystem(`${state.name} está un poco mejor, pero todavía necesita descanso.`);
   }
   trySave(state);
   refreshUI();
@@ -2690,6 +2842,9 @@ async function doCambiarUsuario() {
   if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
   if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
   if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+  friendPresenceUnsubscribers.forEach((unsubscribe) => unsubscribe());
+  friendPresenceUnsubscribers.clear();
+  friendPresence.clear();
   currentUsername = null;
   currentDisplayName = null;
   myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
@@ -2833,9 +2988,9 @@ function setupDeleteAccountUI() {
 function updateFooterText() {
   if (!el.footerText) return;
   if (window.Cloud && window.Cloud.enabled && currentUsername) {
-    el.footerText.textContent = `Hecho por Jony · Mascotito Alpha v${APP_VERSION} · sesión: ${currentDisplayName} · guardado en la nube y en este navegador`;
+    el.footerText.textContent = `Hecho por Jony · Mascotito ${APP_CHANNEL} v${APP_VERSION} · sesión: ${currentDisplayName} · guardado en la nube y en este navegador`;
   } else {
-    el.footerText.textContent = `Hecho por Jony · Mascotito Alpha v${APP_VERSION} · guardado localmente en este navegador`;
+    el.footerText.textContent = `Hecho por Jony · Mascotito ${APP_CHANNEL} v${APP_VERSION} · guardado localmente en este navegador`;
   }
 }
 
@@ -2846,9 +3001,9 @@ function updateFooterText() {
  * constante real, así alcanza con cambiar APP_VERSION en config.js para
  * la próxima versión sin tener que buscar cada lugar donde se mostraba. */
 function applyAppVersion() {
-  document.title = `Mascotito — Alpha v${APP_VERSION}`;
+  document.title = `Mascotito — ${APP_CHANNEL} v${APP_VERSION}`;
   const badge = document.getElementById("app-version-badge");
-  if (badge) badge.textContent = `Alpha v${APP_VERSION}`;
+  if (badge) badge.textContent = `${APP_CHANNEL} v${APP_VERSION}`;
 }
 
 function setupOptionsMenu() {
@@ -2961,25 +3116,6 @@ function buildDebugPanel() {
   });
   p.appendChild(simRow);
 
-  const toggleSickRow = document.createElement("div");
-  toggleSickRow.className = "debug-row";
-  toggleSickRow.innerHTML = `<button type="button" id="debug-force-sick">Forzar enferma</button> <button type="button" id="debug-force-well">Curar del todo</button>`;
-  p.appendChild(toggleSickRow);
-  toggleSickRow.querySelector("#debug-force-sick").addEventListener("click", () => {
-    state.health.enferma = true;
-    state.health.malestar = 100;
-    state.health.causa = "necesidades";
-    refreshUI();
-    updateCooldownButtons();
-  });
-  toggleSickRow.querySelector("#debug-force-well").addEventListener("click", () => {
-    state.health.enferma = false;
-    state.health.malestar = 0;
-    state.health.causa = null;
-    refreshUI();
-    updateCooldownButtons();
-  });
-
   // v3.5: el Jardín se saca del todo (pedido explícito) — sólo queda
   // "Casa" como lugar, así que el botón de debug para ir al Jardín
   // también se saca (ya no hay a dónde ir).
@@ -3049,8 +3185,6 @@ function renderNotifications() {
   for(const [key,phrase] of [["saciedad","tiene hambre"],["hidratacion","tiene sed"],["higiene","necesita un baño"],["energia","necesita descansar"],["felicidad","quiere jugar"]]) {
     if(state.stats[key]<20) messages.push(state.name+" "+phrase);
   }
-  if(state.health.enferma) messages.push(state.name+" está enferma y necesita cuidados");
-
   const card=document.getElementById("notification-card"); card.hidden=!messages.length;
   const list=card.querySelector("ul");const content=messages.join("\n");
   if(list.dataset.content!==content){
@@ -3158,6 +3292,7 @@ document.addEventListener("keydown", ev => {
   setupFriendsUI();
   setupVisitUI();
   setupRoomChatUI();
+  setupBetaInventoryUI();
   setupDeleteAccountUI();
   boot();
 })();
@@ -3216,6 +3351,7 @@ async function startRealtimePresence() {
     if (started) {
       watchRoomPlayers(currentUsername);
       startDirectInboxWatch();
+      subscribeFriendsPresence();
     }
     return started;
   } catch (err) {
@@ -3275,7 +3411,7 @@ function beginLocalOnlySession() {
 function startSessionWithData(data) {
   el.loginScreen.hidden = true;
   el.appHeader.hidden = false;
-  if (el.btnAmigos) el.btnAmigos.hidden = false;
+  if (el.btnAmigos) el.btnAmigos.hidden = true;
   updateFooterText();
   updateOptCambiarUsuario();
   updateAdminUI();
@@ -3539,10 +3675,32 @@ function subscribeFriendsLive() {
   if (!window.Cloud || !window.Cloud.enabled || !currentUsername) return;
   cloudUnsub = window.Cloud.subscribeToPlayer(currentUsername, (data) => {
     myCloudData = data || { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
+    subscribeFriendsPresence();
     renderFriendsBadge();
     refreshChatUnreadBadge();
     if (el.friendsOverlay && !el.friendsOverlay.hidden) renderFriendsPanel();
     if (el.roomChatPanel && !el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
+  });
+}
+
+function subscribeFriendsPresence() {
+  const friends = myCloudData.friends || {};
+  friendPresenceUnsubscribers.forEach((unsubscribe, username) => {
+    if (!friends[username]) {
+      unsubscribe();
+      friendPresenceUnsubscribers.delete(username);
+      friendPresence.delete(username);
+    }
+  });
+  if (!window.Multiplayer?.enabled || typeof window.Multiplayer.subscribeUserPresence !== "function") return;
+  Object.keys(friends).forEach((username) => {
+    if (friendPresenceUnsubscribers.has(username)) return;
+    const unsubscribe = window.Multiplayer.subscribeUserPresence(username, (presence) => {
+      friendPresence.set(username, presence || { online: false, currentRooms: [] });
+      if (!el.friendsOverlay?.hidden) renderFriendsPanel();
+      if (!el.roomChatPanel?.hidden && activeChatKind === null) renderChatContacts();
+    });
+    friendPresenceUnsubscribers.set(username, unsubscribe);
   });
 }
 
@@ -3557,14 +3715,25 @@ function renderFriendsBadge() {
     el.requestsTabBadge.hidden = count === 0;
     el.requestsTabBadge.textContent = String(count);
   }
+  if (el.friendsManageBadge) {
+    el.friendsManageBadge.hidden = count === 0;
+    el.friendsManageBadge.textContent = String(count);
+  }
 }
 
-function friendRow(displayName, actionsHtml) {
+function friendRow(displayName, actionsHtml, online = null) {
   const li = document.createElement("li");
   li.className = "friend-item";
   const nameSpan = document.createElement("span");
   nameSpan.className = "friend-item-name";
-  nameSpan.textContent = displayName;
+  if (online === null) {
+    nameSpan.textContent = displayName;
+  } else {
+    const dot = document.createElement("i");
+    dot.className = "friend-presence-dot" + (online ? "" : " is-offline");
+    dot.setAttribute("aria-label", online ? "Conectado" : "Desconectado");
+    nameSpan.append(dot, document.createTextNode(displayName));
+  }
   const actionsSpan = document.createElement("span");
   actionsSpan.className = "friend-item-actions";
   actionsSpan.innerHTML = actionsHtml;
@@ -3576,7 +3745,6 @@ function friendRow(displayName, actionsHtml) {
 function renderFriendsPanel() {
   const friends = myCloudData.friends || {};
   const incoming = (myCloudData.friendRequests && myCloudData.friendRequests.incoming) || {};
-  const outgoing = (myCloudData.friendRequests && myCloudData.friendRequests.outgoing) || {};
 
   el.friendsList.innerHTML = "";
   const friendKeys = Object.keys(friends);
@@ -3586,7 +3754,8 @@ function renderFriendsPanel() {
     el.friendsList.appendChild(
       friendRow(
         display,
-        `<button type="button" class="friend-btn-visit" data-user="${k}" data-display="${display}">Visitar</button><button type="button" class="friend-btn-remove" data-user="${k}">Quitar</button>`
+        `<button type="button" class="friend-btn-visit" data-user="${k}" data-display="${display}">Visitar</button><button type="button" class="friend-btn-chat" data-user="${k}" data-display="${display}">Chat</button>`,
+        !!friendPresence.get(k)?.online
       )
     );
   });
@@ -3604,22 +3773,22 @@ function renderFriendsPanel() {
     );
   });
 
-  el.requestsOutgoingList.innerHTML = "";
-  const outKeys = Object.keys(outgoing);
-  el.requestsOutgoingEmpty.hidden = outKeys.length > 0;
-  outKeys.forEach((k) => {
-    el.requestsOutgoingList.appendChild(
-      friendRow(k, `<button type="button" class="friend-btn-cancel" data-user="${k}">Cancelar</button>`)
-    );
-  });
+  if (el.friendsRemoveList) {
+    el.friendsRemoveList.innerHTML = "";
+    if (el.friendsRemoveEmpty) el.friendsRemoveEmpty.hidden = friendKeys.length > 0;
+    friendKeys.forEach((k) => {
+      const display = friends[k]?.displayName || k;
+      el.friendsRemoveList.appendChild(friendRow(display, `<button type="button" class="friend-btn-remove" data-user="${k}" data-display="${display}">Eliminar</button>`));
+    });
+  }
 
   renderFriendsBadge();
 }
 
-function openFriendsPanel() {
+function openFriendsPanel(tab = friendsTabActive) {
   el.friendsOverlay.hidden = false;
   renderFriendsPanel();
-  switchFriendsTab(friendsTabActive);
+  switchFriendsTab(tab);
 }
 
 function closeFriendsPanel() {
@@ -3628,7 +3797,7 @@ function closeFriendsPanel() {
 
 function switchFriendsTab(tab) {
   friendsTabActive = tab;
-  const panels = { lista: el.friendsTabLista, solicitudes: el.friendsTabSolicitudes, agregar: el.friendsTabAgregar };
+  const panels = { lista: el.friendsTabLista, solicitudes: el.friendsTabSolicitudes, agregar: el.friendsTabAgregar, eliminar: document.getElementById("friends-tab-eliminar") };
   Object.keys(panels).forEach((key) => {
     if (panels[key]) panels[key].hidden = key !== tab;
   });
@@ -3693,7 +3862,7 @@ async function handleAddFriendSearch() {
 
 function setupFriendsUI() {
   if (!el.btnAmigos || !el.friendsOverlay) return;
-  el.btnAmigos.addEventListener("click", openFriendsPanel);
+  el.btnAmigos.addEventListener("click", () => openFriendsPanel());
   el.friendsClose.addEventListener("click", closeFriendsPanel);
   el.friendsOverlay.addEventListener("click", (ev) => {
     if (ev.target === el.friendsOverlay) closeFriendsPanel();
@@ -3710,12 +3879,15 @@ function setupFriendsUI() {
     const btn = ev.target.closest("button[data-user]");
     if (!btn) return;
     if (btn.classList.contains("friend-btn-visit")) {
+      closeFriendsPanel();
       openVisit(btn.dataset.user, btn.dataset.display || btn.dataset.user);
       return;
     }
-    if (!btn.classList.contains("friend-btn-remove")) return;
-    btn.disabled = true;
-    await window.Cloud.removeFriend(currentUsername, btn.dataset.user);
+    if (btn.classList.contains("friend-btn-chat")) {
+      closeFriendsPanel();
+      setRoomChatOpen(true);
+      openDirectChatConversation(btn.dataset.user, btn.dataset.display || btn.dataset.user);
+    }
   });
   el.requestsIncomingList.addEventListener("click", async (ev) => {
     const btn = ev.target.closest("button[data-user]");
@@ -3729,11 +3901,12 @@ function setupFriendsUI() {
       await window.Cloud.rejectFriendRequest(currentUsername, target);
     }
   });
-  el.requestsOutgoingList.addEventListener("click", async (ev) => {
-    const btn = ev.target.closest("button[data-user]");
-    if (!btn || !btn.classList.contains("friend-btn-cancel")) return;
+  el.friendsRemoveList?.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button.friend-btn-remove[data-user]");
+    if (!btn) return;
+    if (!window.confirm(`¿Seguro que querés eliminar a ${btn.dataset.display || btn.dataset.user} de tus amigos?`)) return;
     btn.disabled = true;
-    await window.Cloud.cancelFriendRequest(currentUsername, btn.dataset.user);
+    await window.Cloud.removeFriend(currentUsername, btn.dataset.user);
   });
   el.addFriendForm.addEventListener("submit", (ev) => {
     ev.preventDefault();
@@ -3800,7 +3973,8 @@ function directUnreadTotal() {
 
 function refreshChatUnreadBadge() {
   if (!el.roomChatBadge) return;
-  const total = Math.max(0, Math.min(999, roomUnreadCount + directUnreadTotal()));
+  const requests = Object.keys(myCloudData.friendRequests?.incoming || {}).length;
+  const total = Math.max(0, Math.min(999, roomUnreadCount + directUnreadTotal() + requests));
   el.roomChatBadge.textContent = total >= 99 ? "99+" : String(total);
   el.roomChatBadge.hidden = total === 0;
   el.roomChatToggle.dataset.unread = String(total);
@@ -3945,11 +4119,11 @@ function resetRoomChat(room) {
   roomMembersLabel = "0 presentes";
   updateRoomChatBadge(0);
   if (el.roomChatTitle) el.roomChatTitle.textContent = roomChatLabel(room);
-  if (el.roomChatContactLabel) el.roomChatContactLabel.textContent = roomChatContactLabel(room);
+  if (el.roomChatContactLabel) el.roomChatContactLabel.textContent = "Amigos";
   if (el.roomChatToggle) {
     const contactName = roomChatContactLabel(room);
-    el.roomChatToggle.setAttribute("aria-label", `Abrir conversación: ${contactName}`);
-    el.roomChatToggle.title = `Abrir conversación de ${contactName.toLowerCase()}`;
+    el.roomChatToggle.setAttribute("aria-label", `Abrir amigos, mensajes y sala: ${contactName}`);
+    el.roomChatToggle.title = "Abrir amigos y mensajes";
   }
   if (el.roomChatMessages) el.roomChatMessages.innerHTML = "";
   if (el.roomChatEmpty) { el.roomChatEmpty.textContent = "Todavía no hay mensajes en esta casa."; el.roomChatEmpty.hidden = false; }
@@ -4038,6 +4212,39 @@ function chatContactButton({ kind, username = "", label, preview, unread = 0, on
   return button;
 }
 
+function friendChatContact(username, label, preview, unread) {
+  const row = document.createElement("div");
+  row.className = "room-chat-contact-item room-chat-friend-item";
+  const online = !!friendPresence.get(username)?.online;
+  const dot = document.createElement("span");
+  dot.className = "room-chat-list-dot" + (online ? "" : " is-offline");
+  dot.title = online ? "Conectado" : "Desconectado";
+  const copy = document.createElement("span");
+  copy.className = "room-chat-list-copy";
+  const name = document.createElement("strong");
+  name.textContent = label;
+  const detail = document.createElement("small");
+  detail.textContent = preview || "Mensaje privado";
+  copy.append(name, detail);
+  const actions = document.createElement("span");
+  actions.className = "room-chat-friend-actions";
+  const visit = document.createElement("button");
+  visit.type = "button";
+  visit.dataset.friendAction = "visit";
+  visit.dataset.username = username;
+  visit.dataset.display = label;
+  visit.textContent = "Visitar";
+  const chat = document.createElement("button");
+  chat.type = "button";
+  chat.dataset.friendAction = "chat";
+  chat.dataset.username = username;
+  chat.dataset.display = label;
+  chat.textContent = unread > 0 ? `Chat (${unread >= 99 ? "99+" : unread})` : "Chat";
+  actions.append(visit, chat);
+  row.append(dot, copy, actions);
+  return row;
+}
+
 function directInboxFor(username) {
   return Object.values(directInbox || {})
     .filter((item) => item?.otherUsername === username)
@@ -4063,14 +4270,12 @@ function renderChatContacts() {
   });
   friendKeys.forEach((username) => {
     const summary = directInboxFor(username);
-    el.roomChatContactList.appendChild(chatContactButton({
-      kind: "direct",
+    el.roomChatContactList.appendChild(friendChatContact(
       username,
-      label: friends[username]?.displayName || summary?.otherDisplayName || username,
-      preview: summary?.lastText || "Mensaje privado",
-      unread: Number(summary?.unreadCount) || 0,
-      online: false,
-    }));
+      friends[username]?.displayName || summary?.otherDisplayName || username,
+      summary?.lastText || "Mensaje privado",
+      Number(summary?.unreadCount) || 0
+    ));
   });
   if (el.roomChatContactsEmpty) el.roomChatContactsEmpty.hidden = friendKeys.length > 0;
 }
@@ -4187,6 +4392,18 @@ function setupRoomChatUI() {
   el.roomChatClose.addEventListener("click", () => setRoomChatOpen(false));
   el.roomChatBack?.addEventListener("click", showChatContacts);
   el.roomChatContactList?.addEventListener("click", (ev) => {
+    const friendAction = ev.target.closest("button[data-friend-action]");
+    if (friendAction) {
+      const username = friendAction.dataset.username;
+      const display = friendAction.dataset.display || username;
+      if (friendAction.dataset.friendAction === "visit") {
+        setRoomChatOpen(false);
+        openVisit(username, display);
+      } else {
+        openDirectChatConversation(username, display);
+      }
+      return;
+    }
     const button = ev.target.closest("button[data-chat-kind]");
     if (!button) return;
     if (button.dataset.chatKind === "room") {
@@ -4197,6 +4414,9 @@ function setupRoomChatUI() {
     const displayName = myCloudData.friends?.[username]?.displayName || directInboxFor(username)?.otherDisplayName || username;
     if (username) openDirectChatConversation(username, displayName);
   });
+  el.friendsManageAdd?.addEventListener("click", () => openFriendsPanel("agregar"));
+  el.friendsManageRequests?.addEventListener("click", () => openFriendsPanel("solicitudes"));
+  el.friendsManageRemove?.addEventListener("click", () => openFriendsPanel("eliminar"));
   el.roomChatInput.addEventListener("input", updateLocalChatTyping);
   el.roomQuickChatInput?.addEventListener("input", updateLocalChatTyping);
   el.roomQuickChat?.addEventListener("click", () => setQuickChatActive(true));
@@ -4538,7 +4758,7 @@ async function loadRemoteProfile(username, node) {
   const stage = node.querySelector(".remote-player-stage");
   const label = node.querySelector(".remote-player-name");
   if (!stage) return;
-  renderPetLayers(stage, petState.look || defaultLook());
+  renderPetLayers(stage, petState.look || defaultLook(), petState.wardrobe);
   const mood = petState.health?.enferma ? "triste" : moodFromStats(petState.stats || {});
   stage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
   stage.classList.add("mood-" + mood);
@@ -4630,15 +4850,15 @@ function renderVisit(displayName, data) {
 
   el.visitWalkerHost.hidden = false;
   drainRemoteActions(activeVisit.usernameLower);
-  renderPetLayers(el.visitPetStageHost, petState.look || defaultLook());
-  const mood = petState.health && petState.health.enferma ? "triste" : moodFromStats(petState.stats || {});
+  renderPetLayers(el.visitPetStageHost, petState.look || defaultLook(), petState.wardrobe);
+  const mood = moodFromStats(petState.stats || {});
   el.visitPetStageHost.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
   el.visitPetStageHost.classList.add("mood-" + mood);
   el.visitPetStageHost.classList.toggle("sleeping", asleep);
-  el.visitPetStageHost.classList.toggle("sick", !!(petState.health && petState.health.enferma));
+  el.visitPetStageHost.classList.remove("sick");
   el.visitPetStageHost.style.setProperty(
     "--eye-scale",
-    asleep ? 0.04 : computeEyeScale(petState.stats || {}, petState.health || {})
+    asleep ? 0.04 : computeEyeScale(petState.stats || {})
   );
   el.visitWalkerHost.classList.toggle("is-sleeping", asleep);
   el.visitWalkerHost.classList.remove("is-wandering");

@@ -64,6 +64,12 @@ const PET_ICONS = {
   flecha: '<path d="M9 5.5 15.5 12 9 18.5"/>',
   // v3.3: Amigos — dos cabecitas simples, mismo estilo de trazo que el resto.
   amigos: '<circle cx="8.6" cy="8.2" r="2.6"/><path d="M3.4 18.4c.6-3.1 2.6-4.7 5.2-4.7s4.6 1.6 5.2 4.7"/><circle cx="16.2" cy="8.6" r="2.1"/><path d="M14.6 13.9c2.1.2 3.6 1.7 4 4.2"/>',
+  // Beta v1.0: cofre de inventario.
+  inventario: '<path fill="currentColor" stroke="none" d="M3 8.2h18v11.1a1.7 1.7 0 0 1-1.7 1.7H4.7A1.7 1.7 0 0 1 3 19.3V8.2Zm2-4.1h14a2 2 0 0 1 2 2v1H3v-1a2 2 0 0 1 2-2Zm5.2 7.1h3.6v4.2h-3.6v-4.2Z"/>',
+  // Remera/percha simplificada para abrir el vestuario.
+  ropa: '<path fill="currentColor" stroke="none" d="m8.2 3 3.8 1.8L15.8 3 21 6.3l-2.5 4.1-2.1-1.1V21H7.6V9.3l-2.1 1.1L3 6.3 8.2 3Zm.5 2.4-.6.4 1.1 1.8v10.9h5.6V7.6l1.1-1.8-.6-.4A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1-3.3-1.6Z"/>',
+  // Bolsa de tienda, deshabilitada en esta primera Beta.
+  tienda: '<path fill="currentColor" stroke="none" d="M5.2 7.4h13.6l1.3 13.1H3.9L5.2 7.4Zm3.1 0h1.8c0-1.7.6-2.8 1.9-2.8s1.9 1.1 1.9 2.8h1.8C15.7 4.3 14.3 2.7 12 2.7S8.3 4.3 8.3 7.4Z"/>',
   // v3.3: candado — pantalla de login/PIN.
   candado: '<rect x="5" y="10.5" width="14" height="9.5" rx="1.6"/><path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9"/>',
 };

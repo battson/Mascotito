@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Alpha v3.9.7</title>
+  <title>Mascotito — Beta v1.0</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Alpha v3.9.7</span>
+      <span class="badge" id="app-version-badge">Beta v1.0</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -191,6 +191,7 @@
         <button class="creator-tab" data-tab="lista" role="tab" aria-selected="true" type="button">Mis amigos</button>
         <button class="creator-tab" data-tab="solicitudes" role="tab" aria-selected="false" type="button">Solicitudes<span id="requests-tab-badge" class="icon-badge" hidden>0</span></button>
         <button class="creator-tab" data-tab="agregar" role="tab" aria-selected="false" type="button">Agregar</button>
+        <button class="creator-tab" data-tab="eliminar" role="tab" aria-selected="false" type="button">Eliminar</button>
       </div>
       <div class="modal-body">
         <div id="friends-tab-lista" class="friends-tabpanel">
@@ -201,9 +202,6 @@
           <h3 class="friends-subtitle">Te escribieron</h3>
           <ul id="requests-incoming-list" class="friends-list"></ul>
           <p id="requests-incoming-empty" class="friends-empty" hidden>No tenés solicitudes nuevas.</p>
-          <h3 class="friends-subtitle">Enviadas</h3>
-          <ul id="requests-outgoing-list" class="friends-list"></ul>
-          <p id="requests-outgoing-empty" class="friends-empty" hidden>No enviaste ninguna solicitud.</p>
         </div>
         <div id="friends-tab-agregar" class="friends-tabpanel" hidden>
           <form id="add-friend-form" class="login-form" autocomplete="off">
@@ -215,7 +213,73 @@
           </form>
           <p id="add-friend-result" class="friends-empty" hidden></p>
         </div>
+        <div id="friends-tab-eliminar" class="friends-tabpanel" hidden>
+          <p class="friends-delete-help">Elegí a quién querés eliminar. Siempre se pedirá confirmación.</p>
+          <ul id="friends-remove-list" class="friends-list"></ul>
+          <p id="friends-remove-empty" class="friends-empty" hidden>No tenés amigos para eliminar.</p>
+        </div>
       </div>
+    </section>
+  </div>
+
+  <!-- Beta v1.0: inventario general. Las categorías de decoración se
+       muestran desde el inicio, pero permanecen deshabilitadas hasta sus
+       respectivas actualizaciones. -->
+  <div id="inventory-overlay" class="modal-overlay" hidden>
+    <section class="modal-window inventory-window" role="dialog" aria-modal="true" aria-label="Inventario">
+      <div class="modal-topbar">
+        <h2>Inventario</h2>
+        <button id="inventory-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button>
+      </div>
+      <div class="inventory-tabs" role="tablist" aria-label="Categorías del inventario">
+        <button type="button" class="inventory-tab is-active">Comida y bebida</button>
+        <button type="button" class="inventory-tab" disabled>Pisos y paredes</button>
+        <button type="button" class="inventory-tab" disabled>Muebles</button>
+        <button type="button" class="inventory-tab" disabled>Decoraciones</button>
+      </div>
+      <div class="inventory-grid">
+        <button id="inventory-fish" class="inventory-item" type="button">
+          <img src="assets/items/fish-item.svg" alt="" />
+          <strong>Pescado</strong>
+          <span id="inventory-fish-count">×0</span>
+        </button>
+        <button id="inventory-water" class="inventory-item" type="button">
+          <img src="assets/items/water-bottle.svg" alt="" />
+          <strong>Botella de agua</strong>
+          <span>∞</span>
+        </button>
+      </div>
+      <p id="inventory-status" class="inventory-status" role="status"></p>
+    </section>
+  </div>
+
+  <!-- Beta v1.0: vestuario separado del editor físico de la mascota. -->
+  <div id="wardrobe-overlay" class="modal-overlay" hidden>
+    <section class="modal-window wardrobe-window" role="dialog" aria-modal="true" aria-label="Ropa">
+      <div class="modal-topbar">
+        <h2>Ropa</h2>
+        <button id="wardrobe-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button>
+      </div>
+      <div id="wardrobe-tabs" class="inventory-tabs" role="tablist" aria-label="Categorías de ropa">
+        <button type="button" class="inventory-tab is-active" data-slot="superior">Prenda superior</button>
+        <button type="button" class="inventory-tab" data-slot="inferior">Prenda inferior</button>
+        <button type="button" class="inventory-tab" data-slot="calzado">Calzado</button>
+        <button type="button" class="inventory-tab" data-slot="accesorios" disabled>Accesorios</button>
+      </div>
+      <div id="wardrobe-grid" class="wardrobe-grid"></div>
+      <p id="wardrobe-empty" class="inventory-status" hidden>Todavía no tenés prendas en esta categoría.</p>
+    </section>
+  </div>
+
+  <!-- Elección obligatoria y única al primer ingreso a Beta v1.0. -->
+  <div id="beta-welcome-overlay" class="modal-overlay beta-welcome-overlay" hidden>
+    <section class="modal-window beta-welcome-window" role="dialog" aria-modal="true" aria-labelledby="beta-welcome-title">
+      <div class="beta-welcome-copy">
+        <span class="hud-eyebrow">BIENVENIDA A LA BETA</span>
+        <h2 id="beta-welcome-title">Elegí tu primer conjunto</h2>
+        <p>Recibirás la prenda superior, la inferior y el calzado. Después podrás combinarlos libremente desde Ropa.</p>
+      </div>
+      <div id="beta-welcome-options" class="beta-welcome-options"></div>
     </section>
   </div>
 
@@ -282,8 +346,8 @@
           <button id="room-chat-toggle" class="room-chat-toggle play-only" type="button" hidden aria-controls="room-chat-panel" aria-expanded="false">
             <span class="room-chat-contact-dot" aria-hidden="true"></span>
             <span class="room-chat-contact-copy">
-              <strong id="room-chat-contact-label">Tu casa</strong>
-              <small id="room-chat-contact-status">Chat en vivo</small>
+              <strong id="room-chat-contact-label">Amigos</strong>
+              <small id="room-chat-contact-status">Sala y mensajes</small>
             </span>
             <b id="room-chat-badge" hidden>0</b>
           </button>
@@ -294,7 +358,12 @@
               <button id="room-chat-close" type="button" aria-label="Cerrar chat">×</button>
             </header>
             <section id="room-chat-contacts" class="room-chat-contacts" aria-label="Conversaciones">
-              <strong class="room-chat-section-title">Conversaciones</strong>
+              <div class="room-chat-tools">
+                <button id="friends-manage-add" type="button">Agregar</button>
+                <button id="friends-manage-requests" type="button">Solicitudes <b id="friends-manage-badge" hidden>0</b></button>
+                <button id="friends-manage-remove" type="button">Eliminar</button>
+              </div>
+              <strong class="room-chat-section-title">Sala y amigos</strong>
               <div id="room-chat-contact-list" class="room-chat-contact-list"></div>
               <p id="room-chat-contacts-empty" class="room-chat-contacts-empty" hidden>No tenés amigos agregados todavía.</p>
             </section>
@@ -353,7 +422,7 @@
             <ul class="daily-list">
               <li id="daily-feed"><span class="daily-check" aria-hidden="true">✓</span><span>Alimentá a tu mascota</span></li>
               <li id="daily-play"><span class="daily-check" aria-hidden="true">✓</span><span>Jugá una vez</span></li>
-              <li id="daily-talk"><span class="daily-check" aria-hidden="true">✓</span><span>Hablá con ella</span></li>
+              <li id="daily-talk"><span class="daily-check" aria-hidden="true">✓</span><span>Dale agua</span></li>
             </ul>
             <div class="daily-reward"><span>Recompensa</span><strong>50 monedas + 100 XP</strong></div>
           </aside>
@@ -551,7 +620,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.9.7 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v1.0 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
@@ -563,6 +632,7 @@
   <script src="js/config.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/manifest.js"></script>
+  <script src="js/clothing-manifest.js"></script>
   <script src="js/state.js"></script>
   <script src="js/world.js"></script>
   <script type="module" src="js/cloud.js"></script>

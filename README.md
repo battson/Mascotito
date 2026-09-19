@@ -1,4 +1,17 @@
-# Mascotito Alpha
+# Mascotito Beta
+
+## Beta v1.0
+
+- Ropa por capas con tres ranuras combinables: prenda superior, prenda inferior y calzado.
+- Regalo único para toda cuenta al entrar por primera vez a la Beta: elección visual entre dos conjuntos, cada uno con tres piezas independientes.
+- Inventario con pescado de stock y botella de agua infinita; decoración, muebles, pisos y paredes quedan visibles pero deshabilitados.
+- Barra compacta inferior izquierda: Inventario, Ropa, Dormir/Despertar, Jugar, Tienda (próximamente) y Limpiar.
+- Sistema de enfermedad y medicina desactivado en esta versión.
+- Diálogos espontáneos según hambre, sed, higiene, energía y ánimo; se quitó la acción manual de hablar.
+- Panel de sala y amigos con presencia, Visitar, Chat, solicitudes recibidas y eliminación con confirmación. Las solicitudes enviadas quedan ocultas.
+- Catálogo y precios de prendas preparados para la futura tienda, que todavía permanece deshabilitada.
+
+La Beta parte de la v3.9.7 y conserva las visitas, el movimiento, las acciones y el chat de sala en tiempo real.
 
 ## v3.9.7
 
