@@ -1,5 +1,24 @@
 # Mascotito Alpha
 
+## v3.9.6
+
+### Bandeja de conversaciones y mensajes privados persistentes
+
+- El azul del chat fue reemplazado por `rgba(255,249,236,.94)` en el acceso, el encabezado y el botón de envío.
+- Se ajustaron bordes, textos, foco y estados interactivos a tonos marrón y naranja para mantener contraste sobre el fondo crema.
+- Se eliminó el emoji del botón de chat.
+- El panel funciona en una sola columna: primero muestra las conversaciones y, al seleccionar una, esa misma superficie presenta el historial.
+- La casa donde está la mascota aparece como un contacto especial: **Tu casa** o **Casa de [anfitrión]**. Al cambiar de casa, el contacto cambia automáticamente.
+- Todos los amigos aceptados aparecen como contactos. Al seleccionarlos se abre un chat privado independiente de la casa visitada.
+- Los mensajes privados se conservan en Realtime Database y cada conversación recupera hasta los 100 mensajes más recientes, sin el vencimiento de 24 horas del chat de sala.
+- `directInbox` conserva el último mensaje y la cantidad no leída por conversación. Así el botón muestra una alerta aunque el mensaje haya llegado con el juego cerrado o el panel oculto.
+- Al abrir una conversación privada, su contador se marca como leído. Los demás contadores se mantienen.
+- Se eliminó el texto **“0 mensajes recientes”** y se reemplazó el mensaje vacío anterior por una única indicación dentro del historial, sin dividir el panel.
+- `database.rules.json` incorpora `directChats` y `directInbox`, necesarios para historial, bandeja y alertas persistentes.
+- Indicador de versión actualizado a Alpha v3.9.6.
+
+Para activar esta versión es obligatorio volver a publicar `database.rules.json` en Firebase Realtime Database. Sin esas reglas nuevas, la lista de contactos se verá pero los mensajes privados no podrán guardarse ni recuperar historial.
+
 ## v3.9.5
 
 ### Reactivación del chat y explicación de la presencia estimada

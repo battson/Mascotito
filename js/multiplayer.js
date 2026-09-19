@@ -1,5 +1,5 @@
 /**
- * v3.9.2 — Presencia, movimiento, acciones, chat y escritura en tiempo real.
+ * v3.9.6 — Presencia, movimiento, acciones, chat de sala y mensajes privados.
  *
  * Firestore sigue guardando la mascota. Este módulo sólo administra datos
  * efímeros: qué navegador está conectado y en qué casa se encuentra. Cada
@@ -40,6 +40,8 @@ const CHAT_STORAGE_LIMIT = 60;
 const CHAT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const CHAT_SEND_INTERVAL_MS = 800;
 let lastChatSentAt = 0;
+const DIRECT_CHAT_HISTORY_LIMIT = 100;
+const directChatLastSentAt = new Map();
 const ACTION_TYPES = new Set([
   "eat", "drink", "bathe", "sleep", "wake", "pet", "talk",
   "play", "play_end", "medicine", "poop", "clean",
@@ -108,6 +110,17 @@ function actionsRef(room) {
 
 function chatRef(room) {
   return dbFns.ref(db, `rooms/${room}/chat`);
+}
+
+function directConversationKey(firstRaw, secondRaw) {
+  const first = safeKey(firstRaw);
+  const second = safeKey(secondRaw);
+  if (!first || !second || first === second) return null;
+  return [first, second].sort().join("~");
+}
+
+function directMessagesRef(conversationId) {
+  return dbFns.ref(db, `directChats/${conversationId}/messages`);
 }
 
 function typingRef(room, username, id = clientId) {
@@ -328,6 +341,105 @@ async function sendChatMessage(textRaw) {
   }
 }
 
+async function sendDirectMessage(otherUsernameRaw, otherDisplayNameRaw, textRaw) {
+  const otherUsername = safeKey(otherUsernameRaw);
+  const text = normalizeChatText(textRaw);
+  if (!otherUsername || !text || !session || !connected || !db || !dbFns) return { ok: false, reason: "offline" };
+  const conversationId = directConversationKey(session.username, otherUsername);
+  if (!conversationId) return { ok: false, reason: "invalid_recipient" };
+  const now = Date.now();
+  const previousSentAt = directChatLastSentAt.get(conversationId) || 0;
+  if (now - previousSentAt < CHAT_SEND_INTERVAL_MS) return { ok: false, reason: "rate_limit" };
+  directChatLastSentAt.set(conversationId, now);
+  const messageRef = dbFns.push(directMessagesRef(conversationId));
+  const createdAt = dbFns.serverTimestamp();
+  const otherDisplayName = String(otherDisplayNameRaw || otherUsername).slice(0, 32);
+  const updates = {
+    [`directChats/${conversationId}/messages/${messageRef.key}`]: {
+      actor: session.username,
+      recipient: otherUsername,
+      displayName: session.displayName,
+      text,
+      createdAt,
+    },
+    [`directInbox/${session.username}/${conversationId}/otherUsername`]: otherUsername,
+    [`directInbox/${session.username}/${conversationId}/otherDisplayName`]: otherDisplayName,
+    [`directInbox/${session.username}/${conversationId}/lastText`]: text,
+    [`directInbox/${session.username}/${conversationId}/lastActor`]: session.username,
+    [`directInbox/${session.username}/${conversationId}/updatedAt`]: createdAt,
+    [`directInbox/${session.username}/${conversationId}/unreadCount`]: 0,
+    [`directInbox/${otherUsername}/${conversationId}/otherUsername`]: session.username,
+    [`directInbox/${otherUsername}/${conversationId}/otherDisplayName`]: session.displayName,
+    [`directInbox/${otherUsername}/${conversationId}/lastText`]: text,
+    [`directInbox/${otherUsername}/${conversationId}/lastActor`]: session.username,
+    [`directInbox/${otherUsername}/${conversationId}/updatedAt`]: createdAt,
+    [`directInbox/${otherUsername}/${conversationId}/unreadCount`]: dbFns.increment(1),
+  };
+  try {
+    await dbFns.update(dbFns.ref(db), updates);
+    return { ok: true, id: messageRef.key, conversationId };
+  } catch (err) {
+    directChatLastSentAt.delete(conversationId);
+    return { ok: false, reason: "write_failed" };
+  }
+}
+
+async function markDirectChatRead(otherUsernameRaw) {
+  if (!session || !db || !dbFns) return false;
+  const conversationId = directConversationKey(session.username, otherUsernameRaw);
+  if (!conversationId) return false;
+  await dbFns.set(dbFns.ref(db, `directInbox/${session.username}/${conversationId}/unreadCount`), 0);
+  return true;
+}
+
+function subscribeDirectInbox(callback) {
+  if (typeof callback !== "function") return () => {};
+  let unsubscribe = () => {};
+  let cancelled = false;
+  readyPromise.then((ok) => {
+    if (!ok || cancelled || !session) return;
+    unsubscribe = dbFns.onValue(dbFns.ref(db, `directInbox/${session.username}`), (snap) => {
+      callback(snap.val() || {});
+    }, () => callback(null));
+  });
+  return () => { cancelled = true; unsubscribe(); };
+}
+
+function subscribeDirectChat(otherUsernameRaw, callback) {
+  const otherUsername = safeKey(otherUsernameRaw);
+  if (!otherUsername || typeof callback !== "function") return () => {};
+  let unsubscribe = () => {};
+  let cancelled = false;
+  readyPromise.then((ok) => {
+    if (!ok || cancelled || !session) return;
+    const conversationId = directConversationKey(session.username, otherUsername);
+    if (!conversationId) return;
+    const recent = dbFns.query(directMessagesRef(conversationId), dbFns.orderByChild("createdAt"), dbFns.limitToLast(DIRECT_CHAT_HISTORY_LIMIT));
+    unsubscribe = dbFns.onValue(recent, (snap) => {
+      const raw = snap.val() || {};
+      const messages = Object.entries(raw).flatMap(([id, value]) => {
+        const actor = safeKey(value?.actor);
+        const recipient = safeKey(value?.recipient);
+        const text = normalizeChatText(value?.text);
+        const createdAt = Number(value?.createdAt) || 0;
+        const belongsToConversation = (actor === session.username && recipient === otherUsername)
+          || (actor === otherUsername && recipient === session.username);
+        if (!belongsToConversation || !text || !createdAt) return [];
+        return [{
+          id,
+          actor,
+          recipient,
+          displayName: String(value.displayName || actor).slice(0, 32),
+          text,
+          createdAt,
+        }];
+      }).sort((a, b) => a.createdAt - b.createdAt);
+      callback(messages);
+    }, () => callback(null));
+  });
+  return () => { cancelled = true; unsubscribe(); };
+}
+
 async function setTyping(active) {
   if (!session || !db || !dbFns) return false;
   const ref = typingRef(session.currentRoom, session.username);
@@ -531,9 +643,13 @@ window.Multiplayer = {
   subscribeRoomActions,
   subscribeRoomChat,
   subscribeRoomTyping,
+  subscribeDirectInbox,
+  subscribeDirectChat,
   publishMovement,
   emitAction,
   sendChatMessage,
+  sendDirectMessage,
+  markDirectChatRead,
   setTyping,
   get connected() { return connected && (!session || presenceReady); },
   get currentRoom() { return session ? session.currentRoom : null; },

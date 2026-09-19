@@ -169,11 +169,18 @@ const el = {
   visitHostPresence: document.getElementById("visit-host-presence"),
   remotePlayersLayer: document.getElementById("remote-players-layer"),
   roomChatToggle: document.getElementById("room-chat-toggle"),
+  roomChatContactLabel: document.getElementById("room-chat-contact-label"),
+  roomChatContactStatus: document.getElementById("room-chat-contact-status"),
   roomChatBadge: document.getElementById("room-chat-badge"),
   roomChatPanel: document.getElementById("room-chat-panel"),
+  roomChatBack: document.getElementById("room-chat-back"),
   roomChatClose: document.getElementById("room-chat-close"),
   roomChatTitle: document.getElementById("room-chat-title"),
   roomChatParticipants: document.getElementById("room-chat-participants"),
+  roomChatContacts: document.getElementById("room-chat-contacts"),
+  roomChatContactList: document.getElementById("room-chat-contact-list"),
+  roomChatContactsEmpty: document.getElementById("room-chat-contacts-empty"),
+  roomChatConversation: document.getElementById("room-chat-conversation"),
   roomChatStatus: document.getElementById("room-chat-status"),
   roomChatTyping: document.getElementById("room-chat-typing"),
   roomChatMessages: document.getElementById("room-chat-messages"),
@@ -2673,6 +2680,8 @@ async function doCambiarUsuario() {
     try { await window.Multiplayer.stopSession(); } catch (e) { /* onDisconnect completa la limpieza */ }
   }
   stopRoomPlayerWatch();
+  stopDirectChatWatch();
+  stopDirectInboxWatch();
   flushCloudSaveNow();
   if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
@@ -2774,6 +2783,8 @@ async function handleDeleteAccountSubmit() {
       try { await window.Multiplayer.stopSession(); } catch (e) { /* onDisconnect completa la limpieza */ }
     }
     stopRoomPlayerWatch();
+    stopDirectChatWatch();
+    stopDirectInboxWatch();
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
     if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
@@ -3196,7 +3207,10 @@ async function startRealtimePresence() {
     const ready = await Multiplayer.ready;
     if (!ready) return false;
     const started = await Multiplayer.startSession(currentUsername, currentDisplayName || currentUsername);
-    if (started) watchRoomPlayers(currentUsername);
+    if (started) {
+      watchRoomPlayers(currentUsername);
+      startDirectInboxWatch();
+    }
     return started;
   } catch (err) {
     console.warn("[Mascotito] La sesión continúa sin presencia en tiempo real.", err);
@@ -3520,7 +3534,9 @@ function subscribeFriendsLive() {
   cloudUnsub = window.Cloud.subscribeToPlayer(currentUsername, (data) => {
     myCloudData = data || { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
     renderFriendsBadge();
+    refreshChatUnreadBadge();
     if (el.friendsOverlay && !el.friendsOverlay.hidden) renderFriendsPanel();
+    if (el.roomChatPanel && !el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
   });
 }
 
@@ -3736,12 +3752,21 @@ let roomChatUnsubscribe = null;
 let roomConnectionUnsubscribe = null;
 let roomMembersUnsubscribe = null;
 let roomTypingUnsubscribe = null;
+let directInboxUnsubscribe = null;
+let directChatUnsubscribe = null;
 let watchedRoom = null;
 const remoteProfileCache = new Map();
 const pendingRemoteActions = new Map();
 const REMOTE_ACTION_QUEUE_MAX_AGE_MS = 7000;
 let roomChatInitialized = false;
 const knownRoomChatIds = new Set();
+let roomChatMessagesCache = [];
+let roomMembersLabel = "0 presentes";
+let roomUnreadCount = 0;
+let directInbox = {};
+let activeChatKind = null;
+let activeDirectUsername = null;
+let activeDirectDisplayName = null;
 let localChatTyping = false;
 let lastTypingPublishAt = 0;
 let localChatTypingTimer = null;
@@ -3754,27 +3779,70 @@ function roomChatLabel(room) {
   return "Chat · Tu casa";
 }
 
-function updateRoomChatBadge(count = 0) {
+function roomChatContactLabel(room) {
+  if (activeVisit?.usernameLower === room) return `Casa de ${activeVisit.displayName}`;
+  return "Tu casa";
+}
+
+function directUnreadTotal() {
+  const friends = myCloudData.friends || {};
+  return Object.values(directInbox || {}).reduce((total, item) => {
+    if (!item?.otherUsername || !friends[item.otherUsername]) return total;
+    return total + Math.max(0, Number(item.unreadCount) || 0);
+  }, 0);
+}
+
+function refreshChatUnreadBadge() {
   if (!el.roomChatBadge) return;
-  const safeCount = Math.max(0, Math.min(99, Number(count) || 0));
-  el.roomChatBadge.textContent = safeCount >= 99 ? "99+" : String(safeCount);
-  el.roomChatBadge.hidden = safeCount === 0;
-  el.roomChatToggle.dataset.unread = String(safeCount);
-  el.roomChatToggle?.classList.toggle("has-unread", safeCount > 0);
+  const total = Math.max(0, Math.min(999, roomUnreadCount + directUnreadTotal()));
+  el.roomChatBadge.textContent = total >= 99 ? "99+" : String(total);
+  el.roomChatBadge.hidden = total === 0;
+  el.roomChatToggle.dataset.unread = String(total);
+  el.roomChatToggle.classList.toggle("has-unread", total > 0);
+}
+
+function updateRoomChatBadge(count = 0) {
+  roomUnreadCount = Math.max(0, Number(count) || 0);
+  refreshChatUnreadBadge();
+}
+
+function setChatStatus(text = "") {
+  if (!el.roomChatStatus) return;
+  el.roomChatStatus.textContent = text;
+  el.roomChatStatus.hidden = !text;
+}
+
+function stopDirectChatWatch() {
+  if (directChatUnsubscribe) directChatUnsubscribe();
+  directChatUnsubscribe = null;
+  activeDirectUsername = null;
+  activeDirectDisplayName = null;
+}
+
+function showChatContacts() {
+  stopLocalChatTyping();
+  stopDirectChatWatch();
+  activeChatKind = null;
+  if (el.roomChatContacts) el.roomChatContacts.hidden = false;
+  if (el.roomChatConversation) el.roomChatConversation.hidden = true;
+  if (el.roomChatBack) el.roomChatBack.hidden = true;
+  if (el.roomChatTitle) el.roomChatTitle.textContent = "Chat";
+  if (el.roomChatParticipants) el.roomChatParticipants.textContent = "Elegí una conversación";
+  setChatStatus("");
+  renderChatContacts();
 }
 
 function setRoomChatOpen(open) {
   if (!el.roomChatPanel || !el.roomChatToggle) return;
   el.roomChatPanel.hidden = !open;
   el.roomChatToggle.setAttribute("aria-expanded", String(open));
+  el.roomChatToggle.classList.toggle("is-selected", open);
   if (open) {
-    updateRoomChatBadge(0);
-    requestAnimationFrame(() => {
-      el.roomChatMessages.scrollTop = el.roomChatMessages.scrollHeight;
-      el.roomChatInput?.focus();
-    });
+    showChatContacts();
   } else {
     stopLocalChatTyping();
+    stopDirectChatWatch();
+    activeChatKind = null;
   }
 }
 
@@ -3790,7 +3858,7 @@ function stopLocalChatTyping() {
 
 function updateLocalChatTyping() {
   const hasText = !!el.roomChatInput?.value.trim();
-  if (!hasText || !window.Multiplayer?.connected || typeof window.Multiplayer?.setTyping !== "function") {
+  if (activeChatKind !== "room" || !hasText || !window.Multiplayer?.connected || typeof window.Multiplayer?.setTyping !== "function") {
     stopLocalChatTyping();
     return;
   }
@@ -3804,28 +3872,18 @@ function updateLocalChatTyping() {
   localChatTypingTimer = setTimeout(stopLocalChatTyping, 1600);
 }
 
-function renderRoomChat(messages) {
+function renderChatMessages(messages, emptyText = "No hay mensajes todavía.") {
   if (!el.roomChatMessages) return;
-  if (messages === null) {
-    el.roomChatStatus.textContent = "No se pudo cargar el chat. Revisá la conexión o las reglas de Firebase.";
-    return;
-  }
-  const incomingIds = new Set(messages.map((message) => message.id));
-  if (roomChatInitialized && el.roomChatPanel.hidden) {
-    const unread = messages.filter((message) => !knownRoomChatIds.has(message.id) && message.actor !== currentUsername).length;
-    if (unread) updateRoomChatBadge((Number(el.roomChatToggle.dataset.unread) || 0) + unread);
-  }
-  knownRoomChatIds.clear();
-  incomingIds.forEach((id) => knownRoomChatIds.add(id));
-  roomChatInitialized = true;
-
   el.roomChatMessages.innerHTML = "";
-  messages.forEach((message) => {
+  (messages || []).forEach((message) => {
     const item = document.createElement("li");
     item.className = "room-chat-message" + (message.actor === currentUsername ? " is-own" : "");
     const meta = document.createElement("span");
     meta.className = "room-chat-message-meta";
-    const time = new Date(message.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const sameDay = new Date(message.createdAt).toDateString() === new Date().toDateString();
+    const time = new Date(message.createdAt).toLocaleString("es-AR", sameDay
+      ? { hour: "2-digit", minute: "2-digit" }
+      : { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
     meta.textContent = `${message.displayName} · ${time}`;
     const body = document.createElement("span");
     body.className = "room-chat-message-body";
@@ -3833,21 +3891,49 @@ function renderRoomChat(messages) {
     item.append(meta, body);
     el.roomChatMessages.appendChild(item);
   });
-  el.roomChatEmpty.hidden = messages.length > 0;
-  el.roomChatStatus.textContent = window.Multiplayer?.connected
-    ? `${messages.length} ${messages.length === 1 ? "mensaje reciente" : "mensajes recientes"}`
-    : "Reconectando...";
-  if (!el.roomChatPanel.hidden) requestAnimationFrame(() => { el.roomChatMessages.scrollTop = el.roomChatMessages.scrollHeight; });
+  el.roomChatEmpty.textContent = emptyText;
+  el.roomChatEmpty.hidden = !!messages?.length;
+  requestAnimationFrame(() => { el.roomChatMessages.scrollTop = el.roomChatMessages.scrollHeight; });
+}
+
+function renderRoomChat(messages) {
+  if (messages === null) {
+    if (activeChatKind === "room") setChatStatus("No se pudo cargar el chat. Revisá la conexión o las reglas de Firebase.");
+    return;
+  }
+  const incomingIds = new Set(messages.map((message) => message.id));
+  const roomConversationVisible = !el.roomChatPanel.hidden && activeChatKind === "room";
+  if (roomChatInitialized && !roomConversationVisible) {
+    const unread = messages.filter((message) => !knownRoomChatIds.has(message.id) && message.actor !== currentUsername).length;
+    if (unread) updateRoomChatBadge(roomUnreadCount + unread);
+  }
+  knownRoomChatIds.clear();
+  incomingIds.forEach((id) => knownRoomChatIds.add(id));
+  roomChatInitialized = true;
+  roomChatMessagesCache = messages;
+  if (roomConversationVisible) {
+    setChatStatus(window.Multiplayer?.connected ? "" : "Reconectando...");
+    renderChatMessages(messages, "Todavía no hay mensajes en esta casa.");
+  }
+  if (!el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
 }
 
 function resetRoomChat(room) {
   roomChatInitialized = false;
   knownRoomChatIds.clear();
+  roomChatMessagesCache = [];
+  roomMembersLabel = "0 presentes";
   updateRoomChatBadge(0);
   if (el.roomChatTitle) el.roomChatTitle.textContent = roomChatLabel(room);
+  if (el.roomChatContactLabel) el.roomChatContactLabel.textContent = roomChatContactLabel(room);
+  if (el.roomChatToggle) {
+    const contactName = roomChatContactLabel(room);
+    el.roomChatToggle.setAttribute("aria-label", `Abrir conversación: ${contactName}`);
+    el.roomChatToggle.title = `Abrir conversación de ${contactName.toLowerCase()}`;
+  }
   if (el.roomChatMessages) el.roomChatMessages.innerHTML = "";
-  if (el.roomChatEmpty) el.roomChatEmpty.hidden = false;
-  if (el.roomChatStatus) el.roomChatStatus.textContent = "Conectando...";
+  if (el.roomChatEmpty) { el.roomChatEmpty.textContent = "Todavía no hay mensajes en esta casa."; el.roomChatEmpty.hidden = false; }
+  setChatStatus("");
   if (el.roomChatParticipants) el.roomChatParticipants.textContent = "0 presentes";
   if (el.roomChatTyping) { el.roomChatTyping.hidden = true; el.roomChatTyping.textContent = ""; }
 }
@@ -3855,7 +3941,8 @@ function resetRoomChat(room) {
 function renderRoomMembers(room) {
   if (!el.roomChatParticipants) return;
   if (!room) {
-    el.roomChatParticipants.textContent = "Presencia no disponible";
+    roomMembersLabel = "Presencia no disponible";
+    if (activeChatKind === "room") el.roomChatParticipants.textContent = roomMembersLabel;
     if (activeVisit) {
       el.visitRoomCount.textContent = "Estado estimado · tiempo real no disponible";
       el.visitRoomCount.title = "La app usa la última actividad guardada porque no pudo conectarse a Realtime Database.";
@@ -3865,8 +3952,10 @@ function renderRoomMembers(room) {
   const names = room.members.map((member) => member.displayName || member.username);
   const preview = names.slice(0, 2).join(" · ");
   const extra = names.length > 2 ? ` +${names.length - 2}` : "";
-  el.roomChatParticipants.textContent = `${room.count} ${room.count === 1 ? "presente" : "presentes"}${preview ? ` · ${preview}${extra}` : ""}`;
+  roomMembersLabel = `${room.count} ${room.count === 1 ? "presente" : "presentes"}${preview ? ` · ${preview}${extra}` : ""}`;
+  if (activeChatKind === "room") el.roomChatParticipants.textContent = roomMembersLabel;
   el.roomChatParticipants.title = names.join(", ");
+  if (!el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
   if (activeVisit) {
     el.visitRoomCount.textContent = `${room.count} ${room.count === 1 ? "mascota presente" : "mascotas presentes"}`;
     el.visitRoomCount.removeAttribute("title");
@@ -3875,6 +3964,11 @@ function renderRoomMembers(room) {
 
 function renderRoomTyping(users) {
   if (!el.roomChatTyping) return;
+  if (activeChatKind !== "room") {
+    el.roomChatTyping.hidden = true;
+    el.roomChatTyping.textContent = "";
+    return;
+  }
   const others = Array.isArray(users) ? users.filter((user) => user.username !== currentUsername) : [];
   if (!others.length) {
     el.roomChatTyping.hidden = true;
@@ -3891,37 +3985,186 @@ function renderRoomTyping(users) {
 function updateRoomRealtimeConnection(online) {
   if (!online) stopLocalChatTyping();
   el.roomChatToggle?.classList.toggle("is-offline", !online);
+  if (el.roomChatContactStatus) el.roomChatContactStatus.textContent = online ? "Chat en vivo" : "Sin conexión";
   if (el.roomChatSend) el.roomChatSend.disabled = !online;
-  if (el.roomChatStatus) el.roomChatStatus.textContent = online ? "En línea" : "Reconectando...";
+  if (activeChatKind) setChatStatus(online ? "" : "Reconectando...");
+  if (!el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
+}
+
+function chatContactButton({ kind, username = "", label, preview, unread = 0, online = true }) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "room-chat-contact-item";
+  button.dataset.chatKind = kind;
+  if (username) button.dataset.username = username;
+  const dot = document.createElement("span");
+  dot.className = "room-chat-list-dot" + (online ? "" : " is-offline");
+  const copy = document.createElement("span");
+  copy.className = "room-chat-list-copy";
+  const name = document.createElement("strong");
+  name.textContent = label;
+  const detail = document.createElement("small");
+  detail.textContent = preview || "Abrir conversación";
+  copy.append(name, detail);
+  button.append(dot, copy);
+  if (unread > 0) {
+    const badge = document.createElement("b");
+    badge.className = "room-chat-list-badge";
+    badge.textContent = unread >= 99 ? "99+" : String(unread);
+    button.appendChild(badge);
+  }
+  return button;
+}
+
+function directInboxFor(username) {
+  return Object.values(directInbox || {})
+    .filter((item) => item?.otherUsername === username)
+    .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0))[0] || null;
+}
+
+function renderChatContacts() {
+  if (!el.roomChatContactList) return;
+  el.roomChatContactList.innerHTML = "";
+  el.roomChatContactList.appendChild(chatContactButton({
+    kind: "room",
+    label: roomChatContactLabel(watchedRoom),
+    preview: roomMembersLabel,
+    unread: roomUnreadCount,
+    online: !!window.Multiplayer?.connected,
+  }));
+  const friends = myCloudData.friends || {};
+  const friendKeys = Object.keys(friends).sort((a, b) => {
+    const unreadA = Number(directInboxFor(a)?.unreadCount) || 0;
+    const unreadB = Number(directInboxFor(b)?.unreadCount) || 0;
+    if (unreadA !== unreadB) return unreadB - unreadA;
+    return String(friends[a]?.displayName || a).localeCompare(String(friends[b]?.displayName || b), "es");
+  });
+  friendKeys.forEach((username) => {
+    const summary = directInboxFor(username);
+    el.roomChatContactList.appendChild(chatContactButton({
+      kind: "direct",
+      username,
+      label: friends[username]?.displayName || summary?.otherDisplayName || username,
+      preview: summary?.lastText || "Mensaje privado",
+      unread: Number(summary?.unreadCount) || 0,
+      online: false,
+    }));
+  });
+  if (el.roomChatContactsEmpty) el.roomChatContactsEmpty.hidden = friendKeys.length > 0;
+}
+
+function showConversationShell() {
+  if (el.roomChatContacts) el.roomChatContacts.hidden = true;
+  if (el.roomChatConversation) el.roomChatConversation.hidden = false;
+  if (el.roomChatBack) el.roomChatBack.hidden = false;
+  if (el.roomChatTyping) { el.roomChatTyping.hidden = true; el.roomChatTyping.textContent = ""; }
+  setChatStatus("");
+}
+
+function openRoomChatConversation() {
+  stopDirectChatWatch();
+  activeChatKind = "room";
+  showConversationShell();
+  updateRoomChatBadge(0);
+  el.roomChatTitle.textContent = roomChatLabel(watchedRoom);
+  el.roomChatParticipants.textContent = roomMembersLabel;
+  el.roomChatInput.placeholder = "Escribí en el chat de la casa...";
+  renderChatMessages(roomChatMessagesCache, "Todavía no hay mensajes en esta casa.");
+  el.roomChatInput.focus();
+}
+
+function renderDirectChat(messages) {
+  if (activeChatKind !== "direct") return;
+  if (messages === null) {
+    setChatStatus("No se pudo cargar la conversación. Revisá la conexión o las reglas de Firebase.");
+    return;
+  }
+  setChatStatus("");
+  renderChatMessages(messages, `Todavía no hay mensajes con ${activeDirectDisplayName}.`);
+  window.Multiplayer?.markDirectChatRead?.(activeDirectUsername).catch(() => {});
+}
+
+function openDirectChatConversation(username, displayName) {
+  stopLocalChatTyping();
+  stopDirectChatWatch();
+  activeChatKind = "direct";
+  activeDirectUsername = username;
+  activeDirectDisplayName = displayName || username;
+  showConversationShell();
+  el.roomChatTitle.textContent = activeDirectDisplayName;
+  el.roomChatParticipants.textContent = "Mensaje privado";
+  el.roomChatInput.placeholder = `Escribile a ${activeDirectDisplayName}...`;
+  renderChatMessages([], `Cargando conversación con ${activeDirectDisplayName}...`);
+  directChatUnsubscribe = window.Multiplayer.subscribeDirectChat(username, renderDirectChat);
+  window.Multiplayer.markDirectChatRead(username).catch(() => {});
+  el.roomChatInput.focus();
+}
+
+function stopDirectInboxWatch() {
+  if (directInboxUnsubscribe) directInboxUnsubscribe();
+  directInboxUnsubscribe = null;
+  directInbox = {};
+  refreshChatUnreadBadge();
+}
+
+function startDirectInboxWatch() {
+  stopDirectInboxWatch();
+  const Multiplayer = window.Multiplayer;
+  if (!Multiplayer?.enabled || typeof Multiplayer.subscribeDirectInbox !== "function") return;
+  directInboxUnsubscribe = Multiplayer.subscribeDirectInbox((inbox) => {
+    if (inbox === null) return;
+    directInbox = inbox;
+    if (!el.roomChatPanel.hidden && activeChatKind === "direct" && activeDirectUsername) {
+      const summary = directInboxFor(activeDirectUsername);
+      if ((Number(summary?.unreadCount) || 0) > 0) Multiplayer.markDirectChatRead(activeDirectUsername).catch(() => {});
+    }
+    refreshChatUnreadBadge();
+    if (!el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
+  });
 }
 
 function setupRoomChatUI() {
   if (!el.roomChatToggle || !el.roomChatPanel || !el.roomChatForm) return;
   el.roomChatToggle.addEventListener("click", () => setRoomChatOpen(el.roomChatPanel.hidden));
   el.roomChatClose.addEventListener("click", () => setRoomChatOpen(false));
+  el.roomChatBack?.addEventListener("click", showChatContacts);
+  el.roomChatContactList?.addEventListener("click", (ev) => {
+    const button = ev.target.closest("button[data-chat-kind]");
+    if (!button) return;
+    if (button.dataset.chatKind === "room") {
+      openRoomChatConversation();
+      return;
+    }
+    const username = button.dataset.username;
+    const displayName = myCloudData.friends?.[username]?.displayName || directInboxFor(username)?.otherDisplayName || username;
+    if (username) openDirectChatConversation(username, displayName);
+  });
   el.roomChatInput.addEventListener("input", updateLocalChatTyping);
   document.addEventListener("visibilitychange", () => { if (document.hidden) stopLocalChatTyping(); });
   window.addEventListener("pagehide", stopLocalChatTyping);
   el.roomChatForm.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const text = el.roomChatInput.value.replace(/\s+/g, " ").trim().slice(0, 180);
-    if (!text) return;
+    if (!text || !activeChatKind) return;
     const Multiplayer = window.Multiplayer;
-    if (!Multiplayer?.connected || typeof Multiplayer.sendChatMessage !== "function") {
-      el.roomChatStatus.textContent = "Sin conexión. El mensaje no fue enviado.";
+    if (!Multiplayer?.connected) {
+      setChatStatus("Sin conexión. El mensaje no fue enviado.");
       return;
     }
     el.roomChatSend.disabled = true;
-    const result = await Multiplayer.sendChatMessage(text).catch(() => ({ ok: false, reason: "write_failed" }));
+    const sendingDirect = activeChatKind === "direct";
+    const result = sendingDirect
+      ? await Multiplayer.sendDirectMessage(activeDirectUsername, activeDirectDisplayName, text).catch(() => ({ ok: false, reason: "write_failed" }))
+      : await Multiplayer.sendChatMessage(text).catch(() => ({ ok: false, reason: "write_failed" }));
     el.roomChatSend.disabled = false;
     if (result.ok) {
       el.roomChatInput.value = "";
       stopLocalChatTyping();
-      el.roomChatStatus.textContent = "Mensaje enviado.";
+      setChatStatus("");
     } else if (result.reason === "rate_limit") {
-      el.roomChatStatus.textContent = "Esperá un instante antes de enviar otro mensaje.";
+      setChatStatus("Esperá un instante antes de enviar otro mensaje.");
     } else {
-      el.roomChatStatus.textContent = "No se pudo enviar. Revisá la conexión.";
+      setChatStatus("No se pudo enviar. Revisá la conexión o las reglas de Firebase.");
     }
     el.roomChatInput.focus();
   });

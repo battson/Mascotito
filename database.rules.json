@@ -54,6 +54,27 @@
           }
         }
       }
+    },
+    "directChats": {
+      "$conversationId": {
+        ".read": "auth != null",
+        "messages": {
+          ".indexOn": ["createdAt"],
+          "$messageId": {
+            ".write": "auth != null",
+            ".validate": "!newData.exists() || (newData.hasChildren(['actor', 'recipient', 'displayName', 'text', 'createdAt']) && newData.child('actor').isString() && newData.child('actor').val().matches(/^[a-z][a-z0-9_]{2,15}$/) && newData.child('recipient').isString() && newData.child('recipient').val().matches(/^[a-z][a-z0-9_]{2,15}$/) && newData.child('actor').val() != newData.child('recipient').val() && ($conversationId == newData.child('actor').val() + '~' + newData.child('recipient').val() || $conversationId == newData.child('recipient').val() + '~' + newData.child('actor').val()) && newData.child('displayName').isString() && newData.child('displayName').val().length <= 32 && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 180 && newData.child('createdAt').isNumber())"
+          }
+        }
+      }
+    },
+    "directInbox": {
+      "$username": {
+        ".read": "auth != null",
+        "$conversationId": {
+          ".write": "auth != null && $username.matches(/^[a-z][a-z0-9_]{2,15}$/)",
+          ".validate": "!newData.exists() || (newData.hasChildren(['otherUsername', 'otherDisplayName', 'lastText', 'lastActor', 'updatedAt', 'unreadCount']) && newData.child('otherUsername').isString() && newData.child('otherUsername').val().matches(/^[a-z][a-z0-9_]{2,15}$/) && newData.child('otherDisplayName').isString() && newData.child('otherDisplayName').val().length <= 32 && newData.child('lastText').isString() && newData.child('lastText').val().length > 0 && newData.child('lastText').val().length <= 180 && newData.child('lastActor').isString() && newData.child('lastActor').val().matches(/^[a-z][a-z0-9_]{2,15}$/) && newData.child('updatedAt').isNumber() && newData.child('unreadCount').isNumber() && newData.child('unreadCount').val() >= 0)"
+        }
+      }
     }
   }
 }

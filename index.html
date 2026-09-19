@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Alpha v3.9.5</title>
+  <title>Mascotito — Alpha v3.9.6</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Alpha v3.9.5</span>
+      <span class="badge" id="app-version-badge">Alpha v3.9.6</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -280,22 +280,37 @@
           <!-- v3.9.2: chat instantáneo asociado a la sala actual, con
                participantes e indicador efímero de escritura. -->
           <button id="room-chat-toggle" class="room-chat-toggle play-only" type="button" hidden aria-controls="room-chat-panel" aria-expanded="false">
-            <span aria-hidden="true">💬</span><span>Chat</span><b id="room-chat-badge" hidden>0</b>
+            <span class="room-chat-contact-dot" aria-hidden="true"></span>
+            <span class="room-chat-contact-copy">
+              <strong id="room-chat-contact-label">Tu casa</strong>
+              <small id="room-chat-contact-status">Chat en vivo</small>
+            </span>
+            <b id="room-chat-badge" hidden>0</b>
           </button>
           <section id="room-chat-panel" class="room-chat-panel play-only" hidden aria-label="Chat de la casa">
             <header>
+              <button id="room-chat-back" class="room-chat-back" type="button" aria-label="Volver a conversaciones" hidden>←</button>
               <div><span class="hud-eyebrow">EN VIVO</span><strong id="room-chat-title">Chat de la casa</strong><span id="room-chat-participants" class="room-chat-participants">0 presentes</span></div>
               <button id="room-chat-close" type="button" aria-label="Cerrar chat">×</button>
             </header>
-            <p id="room-chat-status" class="room-chat-status" role="status">Conectando...</p>
-            <p id="room-chat-typing" class="room-chat-typing" aria-live="polite" hidden></p>
-            <ol id="room-chat-messages" class="room-chat-messages" aria-live="polite"></ol>
-            <p id="room-chat-empty" class="room-chat-empty">Todavía no hay mensajes. La elegancia exige que alguien salude primero.</p>
-            <form id="room-chat-form" class="room-chat-form">
-              <label class="sr-only" for="room-chat-input">Mensaje</label>
-              <input id="room-chat-input" type="text" maxlength="180" autocomplete="off" placeholder="Escribí un mensaje..." required />
-              <button id="room-chat-send" type="submit">Enviar</button>
-            </form>
+            <section id="room-chat-contacts" class="room-chat-contacts" aria-label="Conversaciones">
+              <strong class="room-chat-section-title">Conversaciones</strong>
+              <div id="room-chat-contact-list" class="room-chat-contact-list"></div>
+              <p id="room-chat-contacts-empty" class="room-chat-contacts-empty" hidden>No tenés amigos agregados todavía.</p>
+            </section>
+            <section id="room-chat-conversation" class="room-chat-conversation" hidden>
+              <p id="room-chat-status" class="room-chat-status" role="status" hidden></p>
+              <p id="room-chat-typing" class="room-chat-typing" aria-live="polite" hidden></p>
+              <div class="room-chat-history">
+                <ol id="room-chat-messages" class="room-chat-messages" aria-live="polite"></ol>
+                <p id="room-chat-empty" class="room-chat-empty">No hay mensajes todavía.</p>
+              </div>
+              <form id="room-chat-form" class="room-chat-form">
+                <label class="sr-only" for="room-chat-input">Mensaje</label>
+                <input id="room-chat-input" type="text" maxlength="180" autocomplete="off" placeholder="Escribí un mensaje..." required />
+                <button id="room-chat-send" type="submit">Enviar</button>
+              </form>
+            </section>
           </section>
           <!-- Panel de bienestar (v2.4: "dentro del juego deberían estar
                las necesidades del bienestar"; v2.5: agrandado, el borde
@@ -526,7 +541,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.9.5 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Alpha v3.9.6 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
