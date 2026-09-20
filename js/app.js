@@ -1,6 +1,6 @@
 /**
  * Lógica principal de la app: onboarding/personalización, pantalla de
- * juego, loop de necesidades y acciones de cuidado. Beta v1.2 suma
+ * juego, loop de necesidades y acciones de cuidado. Beta v1.2.1 suma
  * inventario y ropa por capas; la enfermedad/medicina queda archivada y
  * la mascota habla por iniciativa propia según su estado.
  */

@@ -1,5 +1,10 @@
 # Mascotito Beta
 
+## Beta v1.2.1
+
+- Mangas ensanchadas específicamente en la unión con los brazos para ocultar los bordes que sobresalían durante la animación.
+- Botella restaurada a una escala proporcionada dentro del inventario, conservando el cooldown superpuesto.
+
 ## Beta v1.2
 
 - La botella de agua muestra su cooldown directamente sobre la ilustración, igual que el pescado.
