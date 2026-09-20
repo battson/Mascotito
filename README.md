@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v1.2
+
+- La botella de agua muestra su cooldown directamente sobre la ilustración, igual que el pescado.
+- Mangas, pantalones y calzado se ampliaron un poco más para cubrir mejor las partes animadas de la mascota.
+- El distintivo de versión Beta ahora usa el color `#6bafd7`.
+
 ## Beta v1.1
 
 - Orden de vestuario corregido: torso de la prenda, brazos de la mascota y mangas por encima.

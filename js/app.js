@@ -1,6 +1,6 @@
 /**
  * Lógica principal de la app: onboarding/personalización, pantalla de
- * juego, loop de necesidades y acciones de cuidado. Beta v1.1 suma
+ * juego, loop de necesidades y acciones de cuidado. Beta v1.2 suma
  * inventario y ropa por capas; la enfermedad/medicina queda archivada y
  * la mascota habla por iniciativa propia según su estado.
  */
@@ -206,6 +206,7 @@ const el = {
   inventoryFishCooldown: document.getElementById("inventory-fish-cooldown"),
   inventoryFishCatch: document.getElementById("inventory-fish-catch"),
   inventoryWater: document.getElementById("inventory-water"),
+  inventoryWaterCooldown: document.getElementById("inventory-water-cooldown"),
   inventoryFishCount: document.getElementById("inventory-fish-count"),
   inventoryStatus: document.getElementById("inventory-status"),
   wardrobeOverlay: document.getElementById("wardrobe-overlay"),
@@ -573,11 +574,11 @@ function computeWalkBounds() {
 
 function restLegs() {
   el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
-    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
     node.style.transform = `rotate(0deg) scale(${scale})`;
   });
   el.gameStage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der").forEach((node) => {
-    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
     node.style.transform = `rotate(0deg) scale(${scale})`;
   });
 }
@@ -585,11 +586,11 @@ function restLegs() {
 function applyLegSwing(stridePhase, intensity) {
   const swing = Math.sin(stridePhase) * LEG_SWING_MAX_DEG * intensity;
   el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
-    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
     node.style.transform = `rotate(${swing.toFixed(1)}deg) scale(${scale})`;
   });
   el.gameStage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der").forEach((node) => {
-    const scale = node.classList.contains("ropa-calzado") ? 1.045 : node.classList.contains("ropa-pierna") ? 1.04 : 1;
+    const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
     node.style.transform = `rotate(${(-swing).toFixed(1)}deg) scale(${scale})`;
   });
 }
@@ -2136,7 +2137,7 @@ function buildActionsDock() {
   updateSleepToggle();
 }
 
-// ---------- Beta v1.1: inventario, vestidor y regalo de bienvenida ----------
+// ---------- Beta v1.2: inventario, vestidor y regalo de bienvenida ----------
 
 function refreshInventory() {
   if (!state) return;
@@ -2157,6 +2158,11 @@ function refreshInventory() {
   }
   if (el.inventoryFishCatch) el.inventoryFishCatch.hidden = fishStock > 0;
   if (el.inventoryWater) el.inventoryWater.disabled = sleeping || waterCooldown || state.stats.hidratacion >= PET_CONFIG.llenaUmbral;
+  if (el.inventoryWaterCooldown) {
+    const remaining = Math.max(0, (state.cooldowns?.beber || 0) - Date.now());
+    el.inventoryWaterCooldown.hidden = !waterCooldown;
+    el.inventoryWaterCooldown.textContent = waterCooldown ? formatCooldownLabel(remaining) : "";
+  }
   if (el.inventoryStatus) {
     el.inventoryStatus.textContent = sleeping
       ? `${state.name} está durmiendo.`

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v1.1</title>
+  <title>Mascotito — Beta v1.2</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v1.1</span>
+      <span class="badge" id="app-version-badge">Beta v1.2</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -222,7 +222,7 @@
     </section>
   </div>
 
-  <!-- Beta v1.1: inventario general. Las categorías de decoración se
+  <!-- Beta v1.2: inventario general. Las categorías de decoración se
        muestran desde el inicio, pero permanecen deshabilitadas hasta sus
        respectivas actualizaciones. -->
   <div id="inventory-overlay" class="modal-overlay" hidden>
@@ -248,7 +248,10 @@
           <span id="inventory-fish-count">×0</span>
         </button>
         <button id="inventory-water" class="inventory-item" type="button">
-          <img src="assets/items/water-bottle.svg" alt="" />
+          <span class="inventory-item-visual">
+            <img src="assets/items/water-bottle.svg" alt="" />
+            <span id="inventory-water-cooldown" class="inventory-fish-overlay inventory-water-cooldown" hidden></span>
+          </span>
           <strong>Botella de agua</strong>
           <span>∞</span>
         </button>
@@ -258,7 +261,7 @@
     </section>
   </div>
 
-  <!-- Beta v1.1: vestuario separado del editor físico de la mascota. -->
+  <!-- Beta v1.2: vestuario separado del editor físico de la mascota. -->
   <div id="wardrobe-overlay" class="modal-overlay" hidden>
     <section class="modal-window wardrobe-window" role="dialog" aria-modal="true" aria-label="Ropa">
       <div class="modal-topbar">
@@ -625,7 +628,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v1.1 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v1.2 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

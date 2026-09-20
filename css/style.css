@@ -4367,18 +4367,20 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .room-chat-friend-actions { grid-column: 2; }
 }
 
-/* ---------- Beta v1.1 ---------- */
+/* ---------- Beta v1.2 ---------- */
 /* Orden visual: torso de la prenda < brazos de la mascota < mangas. */
 .pet-layer-clothing-upper-body .ropa-brazo { display: none; }
 .pet-layer-clothing-upper-sleeves .ropa-cuerpo { display: none; }
 
 @keyframes clothingArmSwing {
-  0%, 100% { transform: rotate(-6deg) scale(1.04); }
-  50% { transform: rotate(6deg) scale(1.04); }
+  0%, 100% { transform: rotate(-6deg) scale(1.07); }
+  50% { transform: rotate(6deg) scale(1.07); }
 }
 .ropa-brazo { animation-name: clothingArmSwing; }
-.ropa-pierna { transform: scale(1.04); }
-.ropa-calzado { transform: scale(1.045); }
+.ropa-pierna { transform: scale(1.07); }
+.ropa-calzado { transform: scale(1.08); }
+
+.badge { background: #6bafd7; }
 
 /* Dock, compositor de sala y Amigos comparten la línea inferior. */
 .room-quick-chat {
@@ -4428,8 +4430,10 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 }
 .inventory-fish-overlay[hidden] { display: none; }
 .inventory-fish-catch { background: rgba(217,130,38,.88); }
-#inventory-fish:disabled { opacity: 1; }
-#inventory-fish:disabled .inventory-item-visual img { opacity: .42; }
+#inventory-fish:disabled,
+#inventory-water:disabled { opacity: 1; }
+#inventory-fish:disabled .inventory-item-visual img,
+#inventory-water:disabled .inventory-item-visual img { opacity: .42; }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
