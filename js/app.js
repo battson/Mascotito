@@ -214,6 +214,8 @@ const el = {
   inventoryHousingGrid: document.getElementById("inventory-housing-grid"),
   housingEditOpen: document.getElementById("housing-edit-open"),
   housingEditorPanel: document.getElementById("housing-editor-panel"),
+  housingEditorHeading: document.getElementById("housing-editor-heading"),
+  housingEditorToggle: document.getElementById("housing-editor-toggle"),
   housingEditorClose: document.getElementById("housing-editor-close"),
   housingEditorHint: document.getElementById("housing-editor-hint"),
   housingEditorItems: document.getElementById("housing-editor-items"),
@@ -366,13 +368,54 @@ function makeClothingLayer(slot, itemId, extraClass) {
   return item?.inline ? makeInlineLayer(item.inline, `pet-layer-clothing pet-layer-clothing-${slot} ${extraClass || ""}`) : null;
 }
 
+function alignClothingPart(stageEl, bodySelector, clothingSelector, edge, scale) {
+  const body = stageEl.querySelector(bodySelector);
+  const clothing = stageEl.querySelector(clothingSelector);
+  if (!body || !clothing || clothing.dataset.aligned === "true") return;
+  let bodyBox, clothingBox;
+  try {
+    bodyBox = body.getBBox();
+    clothingBox = clothing.getBBox();
+  } catch (_) {
+    return;
+  }
+  if (!bodyBox.width || !clothingBox.width) return;
+  const origin = clothing.style.transformOrigin.match(/(-?[\d.]+)px\s+(-?[\d.]+)px/);
+  if (!origin) return;
+  const originX = Number(origin[1]);
+  const originY = Number(origin[2]);
+  const bodyCenter = bodyBox.x + bodyBox.width / 2;
+  const clothingCenter = clothingBox.x + clothingBox.width / 2;
+  const bodyEdge = edge === "top" ? bodyBox.y : bodyBox.y + bodyBox.height;
+  const clothingEdge = edge === "top" ? clothingBox.y : clothingBox.y + clothingBox.height;
+  // La traslación va dentro del grupo que gira: la manga/calzado conserva
+  // exactamente el mismo pivote que el brazo/pierna durante la animación.
+  const dx = (bodyCenter - originX) / scale - (clothingCenter - originX);
+  const dy = (bodyEdge - originY) / scale - (clothingEdge - originY);
+  const content = document.createElementNS(SVG_NS, "g");
+  content.setAttribute("transform", `translate(${dx.toFixed(3)} ${dy.toFixed(3)})`);
+  while (clothing.firstChild) content.appendChild(clothing.firstChild);
+  clothing.appendChild(content);
+  clothing.dataset.aligned = "true";
+}
+
+function alignClothingLayers(stageEl) {
+  for (const side of ["izq", "der"]) {
+    alignClothingPart(stageEl, `#brazo-${side}`, `.pet-layer-clothing-upper-sleeves #ropa-brazo-${side}`, "top", 1.14);
+    alignClothingPart(stageEl, `#pierna-${side}`, `.pet-layer-clothing-shoes #ropa-calzado-${side}`, "bottom", 1.08);
+  }
+}
+
 function renderPetLayers(stageEl, look, wardrobe = null) {
   const equipped = wardrobe?.equipped || {};
   const lookKey = JSON.stringify({ look, equipped });
   stageEl.style.setProperty("--pet-body-color", getBodyColorHex(look.bodyColor));
   stageEl.style.setProperty("--eye-color", getEyeColorHex(look.ojosColor));
   stageEl.style.setProperty("--eye-tint-filter", getEyeTintFilter(look.ojosColor));
-  if (stageEl.dataset.lookKey === lookKey) return;
+  if (stageEl.dataset.lookKey === lookKey) {
+    alignClothingLayers(stageEl);
+    return;
+  }
   stageEl.dataset.lookKey = lookKey;
 
   stageEl.innerHTML = "";
@@ -421,6 +464,10 @@ function renderPetLayers(stageEl, look, wardrobe = null) {
     stageEl.appendChild(makeInlineLayer(bocaOpt.inline, "pet-layer-boca"));
   }
   appendImgLayer(stageEl, "narices", look.narices, "nariz");
+  alignClothingLayers(stageEl);
+  requestAnimationFrame(() => {
+    if (stageEl.isConnected) alignClothingLayers(stageEl);
+  });
 }
 
 function appendImgLayer(stageEl, category, optionId, altText) {
@@ -778,6 +825,7 @@ function setupWalking() {
 let housingEditing = false;
 let housingSelected = null;
 let housingDrag = null;
+let housingPanelDrag = null;
 let housingInventoryCategory = "food";
 const housingGiftSelections = {};
 
@@ -787,6 +835,39 @@ function housingSceneElement(tag, attributes = {}) {
     if (value !== undefined && value !== null) node.setAttribute(name, String(value));
   });
   return node;
+}
+
+function appendWindowWeather(svg, entry, index) {
+  const clipId = `housing-window-pane-${index}`;
+  const defs = housingSceneElement("defs");
+  const clip = housingSceneElement("clipPath", { id: clipId });
+  clip.appendChild(housingSceneElement("rect", {
+    x: entry.x + 75, y: entry.y + 135, width: 286, height: 238,
+  }));
+  defs.appendChild(clip);
+  svg.appendChild(defs);
+  const weather = housingSceneElement("g", {
+    class: "housing-window-weather", "clip-path": `url(#${clipId})`, "pointer-events": "none",
+  });
+  weather.appendChild(housingSceneElement("rect", {
+    class: "housing-window-sky", x: entry.x + 75, y: entry.y + 135, width: 286, height: 238,
+  }));
+  weather.appendChild(housingSceneElement("path", {
+    class: "housing-window-horizon",
+    d: `M ${entry.x + 75} ${entry.y + 248} L ${entry.x + 361} ${entry.y + 286} L ${entry.x + 361} ${entry.y + 373} L ${entry.x + 75} ${entry.y + 373} Z`,
+  }));
+  const positioned = housingSceneElement("g", { transform: `translate(${entry.x} ${entry.y})` });
+  const first = housingSceneElement("g", { class: "housing-window-cloud cloud-one" });
+  first.appendChild(housingSceneElement("path", {
+    d: "M 93 194 C 89 186 95 177 105 177 C 109 161 130 155 141 169 C 151 163 164 170 164 181 C 178 181 180 196 167 201 L 103 201 C 98 201 95 198 93 194 Z",
+  }));
+  const second = housingSceneElement("g", { class: "housing-window-cloud cloud-two" });
+  second.appendChild(housingSceneElement("path", {
+    d: "M 222 226 C 210 211 219 190 237 190 C 244 169 270 164 283 181 C 299 174 315 184 318 199 C 339 201 346 225 329 236 L 238 238 C 231 238 225 233 222 226 Z",
+  }));
+  positioned.append(first, second);
+  weather.appendChild(positioned);
+  svg.appendChild(weather);
 }
 
 function renderHousingScene() {
@@ -805,6 +886,7 @@ function renderHousingScene() {
   };
   image(HOUSING_ITEMS[housing.wall] || HOUSING_ITEMS.pared_basica_1, 0, 0, HOUSING_WIDTH, HOUSING_HEIGHT);
   image(HOUSING_ITEMS[housing.floor] || HOUSING_ITEMS.piso_basico_1, 0, HOUSING_FLOOR_Y, HOUSING_WIDTH, HOUSING_HEIGHT - HOUSING_FLOOR_Y);
+  let windowIndex = 0;
   housing.placed.forEach((entry) => {
     const item = HOUSING_ITEMS[entry.id];
     if (!item) return;
@@ -813,6 +895,7 @@ function renderHousingScene() {
       class: `housing-object${housingSelected?.uid === entry.uid && housingEditing ? " is-selected" : ""}`,
       "data-uid": entry.uid,
     });
+    if (item.id === "ventana_madera_1_1") appendWindowWeather(svg, entry, windowIndex++);
   });
   svg.appendChild(housingSceneElement("rect", {
     id: "scene-noche-overlay", x: 0, y: 0, width: HOUSING_WIDTH, height: HOUSING_HEIGHT,
@@ -2428,6 +2511,7 @@ function startHousingEdit() {
   housingSelected = null;
   el.stageFloor.classList.add("is-decorating");
   el.housingEditorPanel.hidden = false;
+  clampHousingEditorPanel();
   renderHousingEditorItems();
   renderHousingScene();
 }
@@ -2436,6 +2520,7 @@ function stopHousingEdit() {
   housingEditing = false;
   housingSelected = null;
   housingDrag = null;
+  housingPanelDrag = null;
   el.stageFloor.classList.remove("is-decorating");
   el.housingEditorPanel.hidden = true;
   renderHousingScene();
@@ -2485,7 +2570,44 @@ function placeHousingAt(event, svg) {
   renderHousingEditorItems();
 }
 
+function clampHousingEditorPanel() {
+  const panel = el.housingEditorPanel;
+  const floor = el.stageFloor;
+  if (!panel || !floor || panel.hidden || !panel.style.left) return;
+  const left = clampHousing(panel.offsetLeft, 0, Math.max(0, floor.clientWidth - panel.offsetWidth));
+  const top = clampHousing(panel.offsetTop, 0, Math.max(0, floor.clientHeight - panel.offsetHeight));
+  panel.style.left = `${left}px`;
+  panel.style.top = `${top}px`;
+}
+
 function setupHousingUI() {
+  el.housingEditorHeading?.addEventListener("pointerdown", (event) => {
+    if (event.target.closest("button")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const panel = el.housingEditorPanel;
+    housingPanelDrag = { x: event.clientX, y: event.clientY, left: panel.offsetLeft, top: panel.offsetTop };
+    panel.style.left = `${housingPanelDrag.left}px`;
+    panel.style.right = "auto";
+    el.housingEditorHeading.setPointerCapture(event.pointerId);
+  });
+  el.housingEditorHeading?.addEventListener("pointermove", (event) => {
+    if (!housingPanelDrag) return;
+    const panel = el.housingEditorPanel;
+    const floor = el.stageFloor;
+    panel.style.left = `${clampHousing(housingPanelDrag.left + event.clientX - housingPanelDrag.x, 0, Math.max(0, floor.clientWidth - panel.offsetWidth))}px`;
+    panel.style.top = `${clampHousing(housingPanelDrag.top + event.clientY - housingPanelDrag.y, 0, Math.max(0, floor.clientHeight - panel.offsetHeight))}px`;
+  });
+  const stopPanelDrag = () => { housingPanelDrag = null; };
+  el.housingEditorHeading?.addEventListener("pointerup", stopPanelDrag);
+  el.housingEditorHeading?.addEventListener("pointercancel", stopPanelDrag);
+  el.housingEditorToggle?.addEventListener("click", () => {
+    const collapsed = el.housingEditorPanel.classList.toggle("is-collapsed");
+    el.housingEditorToggle.textContent = collapsed ? "Expandir" : "Contraer";
+    el.housingEditorToggle.setAttribute("aria-expanded", String(!collapsed));
+    clampHousingEditorPanel();
+  });
+  window.addEventListener("resize", clampHousingEditorPanel);
   el.inventoryTabs?.addEventListener("click", (event) => {
     const tab = event.target.closest("button[data-category]");
     if (tab) showHousingInventoryCategory(tab.dataset.category);

@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v2.1
+
+- Mangas centradas en los brazos y alineadas con su borde superior; calzado centrado en las piernas y alineado con su borde inferior. Se mantienen tamaños y pivotes de animación.
+- El panel **Decorar casa** se puede arrastrar desde el encabezado y contraer para descubrir la zona que cubría.
+- Las nubes de la ventana se mueven suavemente; el cielo cambia entre día y noche según la hora local del dispositivo.
+
 ## Beta v2 — Housing
 
 - Cada casa nueva empieza con la primera pared básica, el piso básico, una puerta a la izquierda y una ventana a la derecha.

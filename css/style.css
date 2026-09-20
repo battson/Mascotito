@@ -4370,6 +4370,17 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 
 /* Housing: el fondo y los objetos comparten el mismo sistema de coordenadas. */
 #housing-scene { display: block; width: 100%; height: 100%; }
+.housing-window-sky { fill: #50cae7; transition: fill .8s ease; }
+.housing-window-horizon { fill: #71dcf1; transition: fill .8s ease; }
+.housing-window-cloud { fill: #e9fbff; opacity: .95; }
+.housing-window-cloud.cloud-one { animation: windowCloudDriftOne 14s ease-in-out infinite alternate; }
+.housing-window-cloud.cloud-two { animation: windowCloudDriftTwo 19s ease-in-out infinite alternate; }
+.stage-floor.is-night .housing-window-sky { fill: #1a3458; }
+.stage-floor.is-night .housing-window-horizon { fill: #294e73; }
+.stage-floor.is-night .housing-window-cloud { fill: #bacde4; opacity: .72; }
+@keyframes windowCloudDriftOne { from { transform: translateX(-13px); } to { transform: translateX(24px); } }
+@keyframes windowCloudDriftTwo { from { transform: translateX(20px); } to { transform: translateX(-25px); } }
+@media (prefers-reduced-motion: reduce) { .housing-window-cloud { animation: none !important; } }
 .housing-object { pointer-events: none; }
 #scene-puerta { pointer-events: auto; }
 #stage-floor.is-decorating .location-deco { z-index: 20; pointer-events: auto; }
@@ -4387,11 +4398,15 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   overflow: auto; background: #fff9ec; color: #432d1f;
   border: 2px solid #aa7544; box-shadow: 0 8px 30px #321c1460;
 }
-.housing-editor-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.housing-editor-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: move; touch-action: none; user-select: none; }
+.housing-editor-controls { display: flex; gap: 6px; }
 .housing-editor-heading button, #housing-editor-remove {
   border: 1px solid #b78b60; background: #f4dfbc; color: #432d1f;
   padding: 7px 10px; cursor: pointer; font-weight: 700;
 }
+.housing-editor-panel.is-collapsed #housing-editor-hint,
+.housing-editor-panel.is-collapsed #housing-editor-items,
+.housing-editor-panel.is-collapsed #housing-editor-remove { display: none; }
 #housing-editor-hint { margin: 0; font-size: .78rem; line-height: 1.35; }
 .housing-editor-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; overflow: auto; }
 .housing-editor-item { min-width: 0; padding: 6px; border: 1px solid #d6b990; background: white; cursor: pointer; color: #49301f; }
