@@ -166,6 +166,7 @@ async function register(usernameRaw, pin, initialPetState) {
       createdAt: now,
       lastActive: now,
       petState: initialPetState || null,
+      housingGiftStatus: "none",
       friends: {},
       friendRequests: { incoming: {}, outgoing: {} },
     });
@@ -214,7 +215,9 @@ async function savePetState(usernameLower, petState) {
   if (!gate.ok) return false;
   const { updateDoc } = window.__cloudFns;
   try {
-    await updateDoc(playerRef(usernameLower), { petState, lastActive: Date.now() });
+    const update = { petState, lastActive: Date.now() };
+    if (petState?.housing?.giftStatus === "claimed") update.housingGiftStatus = "claimed";
+    await updateDoc(playerRef(usernameLower), update);
     return true;
   } catch (err) {
     console.warn("[Mascotito] No se pudo guardar en la nube (se sigue guardando local).", err);
@@ -477,6 +480,7 @@ async function completeGoogleSignup(usernameRaw, googleUid) {
       createdAt: now,
       lastActive: now,
       petState: null,
+      housingGiftStatus: "none",
       friends: {},
       friendRequests: { incoming: {}, outgoing: {} },
     });

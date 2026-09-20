@@ -8,7 +8,7 @@
 // v2 agrega necesidades/campos nuevos (Fase 2: Cuidado) — normalizeState
 // migra un guardado v1 (hambre/sed/limpieza) a la forma nueva sin perder
 // la mascota ni su progreso.
-const STATE_VERSION = 7;
+const STATE_VERSION = 8;
 
 let lastStorageNotice = null;
 function getStorageNotice() {
@@ -298,6 +298,7 @@ function normalizeState(raw) {
     petPosition: { xPct: clamp(raw.petPosition?.xPct || 50, 8,92), yPct: clamp(raw.petPosition?.yPct || 75,40,88) },
     inventory: { pescado: Number.isFinite(raw.inventory?.pescado) ? Math.max(0, Math.floor(raw.inventory.pescado)) : 0 },
     wardrobe: normalizeWardrobe(raw.wardrobe),
+    housing: normalizeHousing(raw.housing, !raw.housing),
     daily: normalizeDailyProgress(raw.daily),
     dirt: normalizeDirt(raw.dirt, location),
     golosinaLog: normalizeGolosinaLog(raw.golosinaLog),
@@ -305,7 +306,7 @@ function normalizeState(raw) {
   };
 }
 
-function createNewState(name, look) {
+function createNewState(name, look, housingGiftStatus = "none") {
   const now = Date.now();
   return {
     version: STATE_VERSION,
@@ -323,6 +324,7 @@ function createNewState(name, look) {
     world: normalizeWorld(null),
     inventory: { pescado: 0 },
     wardrobe: defaultWardrobe(),
+    housing: defaultHousing(housingGiftStatus),
     digestion: { pending: [] },
     petPosition: { xPct: 50, yPct: 75 },
     daily: defaultDailyProgress(),

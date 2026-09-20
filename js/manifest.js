@@ -643,6 +643,8 @@ function getLocationDef(id) {
  * ya no es parte de este fondo (nunca lo fue): sigue siendo un objeto de
  * WORLD_OBJECTS en js/world.js, reubicado en v3.4 arriba de la mesita
  * redonda que sí trae esta escena nueva (ver comentario en js/world.js). */
+// Escena histórica: housing compone la casa desde assets/housing/.
+// Se conserva como referencia del arte anterior, pero ya no se renderiza.
 const HOME_SCENE_INLINE =
 
 `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" class="scene-home-svg">

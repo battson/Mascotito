@@ -1,11 +1,11 @@
 /**
  * Lógica principal de la app: onboarding/personalización, pantalla de
- * juego, loop de necesidades y acciones de cuidado. Beta v1.2.1 suma
- * inventario y ropa por capas; la enfermedad/medicina queda archivada y
- * la mascota habla por iniciativa propia según su estado.
+ * juego, loop de necesidades y acciones de cuidado. Beta v2 incorpora
+ * housing con decoración, inventario de casa y regalos de migración.
  */
 
 let state = null;
+let pendingHousingGiftForAccount = false;
 let selectedLook = null;
 let tickTimer = null;
 let cooldownTimer = null;
@@ -209,6 +209,19 @@ const el = {
   inventoryWaterCooldown: document.getElementById("inventory-water-cooldown"),
   inventoryFishCount: document.getElementById("inventory-fish-count"),
   inventoryStatus: document.getElementById("inventory-status"),
+  inventoryTabs: document.getElementById("inventory-tabs"),
+  inventoryFoodGrid: document.getElementById("inventory-food-grid"),
+  inventoryHousingGrid: document.getElementById("inventory-housing-grid"),
+  housingEditOpen: document.getElementById("housing-edit-open"),
+  housingEditorPanel: document.getElementById("housing-editor-panel"),
+  housingEditorClose: document.getElementById("housing-editor-close"),
+  housingEditorHint: document.getElementById("housing-editor-hint"),
+  housingEditorItems: document.getElementById("housing-editor-items"),
+  housingEditorRemove: document.getElementById("housing-editor-remove"),
+  housingGiftOverlay: document.getElementById("housing-gift-overlay"),
+  housingGiftGroups: document.getElementById("housing-gift-groups"),
+  housingGiftStatus: document.getElementById("housing-gift-status"),
+  housingGiftClaim: document.getElementById("housing-gift-claim"),
   wardrobeOverlay: document.getElementById("wardrobe-overlay"),
   wardrobeClose: document.getElementById("wardrobe-close"),
   wardrobeCloseAction: document.getElementById("wardrobe-close-action"),
@@ -762,23 +775,58 @@ function setupWalking() {
 
 // ---------- Casa / Jardín: navegación entre lugares (sección 4, v2.1) ----------
 
-/** Contenido decorativo de cada lugar — se arma sólo cuando ese lugar está
- * activo (en vez de tener los 8 elementos siempre en el DOM y ocultar/
- * mostrar con CSS), así no hay que sincronizar visibilidad por clase en
- * dos lugares distintos y las animaciones (nubes) arrancan limpias cada
- * vez que se entra al Jardín. */
-const LOCATION_DECO_HTML = {
-  // v2.5: fondo ilustrado (antes un div con gradiente CSS) — ver
-  // HOME_SCENE_INLINE en js/manifest.js para la extracción/organización
-  // de capas (suelo/pared/ventana/puerta/alfombra) a partir de
-  // home-scene.ai. #scene-puerta dentro de este markup tiene su propio
-  // click handler (ver setupSceneDoor más abajo), deshabilitado desde v3.5.
-  //
-  // v3.5 (pedido explícito): "Quitar la escena del jardín" — la entrada
-  // "jardin" (cielo + pasto + sol/luna/nubes) se saca del todo; ya no
-  // queda ningún lugar al que la puerta pueda llevar.
-  casa: HOME_SCENE_INLINE,
-};
+let housingEditing = false;
+let housingSelected = null;
+let housingDrag = null;
+let housingInventoryCategory = "food";
+const housingGiftSelections = {};
+
+function housingSceneElement(tag, attributes = {}) {
+  const node = document.createElementNS(SVG_NS, tag);
+  Object.entries(attributes).forEach(([name, value]) => {
+    if (value !== undefined && value !== null) node.setAttribute(name, String(value));
+  });
+  return node;
+}
+
+function renderHousingScene() {
+  if (!el.locationDeco) return;
+  const source = activeVisit?.data?.petState?.housing || state?.housing;
+  const housing = activeVisit ? normalizeHousing(source) : source || defaultHousing();
+  const svg = housingSceneElement("svg", {
+    id: "housing-scene", viewBox: `0 0 ${HOUSING_WIDTH} ${HOUSING_HEIGHT}`,
+    preserveAspectRatio: "xMidYMid slice", width: "100%", height: "100%",
+    "aria-hidden": "true",
+  });
+  const image = (item, x, y, width, height, extra = {}) => {
+    const node = housingSceneElement("image", { href: item.asset, x, y, width, height, ...extra });
+    svg.appendChild(node);
+    return node;
+  };
+  image(HOUSING_ITEMS[housing.wall] || HOUSING_ITEMS.pared_basica_1, 0, 0, HOUSING_WIDTH, HOUSING_HEIGHT);
+  image(HOUSING_ITEMS[housing.floor] || HOUSING_ITEMS.piso_basico_1, 0, HOUSING_FLOOR_Y, HOUSING_WIDTH, HOUSING_HEIGHT - HOUSING_FLOOR_Y);
+  housing.placed.forEach((entry) => {
+    const item = HOUSING_ITEMS[entry.id];
+    if (!item) return;
+    image(item, entry.x, entry.y, item.width, item.height, {
+      id: item.placement === "wallDoor" ? "scene-puerta" : undefined,
+      class: `housing-object${housingSelected?.uid === entry.uid && housingEditing ? " is-selected" : ""}`,
+      "data-uid": entry.uid,
+    });
+  });
+  svg.appendChild(housingSceneElement("rect", {
+    id: "scene-noche-overlay", x: 0, y: 0, width: HOUSING_WIDTH, height: HOUSING_HEIGHT,
+    fill: "#111c39", "pointer-events": "none",
+  }));
+  el.locationDeco.replaceChildren(svg);
+}
+
+function housingPointerPosition(event, svg) {
+  const point = svg.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+  return point.matrixTransform(svg.getScreenCTM().inverse());
+}
 
 /** Aplica la ilustración/etiquetas de un lugar — SIN moverse (eso lo hace
  * goToLocation). Se llama una sola vez al entrar a un lugar (arranque del
@@ -788,7 +836,7 @@ function setLocationVisuals(locationId) {
   const def = getLocationDef(locationId);
   el.stageFloor.classList.remove(...PET_LOCATIONS.map((l) => "location-" + l.id));
   el.stageFloor.classList.add("location-" + def.id);
-  if (el.locationDeco) el.locationDeco.innerHTML = LOCATION_DECO_HTML[def.id] || "";
+  if (el.locationDeco) renderHousingScene();
   if (el.navBtnLabel) el.navBtnLabel.textContent = def.exitLabel;
 }
 
@@ -896,25 +944,15 @@ function setupHeaderNavigation() {
   if (el.navGarden) el.navGarden.addEventListener("click", () => goToLocation("jardin"));
 }
 
-/* v2.5 (histórico): al hacerle click a la puerta de la escena funcionaba
- * como hacerle click al botón "Salir al jardín". v3.5 (pedido explícito):
- * "Se deshabilita la puerta hasta nuevo aviso (próximamente se pondrá un
- * menú al hacer click que diga ¿A dónde quieres ir? con las opciones
- * Jardín, Club, Casa de *nombre de amigo*)." — ese menú TODAVÍA no se
- * construye (pedido explícito de dejarlo para más adelante); por ahora el
- * click en la puerta no navega a ningún lado, sólo avisa que está en
- * camino. La puerta (#scene-puerta) sólo existe dentro del fondo de la
- * Casa (HOME_SCENE_INLINE, inyectado en #location-deco por
- * setLocationVisuals) — se delega el click en #location-deco en vez de
- * buscar #scene-puerta directo, porque ese markup se reconstruye entero
- * cada vez que cambia de lugar. stopPropagation evita que el mismo click
- * además dispare el click-to-walk del fondo. */
+/* La puerta colocada conserva el aviso de destino futuro. El SVG de la
+ * casa se reconstruye al decorarla, por eso se delega el click. */
 function setupSceneDoor() {
   if (!el.locationDeco) return;
   el.locationDeco.addEventListener("click", (ev) => {
     const puerta = ev.target.closest("#scene-puerta");
     if (!puerta) return;
     ev.stopPropagation();
+    if (housingEditing) return;
     if (!state) return;
     notifySystem("Muy pronto vas a poder elegir a dónde ir desde acá.");
     announce("La puerta todavía no lleva a ningún lado — muy pronto vas a poder elegir a dónde ir.");
@@ -1275,6 +1313,7 @@ function clearNameError() {
 const EDITOR_TOP_LEVEL_IDS = ["editor-name-card", "btn-aleatorio", "preview-stage-pos", "creator-tabs-row"];
 
 function setStageEditing(active) {
+  if (active && housingEditing) stopHousingEdit();
   if (el.stageFloor) el.stageFloor.classList.toggle("is-editing", active);
   EDITOR_TOP_LEVEL_IDS.forEach((id) => {
     const node = document.getElementById(id);
@@ -1340,7 +1379,7 @@ function submitOnboarding() {
     state.look = cleanLook;
     trySave(state);
   } else {
-    state = createNewState(name, cleanLook);
+    state = createNewState(name, cleanLook, pendingHousingGiftForAccount ? "pending" : "none");
     trySave(state);
   }
   setStageEditing(false);
@@ -1799,7 +1838,10 @@ function startGame() {
   requestsTimer = setInterval(maybeShowRequest, PET_CONFIG.requests.checkIntervalMs);
   computeWalkBounds();
   maybeGreet(info);
-  requestAnimationFrame(maybeShowBetaWelcomeGift);
+  requestAnimationFrame(() => {
+    maybeShowBetaWelcomeGift();
+    maybeShowHousingGift();
+  });
 }
 
 // ---------- Animación de boca (v2.3, pedido explícito) ----------
@@ -2172,6 +2214,7 @@ function refreshInventory() {
 
 function openInventory() {
   refreshInventory();
+  showHousingInventoryCategory("food");
   el.inventoryOverlay.hidden = false;
   el.inventoryFish?.focus();
 }
@@ -2264,6 +2307,256 @@ function claimBetaWelcomeSet(setId) {
   flushCloudSaveNow();
   refreshUI();
   notifySystem("¡Regalo recibido! Ya podés combinar las tres prendas desde Ropa.");
+  requestAnimationFrame(maybeShowHousingGift);
+}
+
+function maybeShowHousingGift() {
+  if (!state?.housing || state.housing.giftStatus !== "pending" || !state.wardrobe?.betaWelcomeClaimed
+    || el.game.hidden || el.stageFloor?.classList.contains("is-editing")) return;
+  renderHousingGift();
+  el.housingGiftOverlay.hidden = false;
+  requestAnimationFrame(() => el.housingGiftGroups?.querySelector("button")?.focus());
+}
+
+function renderHousingGift() {
+  el.housingGiftGroups.replaceChildren();
+  HOUSING_GIFT_MODELS.forEach((model) => {
+    const variants = Object.values(HOUSING_ITEMS).filter((item) => item.model === model);
+    const group = document.createElement("section");
+    group.className = "housing-gift-group";
+    const heading = document.createElement("h3");
+    heading.textContent = variants[0]?.label.split(" · ")[0] || model;
+    group.appendChild(heading);
+    const choices = document.createElement("div");
+    choices.className = "housing-gift-choices";
+    variants.forEach((item, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "housing-gift-choice" + (housingGiftSelections[model] === item.id ? " is-selected" : "");
+      button.dataset.giftId = item.id;
+      button.setAttribute("aria-pressed", String(housingGiftSelections[model] === item.id));
+      const preview = document.createElement("img");
+      preview.src = item.asset;
+      preview.alt = "";
+      const label = document.createElement("span");
+      label.textContent = variants.length === 1 ? "Elegir" : `Opción ${index + 1}`;
+      button.append(preview, label);
+      choices.appendChild(button);
+    });
+    group.appendChild(choices);
+    el.housingGiftGroups.appendChild(group);
+  });
+  el.housingGiftClaim.disabled = !HOUSING_GIFT_MODELS.every((model) => housingGiftSelections[model]);
+  const selectedCount = HOUSING_GIFT_MODELS.filter((model) => housingGiftSelections[model]).length;
+  el.housingGiftStatus.textContent = `${selectedCount} de 4 regalos elegidos`;
+}
+
+function claimHousingGift() {
+  if (state?.housing?.giftStatus !== "pending") return;
+  if (!HOUSING_GIFT_MODELS.every((model) => HOUSING_ITEMS[housingGiftSelections[model]]?.model === model)) return;
+  HOUSING_GIFT_MODELS.forEach((model) => {
+    const id = housingGiftSelections[model];
+    state.housing.owned[id] = (state.housing.owned[id] || 0) + 1;
+  });
+  state.housing.giftStatus = "claimed";
+  el.housingGiftOverlay.hidden = true;
+  trySave(state);
+  flushCloudSaveNow();
+  notifySystem("¡Tus cuatro regalos para la casa están en el inventario!");
+}
+
+function renderHousingInventory() {
+  if (!el.inventoryHousingGrid || !state?.housing) return;
+  el.inventoryHousingGrid.replaceChildren();
+  const category = housingInventoryCategory === "surface" ? ["wall", "floor"] : ["decor"];
+  Object.values(HOUSING_ITEMS).filter((item) => category.includes(item.category) && state.housing.owned[item.id]).forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "housing-inventory-card";
+    const img = document.createElement("img");
+    img.src = item.asset;
+    img.alt = "";
+    const name = document.createElement("strong");
+    name.textContent = item.label;
+    const quantity = document.createElement("span");
+    quantity.textContent = `×${state.housing.owned[item.id]}`;
+    card.append(img, name, quantity);
+    el.inventoryHousingGrid.appendChild(card);
+  });
+  if (!el.inventoryHousingGrid.children.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "Todavía no tenés objetos en esta categoría.";
+    el.inventoryHousingGrid.appendChild(empty);
+  }
+}
+
+function showHousingInventoryCategory(category) {
+  housingInventoryCategory = category;
+  el.inventoryTabs?.querySelectorAll("[data-category]").forEach((tab) => {
+    tab.classList.toggle("is-active", tab.dataset.category === category);
+  });
+  el.inventoryFoodGrid.hidden = category !== "food";
+  el.inventoryHousingGrid.hidden = category === "food";
+  el.inventoryStatus.hidden = category !== "food";
+  if (category !== "food") renderHousingInventory();
+}
+
+function renderHousingEditorItems() {
+  if (!state?.housing || !el.housingEditorItems) return;
+  el.housingEditorItems.replaceChildren();
+  Object.values(HOUSING_ITEMS).filter((item) => state.housing.owned[item.id]).forEach((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.housingId = item.id;
+    button.className = "housing-editor-item";
+    if (housingSelected?.id === item.id) button.classList.add("is-selected");
+    if (state.housing.wall === item.id || state.housing.floor === item.id) button.classList.add("is-equipped");
+    const image = document.createElement("img");
+    image.src = item.asset;
+    image.alt = "";
+    const label = document.createElement("span");
+    label.textContent = item.label;
+    button.append(image, label);
+    el.housingEditorItems.appendChild(button);
+  });
+  el.housingEditorRemove.hidden = !housingSelected?.uid;
+}
+
+function startHousingEdit() {
+  if (!state?.housing || activeVisit || el.game.hidden) return;
+  closeInventory();
+  housingEditing = true;
+  housingSelected = null;
+  el.stageFloor.classList.add("is-decorating");
+  el.housingEditorPanel.hidden = false;
+  renderHousingEditorItems();
+  renderHousingScene();
+}
+
+function stopHousingEdit() {
+  housingEditing = false;
+  housingSelected = null;
+  housingDrag = null;
+  el.stageFloor.classList.remove("is-decorating");
+  el.housingEditorPanel.hidden = true;
+  renderHousingScene();
+}
+
+function selectHousingItem(id) {
+  const item = HOUSING_ITEMS[id];
+  if (!item || !state.housing.owned[id]) return;
+  if (item.category === "wall" || item.category === "floor") {
+    state.housing[item.category] = id;
+    housingSelected = null;
+    trySave(state);
+    renderHousingScene();
+  } else {
+    const placed = state.housing.placed.find((entry) => entry.id === id);
+    housingSelected = { id, uid: placed?.uid || null };
+    el.housingEditorHint.textContent = placed
+      ? "Arrastrá el objeto o tocá otra posición válida para moverlo."
+      : "Tocá una posición válida en la casa para colocar el objeto.";
+    renderHousingScene();
+  }
+  renderHousingEditorItems();
+}
+
+function placeHousingAt(event, svg) {
+  if (!housingSelected) return;
+  const item = HOUSING_ITEMS[housingSelected.id];
+  const pointer = housingPointerPosition(event, svg);
+  const position = housingPosition(item, pointer.x - item.width / 2, pointer.y - item.height / 2);
+  if (!canPlaceHousing(item, position, state.housing.placed, housingSelected.uid)) {
+    el.housingEditorHint.textContent = "Esa posición se superpone con otro objeto. Elegí un espacio libre.";
+    return;
+  }
+  if (housingSelected.uid) {
+    const entry = state.housing.placed.find((placed) => placed.uid === housingSelected.uid);
+    if (!entry) return;
+    Object.assign(entry, position);
+  } else {
+    const placedCount = state.housing.placed.filter((entry) => entry.id === item.id).length;
+    if (placedCount >= state.housing.owned[item.id]) return;
+    const uid = `housing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    state.housing.placed.push({ uid, id: item.id, ...position });
+    housingSelected.uid = uid;
+  }
+  trySave(state);
+  renderHousingScene();
+  renderHousingEditorItems();
+}
+
+function setupHousingUI() {
+  el.inventoryTabs?.addEventListener("click", (event) => {
+    const tab = event.target.closest("button[data-category]");
+    if (tab) showHousingInventoryCategory(tab.dataset.category);
+  });
+  el.housingEditOpen?.addEventListener("click", startHousingEdit);
+  el.housingEditorClose?.addEventListener("click", stopHousingEdit);
+  el.housingEditorItems?.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-housing-id]");
+    if (button) selectHousingItem(button.dataset.housingId);
+  });
+  el.housingEditorRemove?.addEventListener("click", () => {
+    if (!housingSelected?.uid) return;
+    state.housing.placed = state.housing.placed.filter((entry) => entry.uid !== housingSelected.uid);
+    housingSelected = null;
+    trySave(state);
+    renderHousingScene();
+    renderHousingEditorItems();
+  });
+  el.housingGiftGroups?.addEventListener("click", (event) => {
+    const choice = event.target.closest("button[data-gift-id]");
+    const item = HOUSING_ITEMS[choice?.dataset.giftId];
+    if (!item) return;
+    housingGiftSelections[item.model] = item.id;
+    renderHousingGift();
+    el.housingGiftGroups.querySelector(`[data-gift-id="${item.id}"]`)?.focus();
+  });
+  el.housingGiftClaim?.addEventListener("click", claimHousingGift);
+  el.locationDeco?.addEventListener("pointerdown", (event) => {
+    if (!housingEditing) return;
+    event.stopPropagation();
+    const svg = event.target.closest("#housing-scene");
+    if (!svg) return;
+    const object = event.target.closest(".housing-object");
+    if (object) {
+      const entry = state.housing.placed.find((placed) => placed.uid === object.dataset.uid);
+      if (!entry) return;
+      housingSelected = { id: entry.id, uid: entry.uid };
+      const point = housingPointerPosition(event, svg);
+      housingDrag = { uid: entry.uid, startX: entry.x, startY: entry.y,
+        offsetX: point.x - entry.x, offsetY: point.y - entry.y, moved: false };
+      svg.setPointerCapture(event.pointerId);
+      renderHousingEditorItems();
+    } else {
+      placeHousingAt(event, svg);
+    }
+  });
+  el.locationDeco?.addEventListener("pointermove", (event) => {
+    if (!housingEditing || !housingDrag) return;
+    event.stopPropagation();
+    const svg = el.locationDeco.querySelector("#housing-scene");
+    const entry = state.housing.placed.find((placed) => placed.uid === housingDrag.uid);
+    const item = HOUSING_ITEMS[entry?.id];
+    if (!svg || !item) return;
+    const point = housingPointerPosition(event, svg);
+    const position = housingPosition(item, point.x - housingDrag.offsetX, point.y - housingDrag.offsetY);
+    if (!canPlaceHousing(item, position, state.housing.placed, entry.uid)) return;
+    housingDrag.moved = true;
+    Object.assign(entry, position);
+    const image = Array.from(svg.querySelectorAll(".housing-object")).find((node) => node.dataset.uid === entry.uid);
+    image?.setAttribute("x", position.x);
+    image?.setAttribute("y", position.y);
+  });
+  const endDrag = (event) => {
+    if (!housingDrag) return;
+    event.stopPropagation();
+    if (housingDrag.moved) trySave(state);
+    housingDrag = null;
+    renderHousingScene();
+  };
+  el.locationDeco?.addEventListener("pointerup", endDrag);
+  el.locationDeco?.addEventListener("pointercancel", endDrag);
 }
 
 function setupBetaInventoryUI() {
@@ -2769,6 +3062,7 @@ function setupPetClick() {
   el.gameStage.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); el.gameStage.click(); } });
   el.gameStage.addEventListener("click", (ev) => {
     ev.stopPropagation();
+    if (housingEditing) return;
     if (!state || el.game.hidden) return;
     doAcariciar();
   });
@@ -3333,6 +3627,7 @@ document.addEventListener("keydown", ev => {
   setupVisitUI();
   setupRoomChatUI();
   setupBetaInventoryUI();
+  setupHousingUI();
   setupDeleteAccountUI();
   boot();
 })();
@@ -3449,6 +3744,7 @@ function beginLocalOnlySession() {
 }
 
 function startSessionWithData(data) {
+  pendingHousingGiftForAccount = !!data && !Object.prototype.hasOwnProperty.call(data, "housingGiftStatus");
   el.loginScreen.hidden = true;
   el.appHeader.hidden = false;
   if (el.btnAmigos) el.btnAmigos.hidden = true;
@@ -3484,6 +3780,7 @@ function startSessionWithData(data) {
 // ---------- v3.3: pantalla de login (usuario + PIN) ----------
 
 function showLoginScreen() {
+  if (housingEditing) stopHousingEdit();
   el.loginScreen.hidden = false;
   el.game.hidden = true;
   setStageEditing(false);
@@ -4869,6 +5166,7 @@ function watchRoomPlayers(room) {
 function renderVisit(displayName, data) {
   if (!activeVisit || !el.stageFloor.classList.contains("is-visiting")) return;
   activeVisit.data = data || null;
+  renderHousingScene();
   if (!data || !data.petState) {
     el.visitStatusLine.textContent = `No se pudo cargar la casa de ${displayName} ahora mismo.`;
     delete el.visitPetStageHost.dataset.lookKey;
@@ -4964,6 +5262,7 @@ async function connectVisitPresence(visit) {
 
 function openVisit(usernameLower, displayName) {
   if (!window.Cloud || !window.Cloud.enabled || !usernameLower) return;
+  if (housingEditing) stopHousingEdit();
   closeVisit();
   closeFriendsPanel();
   activeVisit = {

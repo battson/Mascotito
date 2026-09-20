@@ -385,18 +385,11 @@ body {
 .stage-floor.location-fading { opacity: 0.15; }
 
 /* ---------- Casa y Jardín: lugares navegables (sección 4) ---------- */
-/* Fondos ilustrados con CSS puro (gradientes + formas en .location-deco),
-   fijos: no hay compra/colocación/edición de muebles. Se aplican con la
-   clase .location-<id> (ver PET_LOCATIONS en js/manifest.js y
-   applyLocation() en js/app.js) a #stage-floor. */
+/* El fondo de la casa se compone en #housing-scene. */
 
-/* v2.5: pedido explícito — el fondo de la Casa, antes armado a mano con
-   gradientes CSS (pared/zócalo/piso), se reemplaza por el arte real de
-   home-scene.ai (ver HOME_SCENE_INLINE en js/manifest.js, inyectado en
-   #location-deco por setLocationVisuals()). Sólo queda un color de panel
-   liso de respaldo por si el SVG tardara en pintarse. */
+/* Fondo de respaldo mientras cargan pared y piso. */
 .stage-floor.location-casa {
-  background: url('../assets/backgrounds/cc-scene.svg');
+  background: #ffefd5;
 }
 /* v2.2: pediste que el Jardín "vuelva a ser como antes" — el rediseño de
    v2.1 (cerca + arbustos + flores + fachada de casa, paleta marfil/verde)
@@ -457,17 +450,7 @@ body {
   inset: 0;
   pointer-events: none;
 }
-/* v2.5→v3.4: la Casa arma su fondo desde el SVG real inyectado adentro de
-   #location-deco (ver HOME_SCENE_INLINE, js/manifest.js). La escena v3.4
-   (home-scenev2.0.ai) no tiene ventana, así que el mecanismo de noche
-   cambió: en vez de pisar --ventana-color se sube la opacidad de
-   #scene-noche-overlay, un <rect> que cubre toda la escena (mismo
-   mecanismo is-night que ya prendía sol/luna en el Jardín, sólo cambió
-   QUÉ se pisa). #scene-puerta ahora es un <rect> invisible del tamaño de
-   la puerta dibujada (no una capa identificable dentro del SVG
-   reconstruido) — sigue siendo clickeable con el mismo efecto que "Salir
-   al jardín" (ver setupNavigation() en js/app.js) y ahora muestra un
-   resalte suave al pasar el mouse, ya que de por sí no se ve. */
+/* Tinte nocturno de toda la escena, incluidas las decoraciones. */
 #scene-noche-overlay {
   opacity: 0;
   transition: opacity 0.4s ease;
@@ -480,7 +463,7 @@ body {
   pointer-events: auto;
   transition: fill-opacity 0.15s ease;
 }
-#scene-puerta:hover { fill-opacity: 0.14; }
+#scene-puerta:hover { filter: brightness(1.08); }
 /* v2.2: se sacó la puerta dibujada (y su zona interactiva #door-hotspot) —
    pedido explícito: "que sólo se entre y salga de su casa a través del
    botón Salir a...". La navegación Casa↔Jardín ahora depende únicamente
@@ -4384,6 +4367,50 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .ropa-calzado { transform: scale(1.08); }
 
 .badge { background: #6bafd7; }
+
+/* Housing: el fondo y los objetos comparten el mismo sistema de coordenadas. */
+#housing-scene { display: block; width: 100%; height: 100%; }
+.housing-object { pointer-events: none; }
+#scene-puerta { pointer-events: auto; }
+#stage-floor.is-decorating .location-deco { z-index: 20; pointer-events: auto; }
+#stage-floor.is-decorating .walker { z-index: 21; pointer-events: none; }
+#stage-floor.is-decorating #housing-scene { pointer-events: all; touch-action: none; cursor: crosshair; }
+#stage-floor.is-decorating .housing-object { pointer-events: auto; cursor: grab; }
+#stage-floor.is-decorating .housing-object.is-selected { outline: 5px solid #e87e2d; }
+#stage-floor.is-decorating .stage-actions-row,
+#stage-floor.is-decorating .room-quick-chat,
+#stage-floor.is-decorating .room-chat-toggle { visibility: hidden; pointer-events: none; }
+.housing-editor-panel {
+  position: absolute; top: 16px; right: 16px; z-index: 30;
+  width: min(350px, calc(100% - 32px)); max-height: min(80%, 620px);
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  overflow: auto; background: #fff9ec; color: #432d1f;
+  border: 2px solid #aa7544; box-shadow: 0 8px 30px #321c1460;
+}
+.housing-editor-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.housing-editor-heading button, #housing-editor-remove {
+  border: 1px solid #b78b60; background: #f4dfbc; color: #432d1f;
+  padding: 7px 10px; cursor: pointer; font-weight: 700;
+}
+#housing-editor-hint { margin: 0; font-size: .78rem; line-height: 1.35; }
+.housing-editor-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; overflow: auto; }
+.housing-editor-item { min-width: 0; padding: 6px; border: 1px solid #d6b990; background: white; cursor: pointer; color: #49301f; }
+.housing-editor-item img { display: block; width: 100%; height: 58px; object-fit: contain; }
+.housing-editor-item span { display: block; font-size: .67rem; line-height: 1.2; }
+.housing-editor-item.is-selected, .housing-editor-item.is-equipped { border: 2px solid #d98226; background: #fff1d4; }
+.housing-inventory-card { min-width: 0; padding: 8px; border: 1px solid #ddc9a8; background: #fffdf7; text-align: center; }
+.housing-inventory-card img { display: block; width: 100%; height: 92px; object-fit: contain; }
+.housing-inventory-card strong, .housing-inventory-card span { display: block; font-size: .72rem; }
+.housing-gift-window { width: min(900px, 100%); max-height: min(90dvh, 850px); overflow: auto; border-radius: 0; padding: 20px; }
+.housing-gift-window h2 { margin: 5px 0; }
+.housing-gift-window p { margin: 0 0 12px; }
+.housing-gift-group { margin: 12px 0; }
+.housing-gift-group h3 { margin: 0 0 6px; font-size: .9rem; }
+.housing-gift-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px; }
+.housing-gift-choice { padding: 7px; border: 2px solid #ddc9a8; background: #fffdf7; cursor: pointer; color: #432d1f; }
+.housing-gift-choice.is-selected { border-color: #d98226; background: #fff1d4; }
+.housing-gift-choice img { display: block; width: 100%; height: 75px; object-fit: contain; }
+.housing-gift-choice span { font-weight: 700; font-size: .72rem; }
 
 /* Dock, compositor de sala y Amigos comparten la línea inferior. */
 .room-quick-chat {

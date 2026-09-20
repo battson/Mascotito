@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v1.2.1</title>
+  <title>Mascotito — Beta v2</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v1.2.1</span>
+      <span class="badge" id="app-version-badge">Beta v2</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -222,22 +222,19 @@
     </section>
   </div>
 
-  <!-- Beta v1.2: inventario general. Las categorías de decoración se
-       muestran desde el inicio, pero permanecen deshabilitadas hasta sus
-       respectivas actualizaciones. -->
+  <!-- Inventario general: comida, superficies y decoraciones de la casa. -->
   <div id="inventory-overlay" class="modal-overlay" hidden>
     <section class="modal-window inventory-window" role="dialog" aria-modal="true" aria-label="Inventario">
       <div class="modal-topbar">
         <h2>Inventario</h2>
         <button id="inventory-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button>
       </div>
-      <div class="inventory-tabs" role="tablist" aria-label="Categorías del inventario">
-        <button type="button" class="inventory-tab is-active">Comida y bebida</button>
-        <button type="button" class="inventory-tab" disabled>Pisos y paredes</button>
-        <button type="button" class="inventory-tab" disabled>Muebles</button>
-        <button type="button" class="inventory-tab" disabled>Decoraciones</button>
+      <div id="inventory-tabs" class="inventory-tabs" role="tablist" aria-label="Categorías del inventario">
+        <button type="button" class="inventory-tab is-active" data-category="food">Comida y bebida</button>
+        <button type="button" class="inventory-tab" data-category="surface">Pisos y paredes</button>
+        <button type="button" class="inventory-tab" data-category="decor">Decoraciones</button>
       </div>
-      <div class="inventory-grid">
+      <div id="inventory-food-grid" class="inventory-grid">
         <button id="inventory-fish" class="inventory-item" type="button">
           <span class="inventory-item-visual">
             <img src="assets/items/fish-item.svg" alt="" />
@@ -256,8 +253,9 @@
           <span>∞</span>
         </button>
       </div>
+      <div id="inventory-housing-grid" class="inventory-grid housing-inventory-grid" hidden></div>
       <p id="inventory-status" class="inventory-status" role="status"></p>
-      <div class="modal-actions"><button id="inventory-close-action" type="button" class="secondary-btn">Cerrar</button></div>
+      <div class="modal-actions"><button id="housing-edit-open" type="button" class="secondary-btn">Decorar casa</button><button id="inventory-close-action" type="button" class="secondary-btn">Cerrar</button></div>
     </section>
   </div>
 
@@ -289,6 +287,17 @@
         <p>Recibirás la prenda superior, la inferior y el calzado. Después podrás combinarlos libremente desde Ropa.</p>
       </div>
       <div id="beta-welcome-options" class="beta-welcome-options"></div>
+    </section>
+  </div>
+
+  <div id="housing-gift-overlay" class="modal-overlay beta-welcome-overlay" hidden>
+    <section class="modal-window housing-gift-window" role="dialog" aria-modal="true" aria-labelledby="housing-gift-title">
+      <span class="hud-eyebrow">REGALO PARA CUENTAS EXISTENTES</span>
+      <h2 id="housing-gift-title">Elegí tus cuatro regalos para la casa</h2>
+      <p>Recibirás una pared de huesitos, un piso de madera, una repisa y una alfombra. Se guardarán en tu inventario para que los coloques cuando quieras.</p>
+      <div id="housing-gift-groups"></div>
+      <p id="housing-gift-status" role="status"></p>
+      <div class="modal-actions"><button id="housing-gift-claim" type="button" class="primary-btn" disabled>Recibir regalos</button></div>
     </section>
   </div>
 
@@ -475,6 +484,12 @@
             <span class="cloud cloud-2"></span>
             <span class="cloud cloud-3"></span>
           </div>
+          <section id="housing-editor-panel" class="housing-editor-panel play-only" hidden aria-label="Decorar casa">
+            <div class="housing-editor-heading"><strong>Decorar casa</strong><button id="housing-editor-close" type="button" aria-label="Terminar decoración">Listo</button></div>
+            <p id="housing-editor-hint">Elegí un objeto y tocá la casa para colocarlo. Podés arrastrar los objetos ya colocados.</p>
+            <div id="housing-editor-items" class="housing-editor-items"></div>
+            <button id="housing-editor-remove" type="button" hidden>Guardar objeto en inventario</button>
+          </section>
           <!-- Manchas/desechos del entorno (sección 5) — se arman en JS,
                cada una es un botón chico clickeable que se retira sola.
                Independientes por lugar (state.dirt.casa / .jardin). -->
@@ -540,7 +555,7 @@
           <!-- v3.5 (pedido explícito): "quitar el botón para salir, junto a
                su función" — el botón "Salir al jardín"/"Entrar a casa"
                (antes #btn-nav acá) se saca del todo. La puerta de la
-               escena (#scene-puerta, dentro de HOME_SCENE_INLINE) queda
+               escena (#scene-puerta, ahora un objeto de housing) queda
                deshabilitada hasta nuevo aviso (ver setupSceneDoor en
                js/app.js) — a futuro un menú "¿A dónde quieres ir?" con
                Jardín/Club/Casa de amigo la reemplaza. -->
@@ -628,7 +643,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v1.2.1 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v2 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
@@ -641,6 +656,7 @@
   <script src="js/icons.js"></script>
   <script src="js/manifest.js"></script>
   <script src="js/clothing-manifest.js"></script>
+  <script src="js/housing.js"></script>
   <script src="js/state.js"></script>
   <script src="js/world.js"></script>
   <script type="module" src="js/cloud.js"></script>

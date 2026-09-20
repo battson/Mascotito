@@ -1,5 +1,14 @@
 # Mascotito Beta
 
+## Beta v2 — Housing
+
+- Cada casa nueva empieza con la primera pared básica, el piso básico, una puerta a la izquierda y una ventana a la derecha.
+- Las cuentas creadas antes de incorporar housing eligen una variante de pared de huesitos, piso de madera, repisa y alfombra. Reciben una unidad de cada una en el inventario; nada del regalo se coloca automáticamente.
+- El inventario permite ver pisos, paredes y decoraciones. Desde **Decorar casa** se cambian las superficies y se colocan, mueven o retiran las decoraciones propias.
+- La puerta se mueve sólo en horizontal y siempre queda apoyada en el límite del piso. La ventana y la repisa se mueven dentro de la pared; la alfombra, dentro del piso. Las decoraciones no pueden superponerse.
+- Las visitas muestran la casa guardada del anfitrión sin permitir editarla. El diseño se guarda junto al estado de la mascota y se sincroniza con Firestore.
+- Los recursos de `assets/housing/` se generan desde los Illustrator con `scripts/export-housing-assets.py`. Los números de variante siguen el orden de las mesas de trabajo de cada archivo. El script recorta los márgenes transparentes de las decoraciones para que sus límites de colocación coincidan con el dibujo visible.
+
 ## Beta v1.2.1
 
 - Mangas ensanchadas específicamente en la unión con los brazos para ocultar los bordes que sobresalían durante la animación.
