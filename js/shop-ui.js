@@ -2,6 +2,7 @@
 function openShop() {
   if (!state) return;
   shopGroup = "Casa";
+  shopSubcategory = "Todas";
   el.shopStatus.textContent = "";
   renderShop();
   el.shopOverlay.hidden = false;
@@ -14,8 +15,20 @@ function renderShop() {
   if (!state) return;
   el.shopCoins.textContent = state.economy.coins;
   el.shopTabs.querySelectorAll("[data-group]").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.group === shopGroup));
+  const subcategories = ["Todas", ...new Set(SHOP_ITEMS.filter((item) => item.group === shopGroup).map((item) => item.subcategory))];
+  el.shopSubtabs.replaceChildren();
+  subcategories.forEach((name) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "inventory-tab" + (name === shopSubcategory ? " is-active" : "");
+    btn.dataset.subcategory = name;
+    btn.textContent = name;
+    el.shopSubtabs.appendChild(btn);
+  });
   el.shopGrid.replaceChildren();
-  const items = SHOP_ITEMS.filter((item) => item.group === shopGroup && (isAdmin() || shopSetting(shopCatalog, item).enabled));
+  const items = SHOP_ITEMS.filter((item) => item.group === shopGroup
+    && (shopSubcategory === "Todas" || item.subcategory === shopSubcategory)
+    && (isAdmin() || shopSetting(shopCatalog, item).enabled));
   if (!items.length) {
     el.shopGrid.textContent = "Todavía no hay artículos disponibles en esta categoría.";
     return;
@@ -142,6 +155,14 @@ function setupShopUI() {
     const btn = ev.target.closest("[data-group]");
     if (!btn) return;
     shopGroup = btn.dataset.group;
+    shopSubcategory = "Todas";
+    el.shopStatus.textContent = "";
+    renderShop();
+  });
+  el.shopSubtabs?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("[data-subcategory]");
+    if (!btn) return;
+    shopSubcategory = btn.dataset.subcategory;
     el.shopStatus.textContent = "";
     renderShop();
   });

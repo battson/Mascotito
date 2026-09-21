@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v3.0</title>
+  <title>Mascotito — Beta v3.1</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v3.0</span>
+      <span class="badge" id="app-version-badge">Beta v3.1</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -281,6 +281,7 @@
       <div class="modal-topbar"><h2 id="shop-title">Tienda</h2><button id="shop-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button></div>
       <p class="shop-balance">Tus monedas: <img src="assets/shop/moneda.png" alt="" /> <strong id="shop-coins">0</strong></p>
       <div class="inventory-tabs" id="shop-tabs"><button class="inventory-tab is-active" data-group="Casa">Casa</button><button class="inventory-tab" data-group="Ropa">Ropa</button><button class="inventory-tab" data-group="Colores">Colores</button></div>
+      <div class="inventory-tabs shop-subtabs" id="shop-subtabs" aria-label="Tipo de artículo"></div>
       <p id="shop-status" role="status" class="inventory-status"></p>
       <div id="shop-grid" class="shop-grid"></div>
       <div class="modal-actions"><button id="shop-close-action" type="button" class="secondary-btn">Cerrar</button></div>
@@ -655,7 +656,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v3.0 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v3.1 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

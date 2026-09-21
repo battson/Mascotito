@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v3.1
+
+- Las mangas se alinean con la unión del hombro y con el borde superior del brazo.
+- La tienda distingue paredes, pisos, puertas, ventanas, repisas y alfombras; y separa prendas superiores, inferiores, calzado y accesorios. Las prendas con precio previo vuelven a aparecer aunque un catálogo anterior sólo guardara el precio.
+- Los paneles de Amigos, Inventario, Ropa y Tienda se abren dentro del escenario.
+- Durante una visita la casa se construye con los datos del anfitrión, incluso si su guardado todavía no tenía vivienda propia.
+
 ## Beta v3.0 — Tienda
 
 - El botón **Tienda** abre Casa, Ropa y Colores. Cada variante se compra una sola vez por cuenta; las prendas y decoraciones regaladas ya cuentan como propias.

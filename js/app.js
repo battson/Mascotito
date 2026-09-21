@@ -20,6 +20,7 @@ let pendingGoogleUid = null; // uid de Google mientras se muestra el paso de "el
 let friendsTabActive = "lista";
 let wardrobeSlotActive = "superior";
 let shopGroup = "Casa";
+let shopSubcategory = "Todas";
 let shopCatalog = {};
 let shopBusy = false;
 const friendPresence = new Map();
@@ -78,6 +79,7 @@ const el = {
   shopOverlay: document.getElementById("shop-overlay"),
   shopGrid: document.getElementById("shop-grid"),
   shopTabs: document.getElementById("shop-tabs"),
+  shopSubtabs: document.getElementById("shop-subtabs"),
   shopCoins: document.getElementById("shop-coins"),
   shopStatus: document.getElementById("shop-status"),
   headerLevelText: document.getElementById("header-level-text"),
@@ -385,7 +387,7 @@ function makeClothingLayer(slot, itemId, extraClass) {
   return item?.inline ? makeInlineLayer(item.inline, `pet-layer-clothing pet-layer-clothing-${slot} ${extraClass || ""}`) : null;
 }
 
-function alignClothingPart(stageEl, bodySelector, clothingSelector, edge, scale) {
+function alignClothingPart(stageEl, bodySelector, clothingSelector, edge, scale, alignAtJoint = false) {
   const body = stageEl.querySelector(bodySelector);
   const clothing = stageEl.querySelector(clothingSelector);
   if (!body || !clothing || clothing.dataset.aligned === "true") return;
@@ -407,7 +409,12 @@ function alignClothingPart(stageEl, bodySelector, clothingSelector, edge, scale)
   const clothingEdge = edge === "top" ? clothingBox.y : clothingBox.y + clothingBox.height;
   // La traslación va dentro del grupo que gira: la manga/calzado conserva
   // exactamente el mismo pivote que el brazo/pierna durante la animación.
-  const dx = (bodyCenter - originX) / scale - (clothingCenter - originX);
+  // En brazos diagonales, el centro de la caja completa cae lejos del
+  // hombro. La manga comparte el pivote del brazo: alineamos esa unión.
+  const bodyOrigin = body.style.transformOrigin.match(/(-?[\d.]+)px\s+(-?[\d.]+)px/);
+  const dx = alignAtJoint && bodyOrigin
+    ? (Number(bodyOrigin[1]) - originX) / scale
+    : (bodyCenter - originX) / scale - (clothingCenter - originX);
   const dy = (bodyEdge - originY) / scale - (clothingEdge - originY);
   const content = document.createElementNS(SVG_NS, "g");
   content.setAttribute("transform", `translate(${dx.toFixed(3)} ${dy.toFixed(3)})`);
@@ -418,7 +425,7 @@ function alignClothingPart(stageEl, bodySelector, clothingSelector, edge, scale)
 
 function alignClothingLayers(stageEl) {
   for (const side of ["izq", "der"]) {
-    alignClothingPart(stageEl, `#brazo-${side}`, `.pet-layer-clothing-upper-sleeves #ropa-brazo-${side}`, "top", 1.14);
+    alignClothingPart(stageEl, `#brazo-${side}`, `.pet-layer-clothing-upper-sleeves #ropa-brazo-${side}`, "top", 1.14, true);
     alignClothingPart(stageEl, `#pierna-${side}`, `.pet-layer-clothing-shoes #ropa-calzado-${side}`, "bottom", 1.08);
   }
 }
@@ -891,8 +898,9 @@ function appendWindowWeather(svg, entry, index) {
 
 function renderHousingScene() {
   if (!el.locationDeco) return;
-  const source = activeVisit?.data?.petState?.housing || state?.housing;
-  const housing = activeVisit ? normalizeHousing(source) : source || defaultHousing();
+  const housing = activeVisit
+    ? normalizeHousing(activeVisit.data?.petState?.housing)
+    : state?.housing || defaultHousing();
   const svg = housingSceneElement("svg", {
     id: "housing-scene", viewBox: `0 0 ${HOUSING_WIDTH} ${HOUSING_HEIGHT}`,
     preserveAspectRatio: "xMidYMid slice", width: "100%", height: "100%",
@@ -3739,8 +3747,16 @@ document.addEventListener("keydown", ev => {
 });
 // ---------- Arranque ----------
 
+function setupStageModals() {
+  ["friends-overlay", "inventory-overlay", "wardrobe-overlay", "shop-overlay"].forEach((id) => {
+    const modal = document.getElementById(id);
+    if (modal) el.stageFloor.appendChild(modal);
+  });
+}
+
 (function init() {
   applyAppVersion();
+  setupStageModals();
   // Iconos estáticos que no cambian durante la sesión.
   // v3.5: el botón "Salir al jardín" (#btn-nav, antes con el ícono de
   // puerta acá) se sacó del todo — ya no hay nada que inicializar acá.
