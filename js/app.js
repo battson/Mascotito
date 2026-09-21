@@ -20,7 +20,7 @@ let pendingGoogleUid = null; // uid de Google mientras se muestra el paso de "el
 let friendsTabActive = "lista";
 let wardrobeSlotActive = "superior";
 let shopGroup = "Casa";
-let shopSubcategory = "Todas";
+let shopSubcategory = null;
 let shopCatalog = {};
 let shopBusy = false;
 const friendPresence = new Map();
@@ -447,10 +447,10 @@ function renderPetLayers(stageEl, look, wardrobe = null) {
   stageEl.appendChild(makeInlineLayer(PET_LEGS_INLINE, "pet-layer-legs"));
   stageEl.appendChild(makeInlineLayer(PET_TORSO_INLINE, "pet-layer-torso"));
 
-  const lowerLayer = makeClothingLayer("inferior", equipped.inferior, "pet-layer-clothing-lower");
-  if (lowerLayer) stageEl.appendChild(lowerLayer);
   const shoesLayer = makeClothingLayer("calzado", equipped.calzado, "pet-layer-clothing-shoes");
   if (shoesLayer) stageEl.appendChild(shoesLayer);
+  const lowerLayer = makeClothingLayer("inferior", equipped.inferior, "pet-layer-clothing-lower");
+  if (lowerLayer) stageEl.appendChild(lowerLayer);
 
   const orejasOpt = findOption("orejas", look.orejas);
   if (orejasOpt && orejasOpt.inline) {

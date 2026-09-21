@@ -2,7 +2,7 @@
 function openShop() {
   if (!state) return;
   shopGroup = "Casa";
-  shopSubcategory = "Todas";
+  shopSubcategory = null;
   el.shopStatus.textContent = "";
   renderShop();
   el.shopOverlay.hidden = false;
@@ -15,7 +15,8 @@ function renderShop() {
   if (!state) return;
   el.shopCoins.textContent = state.economy.coins;
   el.shopTabs.querySelectorAll("[data-group]").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.group === shopGroup));
-  const subcategories = ["Todas", ...new Set(SHOP_ITEMS.filter((item) => item.group === shopGroup).map((item) => item.subcategory))];
+  const subcategories = [...new Set(SHOP_ITEMS.filter((item) => item.group === shopGroup).map((item) => item.subcategory))];
+  if (!subcategories.includes(shopSubcategory)) shopSubcategory = subcategories[0];
   el.shopSubtabs.replaceChildren();
   subcategories.forEach((name) => {
     const btn = document.createElement("button");
@@ -27,7 +28,7 @@ function renderShop() {
   });
   el.shopGrid.replaceChildren();
   const items = SHOP_ITEMS.filter((item) => item.group === shopGroup
-    && (shopSubcategory === "Todas" || item.subcategory === shopSubcategory)
+    && item.subcategory === shopSubcategory
     && (isAdmin() || shopSetting(shopCatalog, item).enabled));
   if (!items.length) {
     el.shopGrid.textContent = "Todavía no hay artículos disponibles en esta categoría.";
@@ -38,20 +39,20 @@ function renderShop() {
     const owned = shopOwns(state, item);
     const card = document.createElement("article");
     card.className = "shop-card";
+    card.title = item.label;
     if (item.asset) {
       const img = document.createElement("img");
       img.src = item.asset;
-      img.alt = "";
+      img.alt = item.label;
       card.appendChild(img);
     } else {
       const swatch = document.createElement("span");
       swatch.className = "shop-swatch";
+      swatch.setAttribute("role", "img");
+      swatch.setAttribute("aria-label", item.label);
       swatch.style.background = item.swatch;
       card.appendChild(swatch);
     }
-    const label = document.createElement("strong");
-    label.textContent = item.label;
-    card.appendChild(label);
     const price = document.createElement("span");
     price.className = "shop-price";
     price.textContent = setting.price == null ? "Sin precio" : `${setting.price} monedas`;
@@ -60,6 +61,7 @@ function renderShop() {
     buy.type = "button";
     buy.className = "primary-btn";
     buy.dataset.buy = item.id;
+    buy.setAttribute("aria-label", `${owned ? "Ya tenés" : "Comprar"} ${item.label}`);
     buy.textContent = owned ? "Ya lo tenés" : setting.price != null && state.economy.coins < setting.price ? "Faltan monedas" : "Comprar";
     buy.disabled = shopBusy || owned || !setting.enabled || setting.price == null || state.economy.coins < setting.price;
     card.appendChild(buy);
@@ -116,7 +118,7 @@ async function handleShopClick(event) {
     const result = window.Cloud?.enabled ? await window.Cloud.saveShopItem(item.id, { price, enabled }) : { ok: true };
     if (result.ok) shopCatalog[item.id] = { price, enabled };
     shopBusy = false;
-    el.shopStatus.textContent = result.ok ? `${item.label}: cambios guardados.` : "No se pudo guardar el catálogo. Reintentá.";
+    el.shopStatus.textContent = result.ok ? "Cambios guardados." : "No se pudo guardar el catálogo. Reintentá.";
     renderShop();
     return;
   }
@@ -155,7 +157,7 @@ function setupShopUI() {
     const btn = ev.target.closest("[data-group]");
     if (!btn) return;
     shopGroup = btn.dataset.group;
-    shopSubcategory = "Todas";
+    shopSubcategory = null;
     el.shopStatus.textContent = "";
     renderShop();
   });

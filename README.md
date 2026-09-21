@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v3.1.2
+
+- El pantalón se dibuja encima del calzado.
+- Las pestañas de la tienda permanecen visibles mientras se desplazan los artículos. Cada sección entra directamente en una subcategoría, sin «Todas», y las tarjetas muestran la imagen y el precio sin el nombre visible.
+- El chat rápido ocupa menos ancho dentro del escenario.
+
 ## Beta v3.1
 
 - Las mangas se alinean con la unión del hombro y con el borde superior del brazo.

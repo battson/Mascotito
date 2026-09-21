@@ -4495,14 +4495,13 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 
 /* Beta v3.0: catálogo y moneda del arte original. */
 .currency-icon img { width: 25px; height: 25px; display: block; object-fit: contain; }
-.shop-window { width: min(900px, calc(100vw - 24px)); max-height: min(90vh, 850px); overflow-y: auto; }
+.shop-window { width: min(900px, calc(100vw - 24px)); max-height: min(90vh, 850px); overflow: hidden; }
 .shop-balance { display: flex; align-items: center; gap: 6px; padding: 0 18px; font-family: 'Baloo 2', sans-serif; }
 .shop-balance img { width: 25px; height: 25px; }
 .shop-balance strong, .shop-price { color: #a57212; font-family: 'Baloo 2', sans-serif; font-weight: 800; }
-.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 16px 18px; }
+.shop-grid { display: grid; flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: start; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 16px 18px; }
 .shop-card { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; padding: 12px; border: 2px solid #cfae73; border-radius: 12px; background: #fff9e9; text-align: center; }
 .shop-card > img { width: 100%; height: 115px; object-fit: contain; }
-.shop-card > strong { line-height: 1.2; min-height: 2.4em; }
 .shop-card > button { margin-top: auto; width: 100%; }
 .shop-swatch { display: block; width: 92px; height: 92px; margin: 12px auto; border: 2px solid #815629; border-radius: 50%; }
 .shop-admin-controls { display: flex; align-items: center; gap: 5px; width: 100%; }
@@ -4518,12 +4517,16 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #stage-floor > #shop-overlay .shop-window { max-height: calc(100% - 8px); }
 .shop-admin-controls button { min-width: 0; padding: 5px; font-size: 13px; }
 
+/* El cuadro de chat rápido ocupa menos ancho que el espacio disponible. */
+.room-quick-chat { right: auto; width: min(360px, calc(100% - 620px)); }
+
 @media (max-width: 900px) {
   .room-quick-chat {
-    left: 12px;
-    right: 12px;
+    left: 50%;
+    right: auto;
     bottom: 72px !important;
-    width: auto;
+    width: min(420px, calc(100% - 24px));
+    transform: translateX(-50%);
   }
   .room-chat-toggle { right: 8px; bottom: 8px; }
   .room-chat-panel { right: 8px; bottom: 54px; width: calc(100% - 16px); height: min(440px, calc(100% - 70px)); }
