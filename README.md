@@ -1,5 +1,10 @@
 # Mascotito Beta
 
+## Beta v3.2.1
+
+- La transición permanece visible al menos 650 ms, incluso si la escena carga rápido.
+- El símbolo central se reemplazó por el arte de `logo_load.ai`, exportado con transparencia.
+
 ## Beta v3.2
 
 - Una transición dentro del escenario cubre la carga inicial, los cambios entre casa y jardín, la edición de mascota y las visitas. Se retira cuando la escena está dibujada y sus imágenes están listas, con espera acotada si una imagen falla.

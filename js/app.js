@@ -326,7 +326,7 @@ function preloadHousingAssets(housing) {
 async function endStageTransition(sequence, assets = null) {
   if (assets) await Promise.race([preloadHousingAssets(assets), wait(4000)]);
   await nextStagePaint();
-  const remaining = (prefersReducedMotion() ? 0 : 240) - (performance.now() - stageTransitionStartedAt);
+  const remaining = 650 - (performance.now() - stageTransitionStartedAt);
   if (remaining > 0) await wait(remaining);
   if (sequence !== stageTransitionSequence) return;
   el.stageTransition.classList.add("is-leaving");
@@ -1050,7 +1050,15 @@ let navLock = false;
 async function goToLocation(targetId) {
   if (!state || navLock || el.game.hidden || activeVisit) return;
   if (targetId === state.location || minigame) return;
-  if (debugSnapshot) { state.location = targetId; setLocationVisuals(targetId); refreshUI(); computeWalkBounds(); return; }
+  if (debugSnapshot) {
+    const transition = beginStageTransition("Preparando el escenario...");
+    state.location = targetId;
+    setLocationVisuals(targetId);
+    refreshUI();
+    computeWalkBounds();
+    endStageTransition(transition, targetId === "casa" ? state.housing : null);
+    return;
+  }
   if (state.sleep.dormida) {
     notifySystem(`${state.name} está durmiendo — no puede salir hasta que despierte.`);
     announce(`${state.name} está durmiendo, no puede cambiar de lugar ahora.`);
@@ -5466,7 +5474,10 @@ async function prepareVisitEntrance(visit) {
   const housing = normalizeHousing(visit.data?.petState?.housing);
   await Promise.race([preloadHousingAssets(housing), wait(4000)]);
   await nextStagePaint();
-  if (activeVisit !== visit) return;
+  if (activeVisit !== visit || !visit.data?.petState) {
+    if (activeVisit === visit) visit.entrancePromise = null;
+    return;
+  }
   placeVisitorAtDoor();
   visit.entranceReady = true;
   clearTimeout(visit.loadTimeout);
@@ -5550,7 +5561,9 @@ function openVisit(usernameLower, displayName) {
   activeVisit.loadTimeout = setTimeout(() => {
     if (activeVisit === visit && !visit.entranceReady) stageTransitionError(transitionId, "La casa tarda demasiado en cargar.");
   }, 8000);
-  visitUnsubscribe = window.Cloud.subscribeToPlayer(usernameLower, (data) => renderVisit(displayName, data));
+  visitUnsubscribe = window.Cloud.subscribeToPlayer(usernameLower, (data) => {
+    if (activeVisit === visit) renderVisit(displayName, data);
+  });
 }
 
 function closeVisit({ skipTransition = false, enteringAnotherVisit = false } = {}) {

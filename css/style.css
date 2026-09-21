@@ -4530,7 +4530,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 }
 .stage-transition.is-leaving { opacity: 0; pointer-events: none; }
 .stage-transition-content { display: grid; justify-items: center; gap: 14px; text-align: center; font: 800 clamp(1.1rem, 2.5vw, 1.7rem)/1.2 "Baloo 2", sans-serif; }
-.stage-transition-mark { font-size: 2.8rem; line-height: 1; color: #ffdc57; animation: stageTransitionPulse 1s ease-in-out infinite alternate; }
+.stage-transition-mark { display: block; width: clamp(130px, 18vw, 210px); height: auto; animation: stageTransitionPulse 1.4s ease-in-out infinite alternate; }
 .stage-transition-back { margin-top: 6px; }
 @keyframes stageTransitionPulse { from { transform: scale(.8); opacity: .55; } to { transform: scale(1.1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .stage-transition, .stage-transition-mark { transition: none; animation: none; } }
