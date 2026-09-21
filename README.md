@@ -1,5 +1,9 @@
 # Mascotito Beta
 
+## Beta v3.2.2
+
+- La transición usa azul sólido y dorado pleno para ocultar por completo el armado del escenario.
+
 ## Beta v3.2.1
 
 - La transición permanece visible al menos 650 ms, incluso si la escena carga rápido.

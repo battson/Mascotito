@@ -4523,8 +4523,8 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   display: grid;
   place-items: center;
   padding: 24px;
-  color: #fff8e8;
-  background: rgba(23, 35, 63, .94);
+  color: #ffe582;
+  background: #17233f;
   opacity: 1;
   transition: opacity .18s ease;
 }
@@ -4532,7 +4532,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .stage-transition-content { display: grid; justify-items: center; gap: 14px; text-align: center; font: 800 clamp(1.1rem, 2.5vw, 1.7rem)/1.2 "Baloo 2", sans-serif; }
 .stage-transition-mark { display: block; width: clamp(130px, 18vw, 210px); height: auto; animation: stageTransitionPulse 1.4s ease-in-out infinite alternate; }
 .stage-transition-back { margin-top: 6px; }
-@keyframes stageTransitionPulse { from { transform: scale(.8); opacity: .55; } to { transform: scale(1.1); opacity: 1; } }
+@keyframes stageTransitionPulse { from { transform: scale(.9); } to { transform: scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .stage-transition, .stage-transition-mark { transition: none; animation: none; } }
 .shop-admin-controls button { min-width: 0; padding: 5px; font-size: 13px; }
 
