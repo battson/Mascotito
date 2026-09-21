@@ -127,6 +127,60 @@ function playerRef(usernameLower) {
   return doc(db, "players", usernameLower);
 }
 
+function shopRef() {
+  return window.__cloudFns.doc(db, "shop", "catalog");
+}
+
+function subscribeShopCatalog(callback) {
+  let unsub = () => {};
+  let cancelled = false;
+  readyPromise.then(() => {
+    if (cancelled || !db) return;
+    unsub = window.__cloudFns.onSnapshot(shopRef(), (snap) => callback(snap.exists() ? (snap.data().items || {}) : {}),
+      (err) => console.warn("[Mascotito] No se pudo escuchar la tienda.", err));
+  });
+  return () => { cancelled = true; unsub(); };
+}
+
+async function saveShopItem(id, setting) {
+  const gate = await ensureReady();
+  if (!gate.ok) return gate;
+  if (!SHOP_BY_ID[id] || !Number.isSafeInteger(setting.price) || setting.price < 0) return { ok: false, error: "invalid" };
+  try {
+    await window.__cloudFns.setDoc(shopRef(), { items: { [id]: { price: setting.price, enabled: setting.enabled === true } } }, { merge: true });
+    return { ok: true };
+  } catch (err) {
+    console.warn("[Mascotito] No se pudo actualizar la tienda.", err);
+    return { ok: false, error: "network" };
+  }
+}
+
+async function purchaseShopItem(usernameLower, id) {
+  const gate = await ensureReady();
+  if (!gate.ok) return gate;
+  const item = SHOP_BY_ID[id];
+  if (!item) return { ok: false, error: "invalid" };
+  try {
+    return await window.__cloudFns.runTransaction(db, async (tx) => {
+      const catalogSnap = await tx.get(shopRef());
+      const playerSnap = await tx.get(playerRef(usernameLower));
+      if (!playerSnap.exists() || !playerSnap.data().petState) return { ok: false, error: "no_pet" };
+      const setting = shopSetting(catalogSnap.data()?.items, item);
+      if (!setting.enabled || !Number.isSafeInteger(setting.price)) return { ok: false, error: "unavailable" };
+      const pet = normalizeState(playerSnap.data().petState);
+      if (shopOwns(pet, item)) return { ok: false, error: "owned" };
+      if (pet.economy.coins < setting.price) return { ok: false, error: "coins" };
+      pet.economy.coins -= setting.price;
+      shopGrant(pet, item);
+      tx.update(playerRef(usernameLower), { petState: pet, lastActive: Date.now() });
+      return { ok: true, petState: pet };
+    });
+  } catch (err) {
+    console.warn("[Mascotito] No se pudo comprar.", err);
+    return { ok: false, error: "network" };
+  }
+}
+
 function googleLinkRef(uid) {
   const { doc } = window.__cloudFns;
   return doc(db, "googleLinks", uid);
@@ -539,6 +593,9 @@ window.Cloud = {
   signOutCloud,
   getPlayerData,
   savePetState,
+  subscribeShopCatalog,
+  saveShopItem,
+  purchaseShopItem,
   searchUser,
   sendFriendRequest,
   acceptFriendRequest,

@@ -19,6 +19,9 @@ let myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } 
 let pendingGoogleUid = null; // uid de Google mientras se muestra el paso de "elegí tu usuario"
 let friendsTabActive = "lista";
 let wardrobeSlotActive = "superior";
+let shopGroup = "Casa";
+let shopCatalog = {};
+let shopBusy = false;
 const friendPresence = new Map();
 const friendPresenceUnsubscribers = new Map();
 const SESSION_KEY = PET_CONFIG.storageKey + ".session";
@@ -72,6 +75,11 @@ const el = {
   wellbeingBars: document.getElementById("wellbeing-bars"),
   wellbeingAvatarStage: document.getElementById("wellbeing-avatar-stage"),
   coinCount: document.getElementById("coin-count"),
+  shopOverlay: document.getElementById("shop-overlay"),
+  shopGrid: document.getElementById("shop-grid"),
+  shopTabs: document.getElementById("shop-tabs"),
+  shopCoins: document.getElementById("shop-coins"),
+  shopStatus: document.getElementById("shop-status"),
   headerLevelText: document.getElementById("header-level-text"),
   headerXpText: document.getElementById("header-xp-text"),
   headerLevelFill: document.getElementById("header-level-fill"),
@@ -305,27 +313,36 @@ function trySave(s) {
 const CLOUD_SAVE_DEBOUNCE_MS = 20000;
 let cloudSaveTimer = null;
 let cloudSavePending = false;
+let cloudSavePaused = false;
+let cloudSaveInFlight = Promise.resolve(true);
+
+function enqueueCloudSave(snapshot) {
+  // Serializa guardados para que una escritura vieja no pise una compra.
+  cloudSaveInFlight = cloudSaveInFlight.then(() => window.Cloud.savePetState(currentUsername, snapshot));
+  return cloudSaveInFlight;
+}
 
 function scheduleCloudSave(s) {
   if (!window.Cloud || !window.Cloud.enabled || !currentUsername) return;
   cloudSavePending = true;
+  if (cloudSavePaused) return;
   if (cloudSaveTimer) return;
   cloudSaveTimer = setTimeout(() => {
     cloudSaveTimer = null;
-    if (!cloudSavePending || !currentUsername) return;
+    if (!cloudSavePending || !currentUsername || cloudSavePaused) return;
     cloudSavePending = false;
-    window.Cloud.savePetState(currentUsername, s);
+    enqueueCloudSave(structuredClone(s));
   }, CLOUD_SAVE_DEBOUNCE_MS);
 }
 
 function flushCloudSaveNow() {
-  if (!window.Cloud || !window.Cloud.enabled || !currentUsername || !state) return;
+  if (!window.Cloud || !window.Cloud.enabled || !currentUsername || !state) return Promise.resolve(false);
   if (cloudSaveTimer) {
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = null;
   }
   cloudSavePending = false;
-  window.Cloud.savePetState(currentUsername, state);
+  return enqueueCloudSave(structuredClone(state));
 }
 
 document.addEventListener("visibilitychange", () => {
@@ -447,6 +464,8 @@ function renderPetLayers(stageEl, look, wardrobe = null) {
   if (cabezaOpt && cabezaOpt.inline) {
     stageEl.appendChild(makeInlineLayer(cabezaOpt.inline, "pet-layer-cabeza"));
   }
+  const accessoryLayer = makeClothingLayer("accesorios", equipped.accesorios, "pet-layer-clothing-accessory");
+  if (accessoryLayer) stageEl.appendChild(accessoryLayer);
 
   const cejasOpt = findOption("cejas", look.cejas);
   if (cejasOpt && cejasOpt.inline) {
@@ -1177,12 +1196,12 @@ function renderCreatorColorIcons(category, label, options) {
 
   options.forEach((opt) => {
     if (category === "bodyColor" && opt.locked && !showLocked) return; // ni siquiera se muestra al crear
-    const isLocked = category === "bodyColor" && opt.locked && !admin;
+    const isLocked = category === "bodyColor" && opt.locked && !admin && !state?.unlockedColors?.[opt.id];
     const selected = !isLocked && selectedLook[category] === opt.id;
     const { wrap, btn } = createEditorTile({
       selected,
-      title: isLocked ? `${opt.label} (Próximamente)` : opt.label,
-      ariaLabel: isLocked ? `${label}: ${opt.label}, próximamente` : `${label}: ${opt.label}`,
+      title: isLocked ? `${opt.label} (desbloqueable en la tienda)` : opt.label,
+      ariaLabel: isLocked ? `${label}: ${opt.label}, en la tienda` : `${label}: ${opt.label}`,
     });
     btn.classList.add("editor-color-swatch");
     btn.style.background = opt.swatch;
@@ -1352,7 +1371,7 @@ function randomizeLook() {
     // v3.4: "Aleatorio" nunca sortea un color todavía bloqueado para
     // alguien que no sea el Administrador (serían colores "próximamente").
     const allOpts = PET_PARTS_MANIFEST[category];
-    const opts = admin ? allOpts : allOpts.filter((o) => !o.locked);
+    const opts = admin ? allOpts : allOpts.filter((o) => !o.locked || state?.unlockedColors?.[o.id]);
     selectedLook[category] = opts[Math.floor(Math.random() * opts.length)].id;
   });
   selectedLook.ojosColor = PET_EYE_COLORS[Math.floor(Math.random() * PET_EYE_COLORS.length)].id;
@@ -2240,7 +2259,7 @@ function buildActionsDock() {
     { key: "ropa", icon: "ropa", label: "Ropa", handler: openWardrobe, noCooldown: true },
     { key: "dormir", icon: "dormir", label: "Dormir", handler: toggleSueño, noCooldown: true },
     { key: "jugar", icon: "jugar", label: "Jugar", handler: doJugar },
-    { key: "tienda", icon: "tienda", label: "Tienda (próximamente)", handler: () => {}, noCooldown: true, disabled: true, isFull: () => true },
+    { key: "tienda", icon: "tienda", label: "Tienda", handler: openShop, noCooldown: true },
     { key: "bañar", icon: "limpiar", label: "Limpiar", visualClass: "limpiar", handler: doBañar, isFull: () => state.stats.higiene >= PET_CONFIG.llenaUmbral },
   ];
 
@@ -3750,6 +3769,7 @@ document.addEventListener("keydown", ev => {
   setupRoomChatUI();
   setupBetaInventoryUI();
   setupHousingUI();
+  setupShopUI();
   setupDeleteAccountUI();
   boot();
 })();

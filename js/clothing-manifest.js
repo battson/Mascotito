@@ -3,6 +3,11 @@
  * IDs internos sin nombre visible; cada conjunto aporta superior, inferior y calzado.
  */
 const CLOTHING_CATALOG = {
+  "accesorios": [{
+    id: "corona_1", setId: "corona", label: "Corona",
+    asset: "assets/clothes/corona-preview.png",
+    inline: '<image href="assets/clothes/corona.png" x="0" y="0" width="400" height="400"/>',
+  }],
   "superior": [
     {
       "id": "conjunto1_superior",

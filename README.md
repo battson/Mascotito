@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v3.0 — Tienda
+
+- El botón **Tienda** abre Casa, Ropa y Colores. Cada variante se compra una sola vez por cuenta; las prendas y decoraciones regaladas ya cuentan como propias.
+- Jony puede escribir un precio entero y marcar **Mostrar en la tienda** para cada artículo, luego pulsar **Guardar**. Las prendas con precio previo aparecen inicialmente; las decoraciones, la corona y los colores esperan precio y activación de Jony. Los cambios se comparten mediante Firestore; el panel de administración requiere entrar con la cuenta Jony en la nube.
+- Las compras en nube comprueban el precio vigente, las monedas y la posesión dentro de una transacción. Para activar el catálogo compartido, hay que publicar la versión actualizada de `firestore.rules` en Firebase Console → Firestore Database → Reglas antes de usar la tienda.
+- La corona usa la mesa de trabajo de `corona.ai` como primer accesorio. La moneda nueva procede de `moneda.ai`; los precios usan Baloo 2 y dorado.
+- El rol de Jony es una comodidad del juego entre amigos: las reglas del catálogo admiten escrituras de cuentas autenticadas y no constituyen protección de administrador contra usuarios técnicos.
+
 ## Beta v2.1
 
 - Mangas centradas en los brazos y alineadas con su borde superior; calzado centrado en las piernas y alineado con su borde inferior. Se mantienen tamaños y pivotes de animación.

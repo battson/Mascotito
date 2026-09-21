@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v2.1</title>
+  <title>Mascotito — Beta v3.0</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,16 +36,14 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v2.1</span>
+      <span class="badge" id="app-version-badge">Beta v3.0</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
          dejó de mostrarse el texto de la hora. -->
     <div class="header-progress" aria-label="Progreso del jugador">
       <div class="currency-pill" title="Monedas">
-        <span class="currency-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><path d="M9.7 10.2c.5-1.1 1.5-1.7 2.8-1.7 1.2 0 2.2.5 2.8 1.3M14.8 13.9c-.6 1-1.5 1.5-2.7 1.5-1.3 0-2.3-.6-2.8-1.7M8.3 11.4h5.2M8.3 13h4.5"/></svg>
-        </span>
+        <span class="currency-icon" aria-hidden="true"><img src="assets/shop/moneda.png" alt="" /></span>
         <strong id="coin-count">0</strong>
       </div>
       <div class="header-level">
@@ -270,11 +268,22 @@
         <button type="button" class="inventory-tab is-active" data-slot="superior">Prenda superior</button>
         <button type="button" class="inventory-tab" data-slot="inferior">Prenda inferior</button>
         <button type="button" class="inventory-tab" data-slot="calzado">Calzado</button>
-        <button type="button" class="inventory-tab" data-slot="accesorios" disabled>Accesorios</button>
+        <button type="button" class="inventory-tab" data-slot="accesorios">Accesorios</button>
       </div>
       <div id="wardrobe-grid" class="wardrobe-grid"></div>
       <p id="wardrobe-empty" class="inventory-status" hidden>Todavía no tenés prendas en esta categoría.</p>
       <div class="modal-actions"><button id="wardrobe-close-action" type="button" class="secondary-btn">Cerrar</button></div>
+    </section>
+  </div>
+
+  <div id="shop-overlay" class="modal-overlay" hidden>
+    <section class="modal-window shop-window" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+      <div class="modal-topbar"><h2 id="shop-title">Tienda</h2><button id="shop-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button></div>
+      <p class="shop-balance">Tus monedas: <img src="assets/shop/moneda.png" alt="" /> <strong id="shop-coins">0</strong></p>
+      <div class="inventory-tabs" id="shop-tabs"><button class="inventory-tab is-active" data-group="Casa">Casa</button><button class="inventory-tab" data-group="Ropa">Ropa</button><button class="inventory-tab" data-group="Colores">Colores</button></div>
+      <p id="shop-status" role="status" class="inventory-status"></p>
+      <div id="shop-grid" class="shop-grid"></div>
+      <div class="modal-actions"><button id="shop-close-action" type="button" class="secondary-btn">Cerrar</button></div>
     </section>
   </div>
 
@@ -646,7 +655,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v2.1 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v3.0 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
@@ -660,10 +669,12 @@
   <script src="js/manifest.js"></script>
   <script src="js/clothing-manifest.js"></script>
   <script src="js/housing.js"></script>
+  <script src="js/shop.js"></script>
   <script src="js/state.js"></script>
   <script src="js/world.js"></script>
   <script type="module" src="js/cloud.js"></script>
   <script type="module" src="js/multiplayer.js"></script>
+  <script src="js/shop-ui.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

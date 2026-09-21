@@ -8,7 +8,7 @@
 // v2 agrega necesidades/campos nuevos (Fase 2: Cuidado) — normalizeState
 // migra un guardado v1 (hambre/sed/limpieza) a la forma nueva sin perder
 // la mascota ni su progreso.
-const STATE_VERSION = 8;
+const STATE_VERSION = 9;
 
 let lastStorageNotice = null;
 function getStorageNotice() {
@@ -293,6 +293,7 @@ function normalizeState(raw) {
     health: { malestar: 0, enferma: false, causa: null },
     bond: normalizeBond(raw.bond),
     economy: normalizeEconomy(raw.economy),
+    unlockedColors: Object.fromEntries(PET_PARTS_MANIFEST.bodyColor.filter((item) => item.locked && raw.unlockedColors?.[item.id] === true).map((item) => [item.id, true])),
     world: normalizeWorld(raw.world),
     digestion: { pending: Array.isArray(raw.digestion?.pending) ? raw.digestion.pending.filter(Number.isFinite).slice(0,40).sort((a,b)=>a-b) : [] },
     petPosition: { xPct: clamp(raw.petPosition?.xPct || 50, 8,92), yPct: clamp(raw.petPosition?.yPct || 75,40,88) },
@@ -321,6 +322,7 @@ function createNewState(name, look, housingGiftStatus = "none") {
     health: { malestar: 0, enferma: false, causa: null },
     bond: { xp: 0 },
     economy: { coins: 0 },
+    unlockedColors: {},
     world: normalizeWorld(null),
     inventory: { pescado: 0 },
     wardrobe: defaultWardrobe(),

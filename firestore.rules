@@ -30,6 +30,14 @@ rules_version = '2';
 // tan protegida está cada tipo de cuenta contra un borrado.
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Catálogo global del juego entre amigos. El panel sólo ofrece edición a Jony.
+    // El modelo de cuentas con PIN no verifica el rol admin en el servidor.
+    match /shop/catalog {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+    }
     match /players/{playerId} {
       // Cualquier cliente puede LEER un perfil (hace falta para poder
       // buscar amigos por nombre e iniciar sesión), pero nunca LISTAR
