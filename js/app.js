@@ -66,6 +66,9 @@ const el = {
   previewStage: document.getElementById("preview-stage"),
   gameStage: document.getElementById("game-stage"),
   stageFloor: document.getElementById("stage-floor"),
+  stageTransition: document.getElementById("stage-transition"),
+  stageTransitionLabel: document.getElementById("stage-transition-label"),
+  stageTransitionBack: document.getElementById("stage-transition-back"),
   walker: document.getElementById("walker"),
   petName: document.getElementById("pet-name"),
   statusLine: document.getElementById("status-line"),
@@ -283,6 +286,54 @@ function prefersReducedMotion() {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+let stageTransitionSequence = 0;
+let stageTransitionStartedAt = 0;
+
+function beginStageTransition(label) {
+  const sequence = ++stageTransitionSequence;
+  stageTransitionStartedAt = performance.now();
+  el.stageTransitionLabel.textContent = label;
+  el.stageTransitionBack.hidden = true;
+  el.stageTransition.classList.remove("is-leaving");
+  el.stageTransition.hidden = false;
+  return sequence;
+}
+
+function stageTransitionError(sequence, message) {
+  if (sequence !== stageTransitionSequence) return;
+  el.stageTransitionLabel.textContent = message;
+  el.stageTransitionBack.hidden = false;
+}
+
+function nextStagePaint() {
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+function preloadHousingAssets(housing) {
+  if (!housing) return Promise.resolve();
+  const ids = [housing.wall, housing.floor, ...(housing.placed || []).map((entry) => entry.id)];
+  const sources = [...new Set(ids.map((id) => HOUSING_ITEMS[id]?.asset).filter(Boolean))];
+  return Promise.all(sources.map((src) => new Promise((resolve) => {
+    const image = new Image();
+    image.onload = image.onerror = resolve;
+    image.src = src;
+    if (image.complete) resolve();
+  }))).then(() => {});
+}
+
+async function endStageTransition(sequence, assets = null) {
+  if (assets) await Promise.race([preloadHousingAssets(assets), wait(4000)]);
+  await nextStagePaint();
+  const remaining = (prefersReducedMotion() ? 0 : 240) - (performance.now() - stageTransitionStartedAt);
+  if (remaining > 0) await wait(remaining);
+  if (sequence !== stageTransitionSequence) return;
+  el.stageTransition.classList.add("is-leaving");
+  if (!prefersReducedMotion()) await wait(180);
+  if (sequence !== stageTransitionSequence) return;
+  el.stageTransition.hidden = true;
+  el.stageTransition.classList.remove("is-leaving");
 }
 
 let saveFailureNotified = false;
@@ -705,6 +756,7 @@ function pickNewWalkTarget() {
 
 function publishLocalMovement(animationOverride) {
   const Multiplayer = window.Multiplayer;
+  if (activeVisit && !activeVisit.entranceReady) return;
   if (!Multiplayer || !Multiplayer.enabled || !Multiplayer.connected || !state || el.game.hidden) return;
   const expectedRoom = activeVisit?.usernameLower || currentUsername;
   if (!expectedRoom || Multiplayer.currentRoom !== expectedRoom) return;
@@ -1016,15 +1068,13 @@ async function goToLocation(targetId) {
   const reduced = prefersReducedMotion();
   const cfg = PET_CONFIG.navigation;
   const walkMs = reduced ? cfg.walkToExitMsReducedMotion : cfg.walkToExitMs;
-  const halfTransitionMs = (reduced ? cfg.transitionMsReducedMotion : cfg.transitionMs) / 2;
 
   const fromDef = getLocationDef(state.location);
   computeWalkBounds();
   const exitX = fromDef.side === "left" ? 0 : walkMax;
   await animateWalkTo(exitX, walkMs);
 
-  el.stageFloor.classList.add("location-fading");
-  await wait(halfTransitionMs);
+  const transition = beginStageTransition(targetId === "casa" ? "Entrando a casa..." : "Saliendo al jardín...");
 
   state.location = targetId;
   trySave(state);
@@ -1035,8 +1085,7 @@ async function goToLocation(targetId) {
   el.walker.style.transform = `translateX(${(walkX + WALK_PAD).toFixed(1)}px)`;
   refreshUI();
 
-  await wait(halfTransitionMs);
-  el.stageFloor.classList.remove("location-fading");
+  await endStageTransition(transition, targetId === "casa" ? state.housing : null);
 
   startIdle(400, 1200);
   navLock = false;
@@ -1438,11 +1487,12 @@ function setStageEditing(active) {
 }
 
 function openOnboarding(existingState) {
-  if (activeVisit) closeVisit();
+  if (activeVisit) closeVisit({ skipTransition: true });
   document.getElementById("game-selector").hidden = true;
   if (navLock) return;
   finishMinigame(true);
   closeAllMenus();
+  const transition = beginStageTransition(existingState ? "Abriendo el editor..." : "Preparando tu mascota...");
   editingExistingPet = !!existingState;
   selectedLook = existingState ? { ...defaultLook(), ...existingState.look } : defaultLook();
   el.nameInput.value = existingState ? existingState.name : "";
@@ -1462,12 +1512,15 @@ function openOnboarding(existingState) {
   renderPetLayers(el.previewStage, selectedLook);
   setStageEditing(true);
   el.game.hidden = false;
+  endStageTransition(transition);
 }
 
 function cancelOnboarding() {
+  const transition = beginStageTransition("Volviendo al juego...");
   setStageEditing(false);
   editingExistingPet = false;
   if (el.appHeader) el.appHeader.hidden = false;
+  endStageTransition(transition, state?.location === "casa" ? state.housing : null);
 }
 
 function submitOnboarding() {
@@ -1480,6 +1533,7 @@ function submitOnboarding() {
     return;
   }
   clearNameError();
+  const transition = beginStageTransition("Guardando tu mascota...");
   const name = rawName.trim();
   const cleanLook = normalizeLook(selectedLook);
   if (state) {
@@ -1495,7 +1549,7 @@ function submitOnboarding() {
   setStageEditing(false);
   editingExistingPet = false;
   if (el.appHeader) el.appHeader.hidden = false;
-  startGame();
+  startGame(transition);
 }
 
 // ---------- Pantalla de juego: necesidades (barras + panel secundario) ----------
@@ -1934,7 +1988,8 @@ function tick() {
   return info;
 }
 
-function startGame() {
+function startGame(transition = null) {
+  const transitionId = transition || beginStageTransition("Preparando tu casa...");
   setLocationVisuals(state.location);
   const info = applyDecay(state);
   trySave(state);
@@ -1948,7 +2003,8 @@ function startGame() {
   requestsTimer = setInterval(maybeShowRequest, PET_CONFIG.requests.checkIntervalMs);
   computeWalkBounds();
   maybeGreet(info);
-  requestAnimationFrame(() => {
+  endStageTransition(transitionId, state.location === "casa" ? state.housing : null).then(() => {
+    if (transitionId !== stageTransitionSequence) return;
     maybeShowBetaWelcomeGift();
     maybeShowHousingGift();
   });
@@ -5327,6 +5383,7 @@ function renderVisit(displayName, data) {
   renderHousingScene();
   if (!data || !data.petState) {
     el.visitStatusLine.textContent = `No se pudo cargar la casa de ${displayName} ahora mismo.`;
+    stageTransitionError(activeVisit.transitionId, "No se pudo cargar esta casa.");
     delete el.visitPetStageHost.dataset.lookKey;
     el.visitPetStageHost.innerHTML = "";
     el.visitWalkerHost.hidden = true;
@@ -5382,6 +5439,40 @@ function renderVisit(displayName, data) {
   } else {
     el.visitStatusLine.textContent = `${displayName} está conectado · estado actualizado desde la nube.`;
   }
+  if (!activeVisit.entrancePromise) {
+    const visit = activeVisit;
+    visit.entrancePromise = prepareVisitEntrance(visit);
+  }
+}
+
+function placeVisitorAtDoor() {
+  computeWalkBounds();
+  const door = el.locationDeco.querySelector("#scene-puerta");
+  const stageBounds = el.stageFloor.getBoundingClientRect();
+  const doorBounds = door?.getBoundingClientRect();
+  const walkerWidth = el.walker.offsetWidth || 200;
+  const doorCenter = doorBounds && doorBounds.width
+    ? doorBounds.left + doorBounds.width / 2 - stageBounds.left
+    : WALK_PAD + walkerWidth / 2 + 20;
+  walkX = clamp(doorCenter - walkerWidth / 2 - WALK_PAD, 0, walkMax);
+  walkTarget = walkX;
+  walkState = "idle";
+  walkStateUntil = performance.now() + 1000;
+  el.walker.style.transform = `translateX(${(walkX + WALK_PAD).toFixed(1)}px)`;
+  restLegs();
+}
+
+async function prepareVisitEntrance(visit) {
+  const housing = normalizeHousing(visit.data?.petState?.housing);
+  await Promise.race([preloadHousingAssets(housing), wait(4000)]);
+  await nextStagePaint();
+  if (activeVisit !== visit) return;
+  placeVisitorAtDoor();
+  visit.entranceReady = true;
+  clearTimeout(visit.loadTimeout);
+  connectVisitPresence(visit);
+  await endStageTransition(visit.transitionId);
+  if (activeVisit === visit) announce(`Entraste a la casa de ${visit.displayName}.`);
 }
 
 async function connectVisitPresence(visit) {
@@ -5421,8 +5512,9 @@ async function connectVisitPresence(visit) {
 function openVisit(usernameLower, displayName) {
   if (!window.Cloud || !window.Cloud.enabled || !usernameLower) return;
   if (housingEditing) stopHousingEdit();
-  closeVisit();
+  closeVisit({ skipTransition: true, enteringAnotherVisit: true });
   closeFriendsPanel();
+  const transitionId = beginStageTransition(`Viajando a la casa de ${displayName}...`);
   activeVisit = {
     usernameLower,
     displayName,
@@ -5431,6 +5523,10 @@ function openVisit(usernameLower, displayName) {
     presenceKnown: false,
     presenceUnsubscribe: null,
     hostMovement: null,
+    transitionId,
+    entrancePromise: null,
+    entranceReady: false,
+    loadTimeout: null,
   };
   // La interfaz deja de escuchar la sala anterior de inmediato; durante
   // el breve cambio de sala no se envían chat, movimiento ni acciones al
@@ -5451,23 +5547,26 @@ function openVisit(usernameLower, displayName) {
   renderDirt();
   updateActionsAvailability();
   computeWalkBounds();
-  announce(`Entraste a la casa de ${displayName}.`);
+  activeVisit.loadTimeout = setTimeout(() => {
+    if (activeVisit === visit && !visit.entranceReady) stageTransitionError(transitionId, "La casa tarda demasiado en cargar.");
+  }, 8000);
   visitUnsubscribe = window.Cloud.subscribeToPlayer(usernameLower, (data) => renderVisit(displayName, data));
-  connectVisitPresence(visit);
 }
 
-function closeVisit() {
+function closeVisit({ skipTransition = false, enteringAnotherVisit = false } = {}) {
+  const transitionId = activeVisit && !skipTransition ? beginStageTransition("Volviendo a tu casa...") : null;
   if (visitUnsubscribe) {
     visitUnsubscribe();
     visitUnsubscribe = null;
   }
   const previousVisit = activeVisit;
   const wasVisiting = !!previousVisit;
+  if (previousVisit?.loadTimeout) clearTimeout(previousVisit.loadTimeout);
   if (previousVisit?.presenceUnsubscribe) previousVisit.presenceUnsubscribe();
   if (wasVisiting) stopRoomPlayerWatch();
   stopOfflineHostNpc(false);
   activeVisit = null;
-  if (wasVisiting && window.Multiplayer && window.Multiplayer.enabled && currentUsername) {
+  if (wasVisiting && !enteringAnotherVisit && window.Multiplayer && window.Multiplayer.enabled && currentUsername) {
     switchRealtimeRoom(currentUsername).then(() => {
       if (!activeVisit) watchRoomPlayers(currentUsername);
     }).catch(() => {});
@@ -5486,11 +5585,13 @@ function closeVisit() {
     computeWalkBounds();
     announce("Volviste a tu casa.");
   }
+  if (transitionId) endStageTransition(transitionId, state?.location === "casa" ? state.housing : null);
 }
 
 function setupVisitUI() {
   if (!el.visitContext || !el.visitClose) return;
-  el.visitClose.addEventListener("click", closeVisit);
+  el.visitClose.addEventListener("click", () => closeVisit());
+  el.stageTransitionBack?.addEventListener("click", () => closeVisit());
   document.addEventListener("keydown", (ev) => {
     if (ev.key !== "Escape") return;
     if (el.roomChatPanel && !el.roomChatPanel.hidden) {

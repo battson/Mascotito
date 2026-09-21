@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v3.2
+
+- Una transición dentro del escenario cubre la carga inicial, los cambios entre casa y jardín, la edición de mascota y las visitas. Se retira cuando la escena está dibujada y sus imágenes están listas, con espera acotada si una imagen falla.
+- Al visitar a un amigo, la mascota aparece junto a la puerta de su casa. La posición se mide sobre la puerta dibujada para respetar el tamaño actual del escenario; si no hay puerta, usa una entrada de respaldo.
+- Si la casa anfitriona no llega a cargar, la transición muestra un aviso y permite volver.
+
 ## Beta v3.1.4
 
 - La corona se muestra un 35 % más grande y más arriba, centrada sobre la cabeza.
