@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v3.1.4
+
+- La corona se muestra un 35 % más grande y más arriba, centrada sobre la cabeza.
+
+## Beta v3.1.3
+
+- El chat rápido queda centrado horizontalmente respecto del escenario en todos los tamaños de pantalla.
+
 ## Beta v3.1.2
 
 - El pantalón se dibuja encima del calzado.

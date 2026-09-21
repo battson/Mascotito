@@ -4517,15 +4517,20 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #stage-floor > #shop-overlay .shop-window { max-height: calc(100% - 8px); }
 .shop-admin-controls button { min-width: 0; padding: 5px; font-size: 13px; }
 
-/* El cuadro de chat rápido ocupa menos ancho que el espacio disponible. */
-.room-quick-chat { right: auto; width: min(360px, calc(100% - 620px)); }
+/* El chat rápido se centra respecto del escenario en todas las pantallas. */
+.room-quick-chat {
+  left: 50%;
+  right: auto;
+  width: min(360px, calc(100% - 24px));
+  transform: translateX(-50%);
+}
 
 @media (max-width: 900px) {
   .room-quick-chat {
     left: 50%;
     right: auto;
     bottom: 72px !important;
-    width: min(420px, calc(100% - 24px));
+    width: min(360px, calc(100% - 24px));
     transform: translateX(-50%);
   }
   .room-chat-toggle { right: 8px; bottom: 8px; }

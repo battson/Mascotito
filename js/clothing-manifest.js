@@ -6,7 +6,7 @@ const CLOTHING_CATALOG = {
   "accesorios": [{
     id: "corona_1", setId: "corona", label: "Corona",
     asset: "assets/clothes/corona-preview.png",
-    inline: '<image href="assets/clothes/corona.png" x="0" y="0" width="400" height="400"/>',
+    inline: '<image href="assets/clothes/corona.png" x="0" y="0" width="400" height="400" transform="translate(-84 -59) scale(1.35)"/>',
   }],
   "superior": [
     {
