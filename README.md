@@ -1,5 +1,17 @@
 # Mascotito Beta
 
+Los acuerdos por retomar al rediseñar cada sección están en [Pendientes de UI](PENDIENTES.md).
+
+## Beta v4.1
+
+- Barra de acciones con los SVG originales: cofre para Inventario, remera para Ropa, luna/sol para Dormir/Despertar, pelota para Jugar, bolsa para Tienda y jabón para Limpiar.
+- Sin nombres visibles debajo de los iconos; se conservan los nombres accesibles y las ayudas al pasar el cursor.
+- Inventario, Ropa y Tienda muestran un resplandor mientras su panel está abierto y conservan el estado accesible. Los iconos no tienen sombra debajo. Las acciones conservan hover, bloqueo y cooldown, sin selección persistente.
+- Ajuste de tamaño y separación de los iconos para pantallas pequeñas.
+- Iconos sin fondo ni subrayado, con elevación suave al pasar el cursor. Dos grupos separados: Inventario/Ropa/Tienda y Dormir/Jugar/Limpiar.
+- Al mantener presionado un icono habilitado, baja ligeramente y reduce su tamaño; al soltar vuelve al estado de hover.
+- Durante el cooldown, el icono se atenúa y muestra un contador superpuesto que desaparece al terminar; no se dibujan barras de espera.
+
 ## Beta v3.2.2
 
 - La transición usa azul sólido y dorado pleno para ocultar por completo el armado del escenario.

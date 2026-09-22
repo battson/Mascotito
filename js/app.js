@@ -2234,6 +2234,7 @@ function updateCooldownButtons() {
     const { btnEl, ringEl, labelEl, isFull } = actionRegistry[key];
     const until = (state.cooldowns && state.cooldowns[key]) || 0;
     const remainingMs = until - Date.now();
+    ringEl?.classList.toggle("is-cooling-down", remainingMs > 0 && key !== "hablar" && key !== "jugar");
     // v2.4: el tile "dormir" es ahora el mismo botón que "Despertar"
     // (toggle, ver updateSleepToggle) — antes esta condición comparaba
     // contra la clave "despertar", que nunca existía como key real, así
@@ -2288,6 +2289,23 @@ function chooseRequestPhrase(category) {
 
 // ---------- Construcción del dock de acciones ----------
 
+const ACTION_ICON_FILES = {
+  inventario: "05-chest.svg", ropa: "01-remera.svg", dormir: "02-luna.svg",
+  despertar: "03-sol.svg", jugar: "04-pelota.svg", tienda: "05-bolsa.svg", limpiar: "06-jabon.svg",
+};
+
+function actionIconMarkup(icon) {
+  return `<img class="action-art" src="assets/ui/actions/${ACTION_ICON_FILES[icon]}" alt="" draggable="false" />`;
+}
+
+function syncActionPanels() {
+  for (const [key, overlay] of [["inventario", el.inventoryOverlay], ["ropa", el.wardrobeOverlay], ["tienda", el.shopOverlay]]) {
+    document.getElementById("btn-" + key)?.setAttribute("aria-expanded", String(!overlay.hidden));
+  }
+}
+
+const actionPanelObserver = new MutationObserver(syncActionPanels);
+
 function createActionButton({ key, icon, label, id, visualClass }) {
   const wrap = document.createElement("div");
   wrap.className = "action-circle-wrap";
@@ -2300,17 +2318,18 @@ function createActionButton({ key, icon, label, id, visualClass }) {
   btn.id = id;
   btn.setAttribute("aria-label", label);
   btn.title = label;
-  btn.innerHTML = iconSvg(icon);
+  btn.innerHTML = actionIconMarkup(icon);
   ring.appendChild(btn);
   wrap.appendChild(ring);
   const caption = document.createElement("span");
   caption.className = "action-circle-caption";
   caption.textContent = label;
-  wrap.appendChild(caption);
+  // Keep the accessible name on the button; the dock has no visible captions.
   const cd = document.createElement("span");
   cd.className = "cooldown-label";
-  cd.setAttribute("aria-hidden", "true");
-  wrap.appendChild(cd);
+  cd.id = id + "-cooldown";
+  btn.setAttribute("aria-describedby", cd.id);
+  ring.appendChild(cd);
   return { wrap, ring, btn, cd, caption };
 }
 
@@ -2329,18 +2348,26 @@ function buildActionsDock() {
   const defs = [
     { key: "inventario", icon: "inventario", label: "Inventario", handler: openInventory, noCooldown: true },
     { key: "ropa", icon: "ropa", label: "Ropa", handler: openWardrobe, noCooldown: true },
+    { key: "tienda", icon: "tienda", label: "Tienda", handler: openShop, noCooldown: true },
     { key: "dormir", icon: "dormir", label: "Dormir", handler: toggleSueño, noCooldown: true },
     { key: "jugar", icon: "jugar", label: "Jugar", handler: doJugar },
-    { key: "tienda", icon: "tienda", label: "Tienda", handler: openShop, noCooldown: true },
     { key: "bañar", icon: "limpiar", label: "Limpiar", visualClass: "limpiar", handler: doBañar, isFull: () => state.stats.higiene >= PET_CONFIG.llenaUmbral },
   ];
 
-  defs.forEach((def) => {
+  const groups = ["Objetos y personalización", "Cuidado y juego"].map((label) => {
+    const group = document.createElement("div");
+    group.className = "action-group";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", label);
+    el.actionsDock.appendChild(group);
+    return group;
+  });
+  defs.forEach((def, index) => {
     const { wrap, ring, btn, cd, caption } = createActionButton({ key: def.key, icon: def.icon, label: def.label, id: "btn-" + def.key, visualClass: def.visualClass });
     btn.addEventListener("click", def.handler);
     btn.disabled = !!def.disabled;
     if (def.disabled) wrap.classList.add("is-disabled");
-    el.actionsDock.appendChild(wrap);
+    groups[index < 3 ? 0 : 1].appendChild(wrap);
     if (!def.noCooldown) {
       actionRegistry[def.key] = { btnEl: btn, ringEl: ring, labelEl: cd, captionEl: caption, isFull: def.isFull };
     } else {
@@ -2351,6 +2378,13 @@ function buildActionsDock() {
   // (refreshUI() lo vuelve a ajustar en cada refresco, ver
   // updateSleepToggle() más abajo).
   updateSleepToggle();
+  for (const [key, overlay] of [["inventario", el.inventoryOverlay], ["ropa", el.wardrobeOverlay], ["tienda", el.shopOverlay]]) {
+    const button = document.getElementById("btn-" + key);
+    button.setAttribute("aria-controls", overlay.id);
+    button.setAttribute("aria-haspopup", "dialog");
+    actionPanelObserver.observe(overlay, { attributes: true, attributeFilter: ["hidden"] });
+  }
+  syncActionPanels();
 }
 
 // ---------- Beta v1.2: inventario, vestidor y regalo de bienvenida ----------
@@ -2827,7 +2861,11 @@ function updateSleepToggle() {
   const reg = actionRegistry.dormir;
   if (!reg || !state) return;
   const dormida = state.sleep.dormida;
-  reg.btnEl.innerHTML = iconSvg(dormida ? "despertar" : "dormir");
+  const icon = dormida ? "despertar" : "dormir";
+  if (reg.btnEl.dataset.sleepIcon !== icon) {
+    reg.btnEl.innerHTML = actionIconMarkup(icon);
+    reg.btnEl.dataset.sleepIcon = icon;
+  }
   const label = dormida ? "Despertar" : "Dormir";
   reg.btnEl.setAttribute("aria-label", label);
   reg.btnEl.title = label;
