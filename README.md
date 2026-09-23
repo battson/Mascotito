@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.2.4
+
+- Pescado del inventario recreado en SVG a partir de la imagen de referencia.
+- Ítems del inventario sin nombres visibles y con fondo `#ffffff1a`; se conservan cantidades y nombres accesibles.
+- La pelota queda deshabilitada durante el sueño y vuelve a habilitarse al despertar.
+- Cierre del inventario con fondo `#f7e0cb` y sombra `#000000 0 0 2px 0px`. El criterio de cierres queda registrado en los pendientes de UI.
+
 Los acuerdos por retomar al rediseñar cada sección están en [Pendientes de UI](PENDIENTES.md).
 
 ## Beta v4.2.3

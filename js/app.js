@@ -2236,7 +2236,7 @@ function updateCooldownButtons() {
     ringEl?.classList.toggle("is-cooling-down", remainingMs > 0 && key !== "hablar" && key !== "jugar");
     // Los paneles siguen disponibles durante el sueño; el jabón queda bloqueado.
     const blockedByState = state.sleep.dormida && key === "bañar";
-    if (key === "hablar" || key === "jugar") { btnEl.disabled = false; if (labelEl) labelEl.textContent = ""; return; }
+    if (key === "hablar" || key === "jugar") { btnEl.disabled = key === "jugar" && state.sleep.dormida; if (labelEl) labelEl.textContent = ""; return; }
     if (remainingMs > 0) {
       btnEl.disabled = true;
       const total = PET_CONFIG.cooldownsMs[key] || PET_CONFIG.cooldownMs;
@@ -2578,6 +2578,7 @@ function renderHousingInventory() {
     img.src = item.asset;
     img.alt = "";
     const name = document.createElement("strong");
+    name.className = "sr-only";
     name.textContent = item.label;
     const quantity = document.createElement("span");
     quantity.textContent = `×${state.housing.owned[item.id]}`;

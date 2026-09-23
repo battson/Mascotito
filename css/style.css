@@ -4558,6 +4558,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 
 /* Beta v4.2: inventory window and illustrated close control. */
 .inventory-window {
+  --window-surface: #f7e0cb;
   position: relative;
   height: 400px;
   padding: 72px 18px 18px;
@@ -4595,13 +4596,15 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 }
 .inventory-window .modal-topbar h2 { color: #633719; }
 .inventory-window .inventory-grid { min-height: 0; }
+.inventory-window .inventory-item,
+.inventory-window .housing-inventory-card { background: #ffffff1a; }
 .inventory-close-icon {
   position: absolute;
   top: 48px; right: 10px; margin-top: -22px;
   display: grid; place-items: center;
   width: 44px; height: 44px; padding: 6px;
   border: 0; border-radius: 50%;
-  background: #fff9ec; box-shadow: none;
+  background: var(--window-surface, #f7e0cb); box-shadow: #000000 0 0 2px 0px;
   cursor: pointer;
   transition: transform .15s ease;
 }
