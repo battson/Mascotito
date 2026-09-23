@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v4.2.6
+
+- Chat rápido alineado a la izquierda de Amigos con 16 px de separación.
+- Inventario sin fondos ni bordes en los ítems, sin líneas inferiores ni scroll en las categorías. Cierre sin fondo ni sombra, alineado con las pestañas.
+- Stock arriba a la derecha, en Baloo 2 amarillo con contorno ocre. Pisos, paredes y decoraciones no muestran cantidad.
+- Botella recreada como SVG e inclinada 12 grados a la izquierda.
+- Pisos, paredes y decoraciones se muestran en páginas de ocho objetos (dos filas de cuatro), sin scroll. Flechas SVG recreadas desde la referencia; sólo aparecen cuando hay una página anterior o siguiente.
+
 ## Beta v4.2.5
 
 - Bordes de los ítems del inventario en `#ddc9a875`.

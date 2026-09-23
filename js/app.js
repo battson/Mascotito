@@ -903,6 +903,8 @@ let housingSelected = null;
 let housingDrag = null;
 let housingPanelDrag = null;
 let housingInventoryCategory = "food";
+let housingInventoryPage = 0;
+const HOUSING_INVENTORY_PAGE_SIZE = 8;
 const housingGiftSelections = {};
 
 function housingSceneElement(tag, attributes = {}) {
@@ -2569,7 +2571,14 @@ function renderHousingInventory() {
   if (!el.inventoryHousingGrid || !state?.housing) return;
   el.inventoryHousingGrid.replaceChildren();
   const category = housingInventoryCategory === "surface" ? ["wall", "floor"] : ["decor"];
-  Object.values(HOUSING_ITEMS).filter((item) => category.includes(item.category) && state.housing.owned[item.id]).forEach((item) => {
+  const items = Object.values(HOUSING_ITEMS).filter((item) => category.includes(item.category) && state.housing.owned[item.id]);
+  const pageCount = Math.max(1, Math.ceil(items.length / HOUSING_INVENTORY_PAGE_SIZE));
+  housingInventoryPage = Math.min(housingInventoryPage, pageCount - 1);
+  document.getElementById("inventory-pages").hidden = pageCount <= 1;
+  document.getElementById("inventory-prev").hidden = housingInventoryPage === 0;
+  document.getElementById("inventory-next").hidden = housingInventoryPage === pageCount - 1;
+  document.getElementById("inventory-page-status").textContent = `Página ${housingInventoryPage + 1} de ${pageCount}`;
+  items.slice(housingInventoryPage * HOUSING_INVENTORY_PAGE_SIZE, (housingInventoryPage + 1) * HOUSING_INVENTORY_PAGE_SIZE).forEach((item) => {
     const card = document.createElement("div");
     card.className = "housing-inventory-card";
     const img = document.createElement("img");
@@ -2578,9 +2587,7 @@ function renderHousingInventory() {
     const name = document.createElement("strong");
     name.className = "sr-only";
     name.textContent = item.label;
-    const quantity = document.createElement("span");
-    quantity.textContent = `×${state.housing.owned[item.id]}`;
-    card.append(img, name, quantity);
+    card.append(img, name);
     el.inventoryHousingGrid.appendChild(card);
   });
   if (!el.inventoryHousingGrid.children.length) {
@@ -2592,6 +2599,8 @@ function renderHousingInventory() {
 
 function showHousingInventoryCategory(category) {
   housingInventoryCategory = category;
+  housingInventoryPage = 0;
+  document.getElementById("inventory-pages").hidden = true;
   el.inventoryTabs?.querySelectorAll("[data-category]").forEach((tab) => {
     tab.classList.toggle("is-active", tab.dataset.category === category);
   });
@@ -2729,6 +2738,16 @@ function setupHousingUI() {
   el.inventoryTabs?.addEventListener("click", (event) => {
     const tab = event.target.closest("button[data-category]");
     if (tab) showHousingInventoryCategory(tab.dataset.category);
+  });
+  document.getElementById("inventory-prev")?.addEventListener("click", () => {
+    housingInventoryPage = Math.max(0, housingInventoryPage - 1);
+    renderHousingInventory();
+    if (document.activeElement.hidden) document.getElementById("inventory-next").focus();
+  });
+  document.getElementById("inventory-next")?.addEventListener("click", () => {
+    housingInventoryPage++;
+    renderHousingInventory();
+    if (document.activeElement.hidden) document.getElementById("inventory-prev").focus();
   });
   el.housingEditorClose?.addEventListener("click", stopHousingEdit);
   el.housingEditorItems?.addEventListener("click", (event) => {
@@ -3826,12 +3845,19 @@ function syncHudLayout() {
   // Beta v1.1: compositor, dock y botón de amigos comparten la misma
   // línea inferior. En pantallas angostas el CSS lo sube para evitar
   // superposiciones.
-  if (el.roomQuickChat) el.roomQuickChat.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop-dock.offsetHeight)+"px";
+  if (el.roomQuickChat && el.roomChatToggle) {
+    const friends = el.roomChatToggle;
+    const right = el.stageFloor.clientWidth - friends.offsetLeft + 16;
+    el.roomQuickChat.style.right = right + "px";
+    el.roomQuickChat.style.left = "auto";
+    el.roomQuickChat.style.transform = "none";
+    el.roomQuickChat.style.bottom = (el.stageFloor.clientHeight - friends.offsetTop - friends.offsetHeight) + "px";
+  }
   computeWalkBounds();
   el.walker.style.transform = `translateX(${walkX + WALK_PAD}px)`;
   if (minigame) positionMinigameTarget();
 }
-for (const id of ["wellbeing-widget","stage-actions-row"]) new ResizeObserver(syncHudLayout).observe(document.getElementById(id));
+for (const id of ["wellbeing-widget","stage-actions-row","room-chat-toggle"]) new ResizeObserver(syncHudLayout).observe(document.getElementById(id));
 window.addEventListener("resize", syncHudLayout);
 document.addEventListener("keydown", ev => {
   if (ev.defaultPrevented || ev.key !== "Escape") return;
@@ -5406,6 +5432,7 @@ function watchRoomPlayers(room) {
   resetRoomChat(room);
   if (el.roomChatToggle) el.roomChatToggle.hidden = false;
   if (el.roomQuickChat) el.roomQuickChat.hidden = false;
+  syncHudLayout();
   roomPlayersUnsubscribe = Multiplayer.subscribeRoomPlayers(room, renderRoomPlayers);
   roomActionsUnsubscribe = Multiplayer.subscribeRoomActions(room, replayRemoteAction);
   roomChatUnsubscribe = Multiplayer.subscribeRoomChat(room, renderRoomChat);

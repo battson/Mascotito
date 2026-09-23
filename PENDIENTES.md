@@ -4,7 +4,7 @@
 
 - Cada actualización debe entregarse con capturas de pantalla que muestren los cambios solicitados.
 
-- Botones de cierre: usar fondo circular del mismo color que la ventana que cierran y sombra `#000000 0 0 2px 0px`. En Inventario el fondo es `#f7e0cb`; reutilizar esta regla al crear o rediseñar cierres.
+- Cierre de Inventario (v4.2.6): sin fondo ni sombra y alineado con las categorías. Este pedido reemplaza el círculo crema previo para esta ventana.
 
 - Priorizar escritorio. No dedicar trabajo a adaptación o revisión móvil por ahora.
 - La experiencia móvil se definirá en una versión específica futura. El usuario contempla un juego principalmente de escritorio y funciones limitadas en celular; esas funciones todavía no están decididas.
@@ -13,7 +13,7 @@
 Recordar al usuario el pendiente correspondiente al comenzar el rediseño de cada sección. Preferencia acordada: eliminar subrayados y guiones inferiores como recurso visual. Las alternativas siguientes son propuestas, todavía no decisiones aprobadas.
 
 - [ ] Editor de mascota: reemplazar los guiones de hover y selección en partes y colores. Propuesta: aumento suave en hover y borde completo para selección.
-- [ ] Inventario, Ropa y Tienda: reemplazar el subrayado naranja de las pestañas y subcategorías activas. Propuesta: fondo de color suave.
+- [ ] Ropa y Tienda: reemplazar el subrayado naranja de las pestañas y subcategorías activas. Inventario ya no tiene subrayados (v4.2.6).
 - [ ] Inventario v4.2: revisar el marco integrado de windows.ai y después diseñar las categorías. El acceso Decorar casa fue retirado por pedido del usuario; su nueva ubicación o funcionamiento queda por definir con su propuesta.
 - [ ] Formularios: reemplazar la línea inferior de los campos de nombre, usuario, PIN y búsqueda de amigos. Propuesta: borde completo con esquinas redondeadas.
 - [x] Barra de acciones: resplandor para panel abierto aprobado por ahora con la intensidad actual. Sombra inferior descartada. Sin subrayado ni fondo; se conserva el estado accesible.

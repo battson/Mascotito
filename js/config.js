@@ -9,7 +9,7 @@
  * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
  */
 const APP_CHANNEL = "Beta";
-const APP_VERSION = "4.2.5";
+const APP_VERSION = "4.2.6";
 
 /**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
