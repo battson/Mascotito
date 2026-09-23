@@ -20,6 +20,8 @@ let pendingGoogleUid = null; // uid de Google mientras se muestra el paso de "el
 // Beta v4.3.3: pantalla visible del celular: contacts | chat | search | requests.
 let phoneView = "contacts";
 let wardrobeSlotActive = "superior";
+let wardrobeDraft = null;
+let wardrobePage = 0;
 let shopGroup = "Casa";
 let shopSubcategory = null;
 let shopCatalog = {};
@@ -426,9 +428,13 @@ function makeInlineLayer(innerMarkup, extraClass) {
   return svg;
 }
 
+let clothingRenderId = 0;
 function makeClothingLayer(slot, itemId, extraClass) {
   const item = getClothingItem(slot, itemId);
-  return item?.inline ? makeInlineLayer(item.inline, `pet-layer-clothing pet-layer-clothing-${slot} ${extraClass || ""}`) : null;
+  if (!item?.inline) return null;
+  // Cada vista usa su propio degradado, incluso si otra mascota lleva la misma prenda.
+  const markup = item.starter ? item.inline.replaceAll(`${item.id}-color`, `${item.id}-color-${++clothingRenderId}`) : item.inline;
+  return makeInlineLayer(markup, `pet-layer-clothing pet-layer-clothing-${slot} ${extraClass || ""}`);
 }
 
 function alignClothingPart(stageEl, bodySelector, clothingSelector, edge, scale, alignAtJoint = false) {
@@ -516,7 +522,7 @@ function renderPetLayers(stageEl, look, wardrobe = null) {
     stageEl.appendChild(makeInlineLayer(cabezaOpt.inline, "pet-layer-cabeza"));
   }
   const accessoryLayer = makeClothingLayer("accesorios", equipped.accesorios, "pet-layer-clothing-accessory");
-  if (accessoryLayer) stageEl.appendChild(accessoryLayer);
+  if (accessoryLayer && !getClothingItem("accesorios", equipped.accesorios)?.front) stageEl.appendChild(accessoryLayer);
 
   const cejasOpt = findOption("cejas", look.cejas);
   if (cejasOpt && cejasOpt.inline) {
@@ -534,6 +540,7 @@ function renderPetLayers(stageEl, look, wardrobe = null) {
     stageEl.appendChild(makeInlineLayer(bocaOpt.inline, "pet-layer-boca"));
   }
   appendImgLayer(stageEl, "narices", look.narices, "nariz");
+  if (accessoryLayer && getClothingItem("accesorios", equipped.accesorios)?.front) stageEl.appendChild(accessoryLayer);
   alignClothingLayers(stageEl);
   requestAnimationFrame(() => {
     if (stageEl.isConnected) alignClothingLayers(stageEl);
@@ -2426,46 +2433,58 @@ function closeInventory() {
 }
 
 function renderWardrobe() {
-  if (!state || !el.wardrobeGrid) return;
+  if (!state || !el.wardrobeGrid || !wardrobeDraft) return;
   const slot = wardrobeSlotActive;
-  const owned = state.wardrobe?.owned?.[slot] || {};
-  const equipped = state.wardrobe?.equipped?.[slot] || null;
-  const items = (CLOTHING_CATALOG[slot] || []).filter((item) => owned[item.id]);
-  el.wardrobeGrid.innerHTML = "";
-
-  const none = document.createElement("button");
-  none.type = "button";
-  none.className = "wardrobe-item wardrobe-item-none" + (!equipped ? " is-selected" : "");
-  none.dataset.itemId = "";
-  none.setAttribute("aria-label", `No usar ${slot}`);
-  none.innerHTML = '<span aria-hidden="true">×</span><strong>Sin prenda</strong>';
-  el.wardrobeGrid.appendChild(none);
-
-  items.forEach((item, index) => {
+  const equipped = wardrobeDraft[slot];
+  const items = (CLOTHING_CATALOG[slot] || []).filter(item => state.wardrobe.owned[slot]?.[item.id]);
+  const pages = Math.max(1, Math.ceil(items.length / 6));
+  wardrobePage = Math.min(wardrobePage, pages - 1);
+  el.wardrobeGrid.replaceChildren();
+  items.slice(wardrobePage * 6, wardrobePage * 6 + 6).forEach((item) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "wardrobe-item" + (equipped === item.id ? " is-selected" : "");
     button.dataset.itemId = item.id;
-    button.setAttribute("aria-label", `${slot}, opción ${index + 1}`);
-    const image = document.createElement("img");
-    image.src = item.asset;
-    image.alt = "";
-    button.append(image);
-    el.wardrobeGrid.appendChild(button);
+    button.setAttribute("aria-label", item.label || `Prenda ${item.setId}`);
+    button.setAttribute("aria-pressed", String(equipped === item.id));
+    button.title = item.label || `Prenda ${item.setId}`;
+    const image = document.createElement("img"); image.src = item.asset; image.alt = "";
+    button.append(image); el.wardrobeGrid.append(button);
   });
-  if (el.wardrobeEmpty) el.wardrobeEmpty.hidden = items.length > 0;
+  el.wardrobeTabs.querySelectorAll('[data-slot]').forEach(button => {
+    const active = button.dataset.slot === slot;
+    button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+  });
+  el.wardrobeEmpty.hidden = items.length > 0;
+  document.getElementById('wardrobe-prev').hidden = wardrobePage === 0;
+  document.getElementById('wardrobe-next').hidden = wardrobePage === pages - 1;
+  document.getElementById('wardrobe-page').textContent = `${wardrobePage + 1} / ${pages}`;
+  renderPetLayers(document.getElementById('wardrobe-preview'), state.look, { equipped: wardrobeDraft });
 }
 
 function openWardrobe() {
-  wardrobeSlotActive = "superior";
-  el.wardrobeTabs?.querySelectorAll("[data-slot]").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.slot === wardrobeSlotActive));
-  renderWardrobe();
+  if (!state?.wardrobe) return;
+  // También incorpora la colección a sesiones abiertas antes de la actualización.
+  WARDROBE_SLOTS.forEach(slot => (CLOTHING_CATALOG[slot] || []).filter(item => item.starter).forEach(item => { state.wardrobe.owned[slot][item.id] = true; }));
+  wardrobeDraft = { ...state.wardrobe.equipped };
+  wardrobeSlotActive = "superior"; wardrobePage = 0;
   el.wardrobeOverlay.hidden = false;
-  el.wardrobeGrid?.querySelector("button")?.focus();
+  renderWardrobe();
+  el.wardrobeClose?.focus();
 }
 
 function closeWardrobe() {
+  wardrobeDraft = null;
   if (el.wardrobeOverlay) el.wardrobeOverlay.hidden = true;
+}
+
+function saveWardrobe() {
+  if (!wardrobeDraft || !state?.wardrobe) return;
+  for (const slot of WARDROBE_SLOTS) {
+    const id = wardrobeDraft[slot];
+    state.wardrobe.equipped[slot] = id && state.wardrobe.owned[slot]?.[id] && getClothingItem(slot, id) ? id : null;
+  }
+  trySave(state); refreshUI(); flushCloudSaveNow(); closeWardrobe();
 }
 
 function renderBetaWelcomeOptions() {
@@ -2795,6 +2814,11 @@ function setupBetaInventoryUI() {
     refreshInventory();
   });
   el.inventoryWater?.addEventListener("click", () => { doBeber(); refreshInventory(); });
+  document.getElementById("wardrobe-save")?.addEventListener("click", saveWardrobe);
+  document.getElementById("wardrobe-clear")?.addEventListener("click", () => { if (!wardrobeDraft) return; WARDROBE_SLOTS.forEach(slot => wardrobeDraft[slot] = null); renderWardrobe(); });
+  document.getElementById("wardrobe-prev")?.addEventListener("click", () => { wardrobePage = Math.max(0, wardrobePage - 1); renderWardrobe(); });
+  document.getElementById("wardrobe-next")?.addEventListener("click", () => { wardrobePage++; renderWardrobe(); });
+  document.getElementById("wardrobe-shop")?.addEventListener("click", () => { closeWardrobe(); openShop(); });
   el.wardrobeClose?.addEventListener("click", closeWardrobe);
   el.wardrobeCloseAction?.addEventListener("click", closeWardrobe);
   el.wardrobeOverlay?.addEventListener("click", (ev) => { if (ev.target === el.wardrobeOverlay) closeWardrobe(); });
@@ -2802,6 +2826,7 @@ function setupBetaInventoryUI() {
     const button = ev.target.closest("button[data-slot]:not(:disabled)");
     if (!button) return;
     wardrobeSlotActive = button.dataset.slot;
+    wardrobePage = 0;
     el.wardrobeTabs.querySelectorAll("[data-slot]").forEach((tab) => tab.classList.toggle("is-active", tab === button));
     renderWardrobe();
   });
@@ -2810,9 +2835,8 @@ function setupBetaInventoryUI() {
     if (!button) return;
     const itemId = button.dataset.itemId || null;
     if (itemId && !state.wardrobe.owned[wardrobeSlotActive][itemId]) return;
-    state.wardrobe.equipped[wardrobeSlotActive] = itemId;
-    trySave(state);
-    refreshUI();
+    if (!wardrobeDraft) return;
+    wardrobeDraft[wardrobeSlotActive] = wardrobeDraft[wardrobeSlotActive] === itemId ? null : itemId;
     renderWardrobe();
   });
   el.betaWelcomeOptions?.addEventListener("click", (ev) => {

@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v4.4 — Vestidor
+
+- Ventana SVG de madera y dorado, vista previa y categorías con seis prendas por página.
+- Probar o quitar prendas no modifica el conjunto hasta pulsar Guardar. Cancelar, cerrar y Escape descartan la prueba.
+- Colección inicial gratuita: remera celeste, buzo coral, remera a rayas, campera amarilla, sweater violeta, remera con corazón y anteojos redondos. Arte vectorial tanto en catálogo como equipado.
+- Conserva las prendas anteriores y migra los guardados existentes sin reemplazar el conjunto equipado.
+- Comprobación de migración y catálogo: `node tests/wardrobe.test.js`.
+
 ## Beta v4.3.5 — Cierre de v4.3
 
 - Monedas dentro del juego, arriba a la derecha, con moneda SVG y contador dorado delineado.
