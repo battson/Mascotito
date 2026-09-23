@@ -10,6 +10,7 @@ Recordar al usuario el pendiente correspondiente al comenzar el rediseño de cad
 
 - [ ] Editor de mascota: reemplazar los guiones de hover y selección en partes y colores. Propuesta: aumento suave en hover y borde completo para selección.
 - [ ] Inventario, Ropa y Tienda: reemplazar el subrayado naranja de las pestañas y subcategorías activas. Propuesta: fondo de color suave.
+- [ ] Inventario v4.2: revisar el marco integrado de windows.ai y después diseñar las categorías. El acceso Decorar casa fue retirado por pedido del usuario; su nueva ubicación o funcionamiento queda por definir con su propuesta.
 - [ ] Formularios: reemplazar la línea inferior de los campos de nombre, usuario, PIN y búsqueda de amigos. Propuesta: borde completo con esquinas redondeadas.
 - [x] Barra de acciones: resplandor para panel abierto aprobado por ahora con la intensidad actual. Sombra inferior descartada. Sin subrayado ni fondo; se conserva el estado accesible.
 

@@ -214,7 +214,6 @@ const el = {
   friendsManageBadge: document.getElementById("friends-manage-badge"),
   inventoryOverlay: document.getElementById("inventory-overlay"),
   inventoryClose: document.getElementById("inventory-close"),
-  inventoryCloseAction: document.getElementById("inventory-close-action"),
   inventoryFish: document.getElementById("inventory-fish"),
   inventoryFishCooldown: document.getElementById("inventory-fish-cooldown"),
   inventoryFishCatch: document.getElementById("inventory-fish-catch"),
@@ -225,7 +224,6 @@ const el = {
   inventoryTabs: document.getElementById("inventory-tabs"),
   inventoryFoodGrid: document.getElementById("inventory-food-grid"),
   inventoryHousingGrid: document.getElementById("inventory-housing-grid"),
-  housingEditOpen: document.getElementById("housing-edit-open"),
   housingEditorPanel: document.getElementById("housing-editor-panel"),
   housingEditorHeading: document.getElementById("housing-editor-heading"),
   housingEditorToggle: document.getElementById("housing-editor-toggle"),
@@ -2737,7 +2735,6 @@ function setupHousingUI() {
     const tab = event.target.closest("button[data-category]");
     if (tab) showHousingInventoryCategory(tab.dataset.category);
   });
-  el.housingEditOpen?.addEventListener("click", startHousingEdit);
   el.housingEditorClose?.addEventListener("click", stopHousingEdit);
   el.housingEditorItems?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-housing-id]");
@@ -2808,7 +2805,6 @@ function setupHousingUI() {
 
 function setupBetaInventoryUI() {
   el.inventoryClose?.addEventListener("click", closeInventory);
-  el.inventoryCloseAction?.addEventListener("click", closeInventory);
   el.inventoryOverlay?.addEventListener("click", (ev) => { if (ev.target === el.inventoryOverlay) closeInventory(); });
   el.inventoryFish?.addEventListener("click", () => {
     if ((Number(state.inventory?.pescado) || 0) <= 0) {

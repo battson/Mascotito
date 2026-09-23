@@ -4556,6 +4556,63 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .room-chat-panel { right: 8px; bottom: 54px; width: calc(100% - 16px); height: min(440px, calc(100% - 70px)); }
 }
 
+/* Beta v4.2: inventory window and illustrated close control. */
+.inventory-window {
+  position: relative;
+  height: 400px;
+  padding: 72px 18px 18px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  isolation: isolate;
+}
+.inventory-window::before {
+  content: "";
+  position: absolute;
+  inset: 48px 0 0;
+  border: 0 solid transparent;
+  border-image: url("../assets/ui/inventory/frame.png") 120 fill / 39px / 0 stretch;
+  pointer-events: none;
+  z-index: -1;
+}
+.inventory-window .modal-topbar {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 50px;
+  padding: 0;
+  justify-content: center;
+}
+.inventory-window .modal-topbar::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 50%;
+  width: 372px; height: 50px;
+  transform: translateX(-50%);
+  background: url("../assets/ui/inventory/title-tab.svg") center / 100% 100% no-repeat;
+  z-index: -1;
+  pointer-events: none;
+}
+.inventory-window .modal-topbar h2 { color: #633719; }
+.inventory-window .inventory-grid { min-height: 0; }
+.inventory-close-icon {
+  position: absolute;
+  top: 48px; right: 10px; margin-top: -22px;
+  display: grid; place-items: center;
+  width: 44px; height: 44px; padding: 6px;
+  border: 0; border-radius: 6px;
+  background: transparent; box-shadow: none;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.inventory-close-icon img { display: block; width: 32px; height: 32px; object-fit: contain; pointer-events: none; }
+.inventory-close-icon:hover { transform: translateY(-2px) scale(1.06); }
+.inventory-close-icon:active { transform: translateY(1px) scale(.94); }
+.inventory-close-icon:focus-visible { outline: 3px solid #244962; outline-offset: -3px; }
+@media (prefers-reduced-motion: reduce) {
+  .inventory-close-icon { transition: none; }
+}
+
 /* Beta v4.1: illustrated action icons, with selection only for panels. */
 #stage-floor:not(.is-editing) #actions-dock { gap: 24px; }
 #actions-dock .action-group { display: flex; gap: 8px; flex: 0 0 auto; }

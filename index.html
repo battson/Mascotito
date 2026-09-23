@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.1</title>
+  <title>Mascotito — Beta v4.2</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.1</span>
+      <span class="badge" id="app-version-badge">Beta v4.2</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -225,8 +225,8 @@
   <div id="inventory-overlay" class="modal-overlay" hidden>
     <section class="modal-window inventory-window" role="dialog" aria-modal="true" aria-label="Inventario">
       <div class="modal-topbar">
-        <h2>Inventario</h2>
-        <button id="inventory-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button>
+        <h2 class="sr-only">Inventario</h2>
+        <button id="inventory-close" type="button" class="inventory-close-icon" aria-label="Cerrar inventario" title="Cerrar inventario"><img src="assets/ui/actions/cerrar.svg" alt="" draggable="false" /></button>
       </div>
       <div id="inventory-tabs" class="inventory-tabs" role="tablist" aria-label="Categorías del inventario">
         <button type="button" class="inventory-tab is-active" data-category="food">Comida y bebida</button>
@@ -254,7 +254,6 @@
       </div>
       <div id="inventory-housing-grid" class="inventory-grid housing-inventory-grid" hidden></div>
       <p id="inventory-status" class="inventory-status" role="status"></p>
-      <div class="modal-actions"><button id="housing-edit-open" type="button" class="secondary-btn">Decorar casa</button><button id="inventory-close-action" type="button" class="secondary-btn">Cerrar</button></div>
     </section>
   </div>
 
@@ -664,7 +663,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.1 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.2 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

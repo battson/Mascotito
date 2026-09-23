@@ -2,6 +2,14 @@
 
 Los acuerdos por retomar al rediseñar cada sección están en [Pendientes de UI](PENDIENTES.md).
 
+## Beta v4.2
+
+- Inventario usa el marco original de windows.ai, con título en la pestaña superior y formato horizontal de 680 × 400 px. El marco se adapta por secciones para preservar las esquinas.
+- El SVG original de cierre queda arriba a la derecha, sin fondo y con hover y pulsación como los iconos de acciones.
+- Se retiran los botones inferiores Cerrar y Decorar casa. Las categorías conservan su diseño hasta la siguiente etapa.
+- Los recursos del marco se exportan con `scripts/export-inventory-window.py`, pasando la ruta del Illustrator compatible con PDF.
+- El título usa el arte vectorizado de inv_windows.svg, con su vista recortada a la pestaña superior en assets/ui/inventory/title-tab.svg. Se conserva el encabezado accesible sin texto visible duplicado.
+
 ## Beta v4.1
 
 - Barra de acciones con los SVG originales: cofre para Inventario, remera para Ropa, luna/sol para Dormir/Despertar, pelota para Jugar, bolsa para Tienda y jabón para Limpiar.
