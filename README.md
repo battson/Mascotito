@@ -1,5 +1,10 @@
 # Mascotito Beta
 
+## Beta v4.3.5 — Cierre de v4.3
+
+- Monedas dentro del juego, arriba a la derecha, con moneda SVG y contador dorado delineado.
+- Inventario sin huella decorativa y cierre desplazado hacia el interior.
+
 ## Inventario cofre
 
 - Ventana, pescado, botella y cierre circular en SVG independientes.

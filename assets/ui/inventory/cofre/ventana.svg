@@ -24,10 +24,4 @@
 <rect x="70" y="80" width="1060" height="559" rx="37" fill="url(#cream)" stroke="#fff4b2" stroke-width="5"/>
 <path d="M86 608V121Q86 94 113 94H1085" stroke="white" stroke-opacity=".7" stroke-width="5" stroke-linecap="round"/>
 <use href="#corner"/><use href="#corner" transform="translate(1200 0) scale(-1 1)"/><use href="#corner" transform="translate(0 720) scale(1 -1)"/><use href="#corner" transform="translate(1200 720) scale(-1 -1)"/>
-<path d="M530 686V663Q600 607 670 663V686" fill="url(#gold)" stroke="#a65a15" stroke-width="4"/>
-<path d="M546 658Q600 621 654 658" stroke="#fff6b3" stroke-width="5" stroke-linecap="round"/>
-<g fill="#9b501f" stroke="#e9a23b" stroke-width="2">
- <path d="M580 667Q584 645 600 645Q616 645 620 667Q632 685 614 686Q600 681 586 686Q569 685 580 667Z"/>
- <ellipse cx="573" cy="649" rx="8" ry="11" transform="rotate(-26 573 649)"/><ellipse cx="589" cy="635" rx="7" ry="11" transform="rotate(-10 589 635)"/><ellipse cx="610" cy="635" rx="7" ry="11" transform="rotate(10 610 635)"/><ellipse cx="627" cy="649" rx="8" ry="11" transform="rotate(26 627 649)"/>
-</g>
 </svg>

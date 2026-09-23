@@ -5260,3 +5260,25 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .inventory-window .inventory-close-icon { width: 40px; height: 40px; }
   .inventory-window .inventory-fish-cooldown, .inventory-window .inventory-water-cooldown { font-size: 11px; padding-inline: 5px; }
 }
+
+/* Beta v4.3.5: saldo dentro del escenario y cierre dentro del marco. */
+#stage-floor .game-coins {
+  position: absolute; top: 16px; right: 22px; z-index: 8;
+  display: flex; align-items: center; gap: 8px; pointer-events: none;
+  max-width: 44%;
+}
+.game-coins img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+.game-coins strong {
+  font: 900 32px/1 "Baloo 2", sans-serif;
+  color: #ffe052; -webkit-text-stroke: 3px #78410d; paint-order: stroke fill;
+  text-shadow: 0 3px 0 #512a0c; overflow-wrap: anywhere;
+}
+#stage-floor .daily-card { top: 76px; }
+.inventory-window .inventory-close-icon { top: 10px; right: 12px; }
+@media (max-width: 600px) {
+  #stage-floor .game-coins { top: 12px; right: 14px; gap: 5px; }
+  .game-coins img { width: 32px; height: 32px; }
+  .game-coins strong { font-size: 25px; -webkit-text-stroke-width: 2px; }
+  #stage-floor .daily-card { top: 56px; }
+  .inventory-window .inventory-close-icon { top: 7px; right: 8px; }
+}
