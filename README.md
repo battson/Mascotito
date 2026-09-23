@@ -1,5 +1,17 @@
 # Mascotito Beta
 
+## Beta v4.3.3 — Todo lo de amigos dentro del celular
+
+- **Se eliminó la ventana vieja de Amigos** (pestañas Mis amigos / Agregar / Eliminar) y el botón oculto de Amigos del encabezado. Todo vive en el celular.
+- **Pantalla Contactos:** arriba, la **lupa** (siempre) y el **+** amarillo, que aparece sólo cuando hay solicitudes pendientes y muestra cuántas. Se quitó el −.
+- **Lupa → pantalla Buscar amigos**, dentro del celular: campo de usuario + lupa, y el resultado con «Enviar solicitud».
+- **+ → pantalla Solicitudes**, dentro del celular: cada solicitud con ✓ y −. Al aceptar o rechazar la última, el + desaparece.
+- **Eliminar amigo** queda sólo en el «•••» del chat de cada contacto, con **confirmación dentro del celular** (✓ / −).
+- El número rojo del globo de Contactos suma mensajes sin leer y solicitudes pendientes.
+- **Marco en la capa superior:** `phone.svg` ahora tiene la pantalla transparente y el contenido va por debajo, extendido unos píxeles detrás del borde; el marco recorta las esquinas.
+- Se quitó el botón de emojis (la huellita del campo de texto) y su función.
+- La huella del marco vuelve a Contactos desde cualquier pantalla (chat, Buscar, Solicitudes o la confirmación) y en Contactos cierra el celular.
+
 ## Beta v4.3.2 — Contactos dentro del celular
 
 - **Contactos y el chat viven dentro del celular ilustrado** (`assets/ui/phone/phone.svg`), abajo a la derecha, sobre el globo de Contactos. Diseño de pantalla según `referencia.png`: encabezado con avatar redondo y nombre, globos crema para los mensajes recibidos (izquierda) y verde menta para los propios (derecha), y abajo huellita + campo + Enviar.

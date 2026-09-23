@@ -17,7 +17,8 @@ let currentDisplayName = null;
 let cloudUnsub = null; // desuscribe el onSnapshot de amigos/solicitudes de la cuenta actual
 let myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
 let pendingGoogleUid = null; // uid de Google mientras se muestra el paso de "elegí tu usuario"
-let friendsTabActive = "lista";
+// Beta v4.3.3: pantalla visible del celular: contacts | chat | search | requests.
+let phoneView = "contacts";
 let wardrobeSlotActive = "superior";
 let shopGroup = "Casa";
 let shopSubcategory = null;
@@ -27,7 +28,6 @@ const friendPresence = new Map();
 // Beta v4.3.2: mascotas de los contactos (una lectura por apertura del celular) y emojis del chat.
 const friendPetCache = new Map();
 const friendPetPending = new Set();
-const PHONE_EMOJIS = ["😀", "😂", "😍", "🥰", "😎", "😢", "😡", "😴", "🤔", "😮", "👍", "👏", "🙌", "💪", "❤️", "✨", "🎉", "🐶", "🐱", "🐰", "🐾", "🍖", "🐟", "🥤", "⚽", "🏠", "☀️", "🌙"];
 const friendPresenceUnsubscribers = new Map();
 const SESSION_KEY = PET_CONFIG.storageKey + ".session";
 
@@ -156,24 +156,8 @@ const el = {
   deleteAccountCancel: document.getElementById("delete-account-cancel"),
   deleteAccountClose: document.getElementById("delete-account-close"),
   deleteAccountUsernameHint: document.getElementById("delete-account-username-hint"),
-  btnAmigos: document.getElementById("btn-amigos"),
-  friendsBadge: document.getElementById("friends-badge"),
-  friendsOverlay: document.getElementById("friends-overlay"),
-  friendsPanel: document.getElementById("friends-panel"),
-  friendsClose: document.getElementById("friends-close"),
-  friendsTabs: document.getElementById("friends-tabs"),
-  requestsTabBadge: document.getElementById("requests-tab-badge"),
-  friendsTabLista: document.getElementById("friends-tab-lista"),
-  friendsTabSolicitudes: document.getElementById("friends-tab-solicitudes"),
-  friendsTabAgregar: document.getElementById("friends-tab-agregar"),
-  friendsList: document.getElementById("friends-list"),
-  friendsEmpty: document.getElementById("friends-empty"),
   requestsIncomingList: document.getElementById("requests-incoming-list"),
   requestsIncomingEmpty: document.getElementById("requests-incoming-empty"),
-  requestsOutgoingList: document.getElementById("requests-outgoing-list"),
-  requestsOutgoingEmpty: document.getElementById("requests-outgoing-empty"),
-  friendsRemoveList: document.getElementById("friends-remove-list"),
-  friendsRemoveEmpty: document.getElementById("friends-remove-empty"),
   addFriendForm: document.getElementById("add-friend-form"),
   addFriendInput: document.getElementById("add-friend-input"),
   addFriendResult: document.getElementById("add-friend-result"),
@@ -199,9 +183,14 @@ const el = {
   roomChatAvatar: document.getElementById("room-chat-avatar"),
   roomChatMenuBtn: document.getElementById("room-chat-menu-btn"),
   roomChatMenu: document.getElementById("room-chat-menu"),
-  roomChatEmoji: document.getElementById("room-chat-emoji"),
-  roomChatEmojiPanel: document.getElementById("room-chat-emoji-panel"),
   phoneHome: document.getElementById("phone-home"),
+  phoneSearchOpen: document.getElementById("phone-search-open"),
+  phoneSearch: document.getElementById("phone-search"),
+  phoneRequests: document.getElementById("phone-requests"),
+  phoneConfirm: document.getElementById("phone-confirm"),
+  phoneConfirmText: document.getElementById("phone-confirm-text"),
+  phoneConfirmYes: document.getElementById("phone-confirm-yes"),
+  phoneConfirmNo: document.getElementById("phone-confirm-no"),
   roomChatTitle: document.getElementById("room-chat-title"),
   roomChatParticipants: document.getElementById("room-chat-participants"),
   roomChatContacts: document.getElementById("room-chat-contacts"),
@@ -219,8 +208,6 @@ const el = {
   roomQuickChatInput: document.getElementById("room-quick-chat-input"),
   roomQuickChatSend: document.getElementById("room-quick-chat-send"),
   friendsManageAdd: document.getElementById("friends-manage-add"),
-  friendsManageRequests: document.getElementById("friends-manage-requests"),
-  friendsManageRemove: document.getElementById("friends-manage-remove"),
   friendsManageBadge: document.getElementById("friends-manage-badge"),
   inventoryOverlay: document.getElementById("inventory-overlay"),
   inventoryClose: document.getElementById("inventory-close"),
@@ -3438,8 +3425,7 @@ async function doCambiarUsuario() {
   myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
   rememberUsername(null);
   state = null;
-  closeFriendsPanel();
-  if (el.btnAmigos) el.btnAmigos.hidden = true;
+  setRoomChatOpen(false);
   el.game.hidden = true;
   setStageEditing(false);
   updateFooterText();
@@ -3540,8 +3526,7 @@ async function handleDeleteAccountSubmit() {
     myCloudData = { friends: {}, friendRequests: { incoming: {}, outgoing: {} } };
     rememberUsername(null);
     state = null;
-    closeFriendsPanel();
-    if (el.btnAmigos) el.btnAmigos.hidden = true;
+    setRoomChatOpen(false);
     el.game.hidden = true;
     setStageEditing(false);
     updateFooterText();
@@ -4019,7 +4004,6 @@ function startSessionWithData(data) {
   pendingHousingGiftForAccount = !!data && !Object.prototype.hasOwnProperty.call(data, "housingGiftStatus");
   el.loginScreen.hidden = true;
   el.appHeader.hidden = false;
-  if (el.btnAmigos) el.btnAmigos.hidden = true;
   updateFooterText();
   updateOptCambiarUsuario();
   updateAdminUI();
@@ -4287,7 +4271,7 @@ function subscribeFriendsLive() {
     subscribeFriendsPresence();
     renderFriendsBadge();
     refreshChatUnreadBadge();
-    if (el.friendsOverlay && !el.friendsOverlay.hidden) renderFriendsPanel();
+    if (phoneView === "requests") renderRequestsList();
     if (el.roomChatPanel && !el.roomChatPanel.hidden && activeChatKind === null) renderChatContacts();
   });
 }
@@ -4306,7 +4290,6 @@ function subscribeFriendsPresence() {
     if (friendPresenceUnsubscribers.has(username)) return;
     const unsubscribe = window.Multiplayer.subscribeUserPresence(username, (presence) => {
       friendPresence.set(username, presence || { online: false, currentRooms: [] });
-      if (!el.friendsOverlay?.hidden) renderFriendsPanel();
       if (!el.roomChatPanel?.hidden && activeChatKind === null) renderChatContacts();
       if (activeChatKind === "direct" && activeDirectUsername === username) {
         const online = !!presence?.online;
@@ -4321,18 +4304,12 @@ function subscribeFriendsPresence() {
 function renderFriendsBadge() {
   const incoming = (myCloudData.friendRequests && myCloudData.friendRequests.incoming) || {};
   const count = Object.keys(incoming).length;
-  if (el.friendsBadge) {
-    el.friendsBadge.hidden = count === 0;
-    el.friendsBadge.textContent = String(count);
-  }
-  if (el.requestsTabBadge) {
-    el.requestsTabBadge.hidden = count === 0;
-    el.requestsTabBadge.textContent = String(count);
-  }
   if (el.friendsManageBadge) {
     el.friendsManageBadge.hidden = count === 0;
     el.friendsManageBadge.textContent = String(count);
   }
+  // Beta v4.3.3: el + de Contactos sólo aparece con solicitudes pendientes.
+  if (el.friendsManageAdd) el.friendsManageAdd.hidden = count === 0;
 }
 
 // Beta v4.3.1: botones de amigos como íconos SVG (sin texto visible; el
@@ -4368,27 +4345,14 @@ function friendRow(displayName, actionsHtml, online = null) {
   return li;
 }
 
-function renderFriendsPanel() {
-  const friends = myCloudData.friends || {};
+// Beta v4.3.3: la ventana vieja de Amigos se integró al celular. Las
+// solicitudes recibidas se ven en su propia pantalla (botón + de Contactos).
+function renderRequestsList() {
+  if (!el.requestsIncomingList) return;
   const incoming = (myCloudData.friendRequests && myCloudData.friendRequests.incoming) || {};
-
-  el.friendsList.innerHTML = "";
-  const friendKeys = Object.keys(friends);
-  el.friendsEmpty.hidden = friendKeys.length > 0;
-  friendKeys.forEach((k) => {
-    const display = (friends[k] && friends[k].displayName) || k;
-    el.friendsList.appendChild(
-      friendRow(
-        display,
-        `<button type="button" class="friend-btn-visit friend-icon-btn" title="Visitar" data-user="${k}" data-display="${display}">${friendIconHtml("visit", "Visitar")}</button><button type="button" class="friend-btn-chat friend-icon-btn" title="Chat" data-user="${k}" data-display="${display}">${friendIconHtml("chat", "Chat")}</button>`,
-        !!friendPresence.get(k)?.online
-      )
-    );
-  });
-
   el.requestsIncomingList.innerHTML = "";
   const inKeys = Object.keys(incoming);
-  el.requestsIncomingEmpty.hidden = inKeys.length > 0;
+  if (el.requestsIncomingEmpty) el.requestsIncomingEmpty.hidden = inKeys.length > 0;
   inKeys.forEach((k) => {
     const display = (incoming[k] && incoming[k].fromDisplay) || k;
     el.requestsIncomingList.appendChild(
@@ -4398,40 +4362,7 @@ function renderFriendsPanel() {
       )
     );
   });
-
-  if (el.friendsRemoveList) {
-    el.friendsRemoveList.innerHTML = "";
-    if (el.friendsRemoveEmpty) el.friendsRemoveEmpty.hidden = friendKeys.length > 0;
-    friendKeys.forEach((k) => {
-      const display = friends[k]?.displayName || k;
-      el.friendsRemoveList.appendChild(friendRow(display, `<button type="button" class="friend-btn-remove" data-user="${k}" data-display="${display}">Eliminar</button>`));
-    });
-  }
-
   renderFriendsBadge();
-}
-
-function openFriendsPanel(tab = friendsTabActive) {
-  el.friendsOverlay.hidden = false;
-  renderFriendsPanel();
-  switchFriendsTab(tab);
-}
-
-function closeFriendsPanel() {
-  if (el.friendsOverlay) el.friendsOverlay.hidden = true;
-}
-
-function switchFriendsTab(tab) {
-  // Beta v4.3: las solicitudes recibidas se muestran dentro de Agregar.
-  if (tab === "solicitudes") tab = "agregar";
-  friendsTabActive = tab;
-  const panels = { lista: el.friendsTabLista, agregar: el.friendsTabAgregar, eliminar: document.getElementById("friends-tab-eliminar") };
-  Object.keys(panels).forEach((key) => {
-    if (panels[key]) panels[key].hidden = key !== tab;
-  });
-  el.friendsTabs.querySelectorAll(".creator-tab").forEach((btn) => {
-    btn.setAttribute("aria-selected", String(btn.dataset.tab === tab));
-  });
 }
 
 async function handleAddFriendSearch() {
@@ -4465,7 +4396,7 @@ async function handleAddFriendSearch() {
     return;
   }
   if (myCloudData.friendRequests && myCloudData.friendRequests.incoming && myCloudData.friendRequests.incoming[result.usernameLower]) {
-    resultBox.textContent = `${result.username} ya te envió una solicitud — la tenés abajo, en Solicitudes recibidas.`;
+    resultBox.textContent = `${result.username} ya te envió una solicitud — la tenés en Solicitudes (el + de Contactos).`;
     return;
   }
   resultBox.textContent = "";
@@ -4489,37 +4420,9 @@ async function handleAddFriendSearch() {
 }
 
 function setupFriendsUI() {
-  if (!el.btnAmigos || !el.friendsOverlay) return;
-  el.btnAmigos.addEventListener("click", () => openFriendsPanel());
-  el.friendsClose.addEventListener("click", closeFriendsPanel);
-  el.friendsOverlay.addEventListener("click", (ev) => {
-    if (ev.target === el.friendsOverlay) closeFriendsPanel();
-  });
-  document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && !el.friendsOverlay.hidden) closeFriendsPanel();
-  });
-  el.friendsTabs.addEventListener("click", (ev) => {
-    const btn = ev.target.closest(".creator-tab");
-    if (!btn) return;
-    switchFriendsTab(btn.dataset.tab);
-  });
-  el.friendsList.addEventListener("click", async (ev) => {
+  el.requestsIncomingList?.addEventListener("click", async (ev) => {
     const btn = ev.target.closest("button[data-user]");
-    if (!btn) return;
-    if (btn.classList.contains("friend-btn-visit")) {
-      closeFriendsPanel();
-      openVisit(btn.dataset.user, btn.dataset.display || btn.dataset.user);
-      return;
-    }
-    if (btn.classList.contains("friend-btn-chat")) {
-      closeFriendsPanel();
-      setRoomChatOpen(true);
-      openDirectChatConversation(btn.dataset.user, btn.dataset.display || btn.dataset.user);
-    }
-  });
-  el.requestsIncomingList.addEventListener("click", async (ev) => {
-    const btn = ev.target.closest("button[data-user]");
-    if (!btn) return;
+    if (!btn || !window.Cloud) return;
     const target = btn.dataset.user;
     btn.disabled = true;
     if (btn.classList.contains("friend-btn-accept")) {
@@ -4529,14 +4432,7 @@ function setupFriendsUI() {
       await window.Cloud.rejectFriendRequest(currentUsername, target);
     }
   });
-  el.friendsRemoveList?.addEventListener("click", async (ev) => {
-    const btn = ev.target.closest("button.friend-btn-remove[data-user]");
-    if (!btn) return;
-    if (!window.confirm(`¿Seguro que querés eliminar a ${btn.dataset.display || btn.dataset.user} de tus amigos?`)) return;
-    btn.disabled = true;
-    await window.Cloud.removeFriend(currentUsername, btn.dataset.user);
-  });
-  el.addFriendForm.addEventListener("submit", (ev) => {
+  el.addFriendForm?.addEventListener("submit", (ev) => {
     ev.preventDefault();
     handleAddFriendSearch();
   });
@@ -4631,14 +4527,11 @@ function showChatContacts() {
   stopLocalChatTyping();
   stopDirectChatWatch();
   activeChatKind = null;
-  if (el.roomChatContacts) el.roomChatContacts.hidden = false;
-  if (el.roomChatConversation) el.roomChatConversation.hidden = true;
-  if (el.roomChatBack) el.roomChatBack.hidden = true;
   if (el.roomChatTitle) el.roomChatTitle.textContent = "Contactos";
   if (el.roomChatParticipants) el.roomChatParticipants.textContent = "Elegí una conversación";
   setPhoneHeaderAvatar(null);
   setPhoneMenuVisible(false);
-  closeEmojiPanel();
+  setPhoneView("contacts");
   setChatStatus("");
   renderChatContacts();
 }
@@ -4649,7 +4542,7 @@ function setRoomChatOpen(open) {
   el.roomChatToggle.setAttribute("aria-expanded", String(open));
   el.roomChatToggle.classList.toggle("is-selected", open);
   closePhoneMenu();
-  closeEmojiPanel();
+  closePhoneConfirm();
   if (open) {
     friendPetCache.clear();
     showChatContacts();
@@ -4892,44 +4785,53 @@ function closePhoneMenu() {
 }
 
 
-function closeEmojiPanel() {
-  if (el.roomChatEmojiPanel) el.roomChatEmojiPanel.hidden = true;
-  el.roomChatEmoji?.setAttribute("aria-expanded", "false");
+let phoneConfirmAction = null;
+
+function openPhoneConfirm(text, action) {
+  if (!el.phoneConfirm) return;
+  phoneConfirmAction = action;
+  el.phoneConfirmText.textContent = text;
+  el.phoneConfirm.hidden = false;
+  el.phoneConfirmNo?.focus();
 }
 
-function insertIntoChatInput(text) {
-  const input = el.roomChatInput;
-  if (!input) return;
-  const start = input.selectionStart ?? input.value.length;
-  const end = input.selectionEnd ?? input.value.length;
-  const next = (input.value.slice(0, start) + text + input.value.slice(end)).slice(0, Number(input.maxLength) > 0 ? input.maxLength : 180);
-  input.value = next;
-  const caret = Math.min(start + text.length, next.length);
-  input.focus();
-  input.setSelectionRange(caret, caret);
-  input.dispatchEvent(new Event("input", { bubbles: true }));
+function closePhoneConfirm() {
+  phoneConfirmAction = null;
+  if (el.phoneConfirm) el.phoneConfirm.hidden = true;
+}
+
+// Muestra una sola pantalla del celular a la vez.
+function setPhoneView(view) {
+  phoneView = view;
+  if (el.roomChatContacts) el.roomChatContacts.hidden = view !== "contacts";
+  if (el.roomChatConversation) el.roomChatConversation.hidden = view !== "chat";
+  if (el.phoneSearch) el.phoneSearch.hidden = view !== "search";
+  if (el.phoneRequests) el.phoneRequests.hidden = view !== "requests";
+  if (el.roomChatBack) el.roomChatBack.hidden = view === "contacts";
+}
+
+function openPhoneSubview(view) {
+  stopLocalChatTyping();
+  stopDirectChatWatch();
+  activeChatKind = null;
+  closePhoneMenu();
+  setPhoneHeaderAvatar(null);
+  setPhoneMenuVisible(false);
+  setChatStatus("");
+  setPhoneView(view);
+  if (view === "search") {
+    el.roomChatTitle.textContent = "Buscar amigos";
+    el.roomChatParticipants.textContent = "Escribí su nombre de usuario";
+    if (el.addFriendResult) { el.addFriendResult.hidden = true; el.addFriendResult.textContent = ""; }
+    el.addFriendInput?.focus();
+  } else {
+    el.roomChatTitle.textContent = "Solicitudes";
+    el.roomChatParticipants.textContent = "Te quieren agregar";
+    renderRequestsList();
+  }
 }
 
 function setupPhoneUI() {
-  if (el.roomChatEmojiPanel && !el.roomChatEmojiPanel.childElementCount) {
-    PHONE_EMOJIS.forEach((emoji) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = emoji;
-      b.setAttribute("aria-label", `Agregar ${emoji}`);
-      el.roomChatEmojiPanel.appendChild(b);
-    });
-  }
-  el.roomChatEmoji?.addEventListener("click", () => {
-    const open = el.roomChatEmojiPanel.hidden;
-    el.roomChatEmojiPanel.hidden = !open;
-    el.roomChatEmoji.setAttribute("aria-expanded", String(open));
-    if (!open) el.roomChatInput?.focus();
-  });
-  el.roomChatEmojiPanel?.addEventListener("click", (ev) => {
-    const b = ev.target.closest("button");
-    if (b) insertIntoChatInput(b.textContent);
-  });
   el.roomChatMenuBtn?.addEventListener("click", () => {
     const open = el.roomChatMenu.hidden;
     el.roomChatMenu.hidden = !open;
@@ -4947,24 +4849,32 @@ function setupPhoneUI() {
       openVisit(username, display);
       return;
     }
-    if (!window.confirm(`¿Seguro que querés eliminar a ${display} de tus amigos?`)) return;
-    const res = await window.Cloud?.removeFriend?.(currentUsername, username);
-    if (res && res.ok === false) { setChatStatus("No se pudo eliminar ahora. Probá de nuevo."); return; }
-    showChatContacts();
+    openPhoneConfirm(`¿Eliminar a ${display} de tus amigos?`, async () => {
+      const res = await window.Cloud?.removeFriend?.(currentUsername, username);
+      if (res && res.ok === false) { setChatStatus("No se pudo eliminar ahora. Probá de nuevo."); return; }
+      showChatContacts();
+    });
   });
   el.phoneHome?.addEventListener("click", () => {
-    if (activeChatKind) showChatContacts();
+    if (el.phoneConfirm && !el.phoneConfirm.hidden) { closePhoneConfirm(); return; }
+    if (phoneView !== "contacts") showChatContacts();
     else setRoomChatOpen(false);
+  });
+  el.phoneSearchOpen?.addEventListener("click", () => openPhoneSubview("search"));
+  el.friendsManageAdd?.addEventListener("click", () => openPhoneSubview("requests"));
+  el.phoneConfirmNo?.addEventListener("click", closePhoneConfirm);
+  el.phoneConfirmYes?.addEventListener("click", async () => {
+    const action = phoneConfirmAction;
+    el.phoneConfirmYes.disabled = true;
+    try { if (action) await action(); } finally { el.phoneConfirmYes.disabled = false; closePhoneConfirm(); }
   });
   document.addEventListener("click", (ev) => {
     if (el.roomChatMenu && !el.roomChatMenu.hidden && !ev.target.closest(".phone-menu-wrap")) closePhoneMenu();
-    if (el.roomChatEmojiPanel && !el.roomChatEmojiPanel.hidden && !ev.target.closest("#room-chat-emoji-panel, #room-chat-emoji")) closeEmojiPanel();
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key !== "Escape" || !el.roomChatPanel || el.roomChatPanel.hidden) return;
     if (el.roomChatMenu && !el.roomChatMenu.hidden) { closePhoneMenu(); el.roomChatMenuBtn?.focus(); return; }
-    if (el.roomChatEmojiPanel && !el.roomChatEmojiPanel.hidden) { closeEmojiPanel(); el.roomChatEmoji?.focus(); return; }
-    if (el.friendsOverlay && !el.friendsOverlay.hidden) return;
+    if (el.phoneConfirm && !el.phoneConfirm.hidden) { closePhoneConfirm(); return; }
     setRoomChatOpen(false);
     el.roomChatToggle?.focus();
   }, true);
@@ -5073,9 +4983,7 @@ function renderChatContacts() {
 }
 
 function showConversationShell() {
-  if (el.roomChatContacts) el.roomChatContacts.hidden = true;
-  if (el.roomChatConversation) el.roomChatConversation.hidden = false;
-  if (el.roomChatBack) el.roomChatBack.hidden = false;
+  setPhoneView("chat");
   if (el.roomChatTyping) { el.roomChatTyping.hidden = true; el.roomChatTyping.textContent = ""; }
   setChatStatus("");
 }
@@ -5211,8 +5119,6 @@ function setupRoomChatUI() {
     const displayName = myCloudData.friends?.[username]?.displayName || directInboxFor(username)?.otherDisplayName || username;
     if (username) openDirectChatConversation(username, displayName);
   });
-  el.friendsManageAdd?.addEventListener("click", () => openFriendsPanel("agregar"));
-  el.friendsManageRemove?.addEventListener("click", () => openFriendsPanel("eliminar"));
   el.roomChatInput.addEventListener("input", updateLocalChatTyping);
   el.roomQuickChatInput?.addEventListener("input", updateLocalChatTyping);
   document.getElementById("room-quick-chat-help")?.addEventListener("click", () => setQuickChatActive(true));
@@ -5762,7 +5668,6 @@ function openVisit(usernameLower, displayName) {
   if (!window.Cloud || !window.Cloud.enabled || !usernameLower) return;
   if (housingEditing) stopHousingEdit();
   closeVisit({ skipTransition: true, enteringAnotherVisit: true });
-  closeFriendsPanel();
   const transitionId = beginStageTransition(`Viajando a la casa de ${displayName}...`);
   activeVisit = {
     usernameLower,

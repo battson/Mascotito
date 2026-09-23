@@ -2,7 +2,7 @@
 
 ## Alcance actual
 
-- Beta v4.3 en curso, de a un paso por entrega. Hecho: ícono de Contactos, + (con Solicitudes adentro) y − (v4.3); Aceptar/Rechazar, Visitar, Chat, Enviar como íconos y pantalla renombrada a Contactos (v4.3.1). Hecho en v4.3.2: celular con Contactos y chat según referencia.png, mascota de cada contacto con aro de conexión, casita para la sala, emojis en la huellita, menú «•••» (Visitar/Eliminar), huella del marco como inicio, ✓ para Aceptar y lupa para Buscar. Pendiente opcional: stickers ilustrados en el panel de la huellita (hoy son emojis); borrar assets/ui/phone/accept.svg, que quedó sin uso.
+- Beta v4.3 en curso, de a un paso por entrega. Hecho: ícono de Contactos, + (con Solicitudes adentro) y − (v4.3); Aceptar/Rechazar, Visitar, Chat, Enviar como íconos y pantalla renombrada a Contactos (v4.3.1). Hecho en v4.3.2: celular con Contactos y chat según referencia.png, mascota de cada contacto con aro de conexión, casita para la sala, emojis en la huellita, menú «•••» (Visitar/Eliminar), huella del marco como inicio, ✓ para Aceptar y lupa para Buscar. v4.3.3: ventana vieja de Amigos integrada al celular (lupa = Buscar, + = Solicitudes sólo con pendientes, Eliminar en «•••» con confirmación), marco arriba con pantalla transparente, sin emojis. Limpieza pendiente: borrar assets/ui/phone/accept.svg (sin uso) y las reglas CSS de la ventana vieja de Amigos (#friends-panel, .friends-tabpanel), que ya no tienen HTML.
 - Cada actualización debe entregarse con capturas de pantalla que muestren los cambios solicitados.
 
 - Inventario v4.2.9: ventana simplificada de windowsv2.ai, sólo consumibles, cierre discreto en la esquina superior derecha; no tiene categorías.

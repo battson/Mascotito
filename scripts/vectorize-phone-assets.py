@@ -1,7 +1,7 @@
 """Vectoriza los PNG del celular de Contactos y sus íconos (Beta v4.3).
 
 Genera SVG sólo con trazados (sin imágenes incrustadas) en assets/ui/phone/.
-Requiere vtracer, Pillow y numpy.
+Requiere vtracer, Pillow, numpy y scipy.
 
 Uso:
   python scripts/vectorize-phone-assets.py phone=marco.png contacts=globo-azul.png \
@@ -33,6 +33,19 @@ def recolor_to_frame(im):
             arr[y, x, :3] = colorsys.hsv_to_rgb(FRAME_HUE, s, v)
     return Image.fromarray((arr * 255).round().astype("uint8"), "RGBA")
 
+def punch_screen_hole(im):
+    """v4.3.3: la pantalla crema del celular queda transparente (el contenido
+    va por debajo del marco). Se toma la zona crema conectada al centro."""
+    from scipy import ndimage
+    a = np.array(im)
+    h, w = a.shape[:2]
+    center = a[h // 2, w // 2, :3].astype(int)
+    same = np.abs(a[:, :, :3].astype(int) - center).sum(2) < 34
+    labels, _ = ndimage.label(same)
+    hole = ndimage.binary_dilation(ndimage.binary_fill_holes(labels == labels[h // 2, w // 2]), iterations=1)
+    a[hole, 3] = 0
+    return Image.fromarray(a)
+
 DEST.mkdir(parents=True, exist_ok=True)
 with tempfile.TemporaryDirectory() as tmp:
     for arg in sys.argv[1:]:
@@ -43,6 +56,8 @@ with tempfile.TemporaryDirectory() as tmp:
         im = im.crop((max(xs.min() - 6, 0), max(ys.min() - 6, 0), min(xs.max() + 7, im.width), min(ys.max() + 7, im.height)))
         if name == "contacts":
             im = recolor_to_frame(im)
+        if name == "phone":
+            im = punch_screen_hole(im)
         side = HEAVY[name][0] if name in HEAVY else SIDE.get(name, 640)
         im.thumbnail((side, side), Image.Resampling.LANCZOS)
         if name in HEAVY:
