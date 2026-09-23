@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.2.9</title>
+  <title>Mascotito — Beta v4.3.2</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.2.9</span>
+      <span class="badge" id="app-version-badge">Beta v4.3.2</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -189,8 +189,7 @@
       </div>
       <div id="friends-tabs" class="creator-tabs" role="tablist" aria-label="Sección de amigos">
         <button class="creator-tab" data-tab="lista" role="tab" aria-selected="true" type="button">Mis amigos</button>
-        <button class="creator-tab" data-tab="solicitudes" role="tab" aria-selected="false" type="button">Solicitudes<span id="requests-tab-badge" class="icon-badge" hidden>0</span></button>
-        <button class="creator-tab" data-tab="agregar" role="tab" aria-selected="false" type="button">Agregar</button>
+        <button class="creator-tab" data-tab="agregar" role="tab" aria-selected="false" type="button">Agregar<span id="requests-tab-badge" class="icon-badge" hidden>0</span></button>
         <button class="creator-tab" data-tab="eliminar" role="tab" aria-selected="false" type="button">Eliminar</button>
       </div>
       <div class="modal-body">
@@ -198,20 +197,22 @@
           <ul id="friends-list" class="friends-list"></ul>
           <p id="friends-empty" class="friends-empty" hidden>Todavía no tenés amigos agregados.</p>
         </div>
-        <div id="friends-tab-solicitudes" class="friends-tabpanel" hidden>
-          <h3 class="friends-subtitle">Te escribieron</h3>
-          <ul id="requests-incoming-list" class="friends-list"></ul>
-          <p id="requests-incoming-empty" class="friends-empty" hidden>No tenés solicitudes nuevas.</p>
-        </div>
+        <!-- Beta v4.3: Solicitudes vive dentro de Agregar (buscar arriba,
+             solicitudes recibidas abajo). -->
         <div id="friends-tab-agregar" class="friends-tabpanel" hidden>
           <form id="add-friend-form" class="login-form" autocomplete="off">
             <div class="name-field">
               <label class="name-label" for="add-friend-input">Nombre de usuario</label>
               <input id="add-friend-input" class="name-input" type="text" maxlength="16" placeholder="Ej: Bernardo" autocapitalize="none" autocorrect="off" spellcheck="false" />
             </div>
-            <button type="submit" class="secondary-btn">Buscar</button>
+            <button type="submit" class="friend-search-btn" aria-label="Buscar" title="Buscar"><img src="assets/ui/phone/search.svg" alt="" draggable="false" /></button>
           </form>
           <p id="add-friend-result" class="friends-empty" hidden></p>
+          <div id="friends-tab-solicitudes" class="friends-requests-block">
+            <h3 class="friends-subtitle">Solicitudes recibidas</h3>
+            <ul id="requests-incoming-list" class="friends-list"></ul>
+            <p id="requests-incoming-empty" class="friends-empty" hidden>No tenés solicitudes nuevas.</p>
+          </div>
         </div>
         <div id="friends-tab-eliminar" class="friends-tabpanel" hidden>
           <p class="friends-delete-help">Elegí a quién querés eliminar. Siempre se pedirá confirmación.</p>
@@ -376,25 +377,46 @@
           </section>
           <!-- v3.9.2: chat instantáneo asociado a la sala actual, con
                participantes e indicador efímero de escritura. -->
+          <!-- Beta v4.3: botón Contactos (ex Amigos) — ícono SVG del globo,
+               sin texto visible; el nombre y el estado quedan accesibles. -->
           <button id="room-chat-toggle" class="room-chat-toggle play-only" type="button" hidden aria-controls="room-chat-panel" aria-expanded="false">
+            <img class="room-chat-toggle-art" src="assets/ui/phone/contacts.svg" alt="" draggable="false" />
             <span class="room-chat-contact-dot" aria-hidden="true"></span>
-            <span class="room-chat-contact-copy">
-              <strong id="room-chat-contact-label">Amigos</strong>
+            <span class="room-chat-contact-copy sr-only">
+              <strong id="room-chat-contact-label">Contactos</strong>
               <small id="room-chat-contact-status">Sala y mensajes</small>
             </span>
             <b id="room-chat-badge" hidden>0</b>
           </button>
-          <section id="room-chat-panel" class="room-chat-panel play-only" hidden aria-label="Chat de la casa">
+          <!-- Beta v4.3.2: Contactos y chat dentro del celular ilustrado
+               (assets/ui/phone/phone.svg). La pantalla del celular contiene
+               el mismo panel de antes; la huella del marco vuelve a
+               Contactos (o cierra el celular si ya estás en Contactos). -->
+          <section id="room-chat-panel" class="room-chat-panel phone-panel play-only" hidden aria-label="Contactos">
+            <img class="phone-frame-art" src="assets/ui/phone/phone.svg" alt="" aria-hidden="true" draggable="false" />
+            <div class="phone-screen">
             <header>
-              <button id="room-chat-back" class="room-chat-back" type="button" aria-label="Volver a conversaciones" hidden>←</button>
-              <div><span class="hud-eyebrow">EN VIVO</span><strong id="room-chat-title">Chat de la casa</strong><span id="room-chat-participants" class="room-chat-participants">0 presentes</span></div>
-              <button id="room-chat-close" type="button" aria-label="Cerrar chat">×</button>
+              <button id="room-chat-back" class="room-chat-back" type="button" aria-label="Volver a Contactos" hidden>←</button>
+              <span id="room-chat-avatar" class="phone-header-avatar" aria-hidden="true" hidden></span>
+              <div><span class="hud-eyebrow">EN VIVO</span><strong id="room-chat-title">Contactos</strong><span id="room-chat-participants" class="room-chat-participants">0 presentes</span></div>
+              <div class="phone-menu-wrap">
+                <button id="room-chat-menu-btn" class="phone-menu-btn" type="button" aria-label="Más opciones" aria-haspopup="menu" aria-expanded="false" aria-controls="room-chat-menu" hidden><i></i><i></i><i></i></button>
+                <div id="room-chat-menu" class="phone-menu" role="menu" hidden>
+                  <button type="button" role="menuitem" data-phone-menu="visit"><img src="assets/ui/phone/visit.svg" alt="" draggable="false" />Visitar</button>
+                  <button type="button" role="menuitem" data-phone-menu="remove"><img src="assets/ui/phone/remove.svg" alt="" draggable="false" />Eliminar amigo</button>
+                </div>
+              </div>
+              <button id="room-chat-close" class="sr-only" type="button" aria-label="Cerrar Contactos">×</button>
             </header>
             <section id="room-chat-contacts" class="room-chat-contacts" aria-label="Conversaciones">
               <div class="room-chat-tools">
-                <button id="friends-manage-add" type="button">Agregar</button>
-                <button id="friends-manage-requests" type="button">Solicitudes <b id="friends-manage-badge" hidden>0</b></button>
-                <button id="friends-manage-remove" type="button">Eliminar</button>
+                <button id="friends-manage-add" class="room-chat-tool-icon" type="button" aria-label="Agregar amigos y ver solicitudes" title="Agregar amigos y solicitudes">
+                  <img src="assets/ui/phone/add.svg" alt="" draggable="false" />
+                  <b id="friends-manage-badge" hidden>0</b>
+                </button>
+                <button id="friends-manage-remove" class="room-chat-tool-icon is-remove" type="button" aria-label="Eliminar amigos" title="Eliminar amigos">
+                  <img src="assets/ui/phone/remove.svg" alt="" draggable="false" />
+                </button>
               </div>
               <div id="room-chat-contact-list" class="room-chat-contact-list"></div>
               <p id="room-chat-contacts-empty" class="room-chat-contacts-empty" hidden>No tenés amigos agregados todavía.</p>
@@ -407,11 +429,15 @@
                 <p id="room-chat-empty" class="room-chat-empty">No hay mensajes todavía.</p>
               </div>
               <form id="room-chat-form" class="room-chat-form">
+                <button id="room-chat-emoji" class="phone-emoji-btn" type="button" aria-label="Emojis" title="Emojis" aria-haspopup="true" aria-expanded="false" aria-controls="room-chat-emoji-panel"><svg class="paw-glyph" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="17" cy="24" rx="6.5" ry="8.5" transform="rotate(-18 17 24)"/><ellipse cx="28" cy="15" rx="6.5" ry="8.5" transform="rotate(-6 28 15)"/><ellipse cx="40" cy="15" rx="6.5" ry="8.5" transform="rotate(6 40 15)"/><ellipse cx="50" cy="25" rx="6.5" ry="8.5" transform="rotate(18 50 25)"/><path d="M33 30c-9 0-18 10-18 18 0 6 5 8 10 8 3 0 5-1.6 8-1.6s5 1.6 8 1.6c5 0 10-2 10-8 0-8-9-18-18-18z"/></svg></button>
+                <div id="room-chat-emoji-panel" class="phone-emoji-panel" role="group" aria-label="Emojis" hidden></div>
                 <label class="sr-only" for="room-chat-input">Mensaje</label>
                 <input id="room-chat-input" type="text" maxlength="180" autocomplete="off" placeholder="Escribí un mensaje..." required />
-                <button id="room-chat-send" type="submit">Enviar</button>
+                <button id="room-chat-send" class="room-chat-send-icon" type="submit" aria-label="Enviar" title="Enviar"><img src="assets/ui/phone/send.svg" alt="" draggable="false" /></button>
               </form>
             </section>
+            </div>
+            <button id="phone-home" class="phone-home-btn" type="button" aria-label="Volver a Contactos" title="Volver a Contactos"></button>
           </section>
           <!-- Panel de bienestar (v2.4: "dentro del juego deberían estar
                las necesidades del bienestar"; v2.5: agrandado, el borde
@@ -662,7 +688,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.2.9 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.3.2 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

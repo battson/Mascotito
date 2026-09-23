@@ -1,50 +1,62 @@
-"""Trace the supplied UI artwork into path-only SVG assets (requires vtracer, Pillow)."""
-import argparse
-import colorsys
+"""Vectoriza los PNG del celular de Contactos y sus íconos (Beta v4.3).
+
+Genera SVG sólo con trazados (sin imágenes incrustadas) en assets/ui/phone/.
+Requiere vtracer, Pillow y numpy.
+
+Uso:
+  python scripts/vectorize-phone-assets.py phone=marco.png contacts=globo-azul.png \
+      add=mas.png remove=menos.png message=globo-blanco.png visit=flechas.png send=enviar.png \
+      room=casita.png search=lupa.png check=tilde.png
+
+"contacts" se recolorea del azul original al amarillo del marco del celular (#FEC935),
+conservando luces, sombras y el contorno marrón.
+"""
+import colorsys, re, sys, tempfile
 from pathlib import Path
-import re
-import tempfile
-import sys
-
-parser = argparse.ArgumentParser()
-parser.add_argument("source", type=Path)
-parser.add_argument("--modules", type=Path)
-args = parser.parse_args()
-if args.modules:
-    sys.path.insert(0, str(args.modules))
+import numpy as np
 import vtracer
-from PIL import Image
+from PIL import Image, ImageFilter
 
-destination = Path(__file__).resolve().parents[1] / "assets/ui/phone"
-destination.mkdir(parents=True, exist_ok=True)
-sources = {
-    "phone": "chat.png",
-    "contacts": "Imagen de Codex 23 sept 2026, 12_39_59.png",
-    "add": "Imagen de Codex 23 sept 2026, 12_51_05.png",
-    "remove": "Imagen de Codex 23 sept 2026, 12_51_12.png",
-    "message": "Imagen de Codex 23 sept 2026, 12_51_17.png",
-    "visit": "Imagen de Codex 23 sept 2026, 12_51_21.png",
-    "send": "Imagen de Codex 23 sept 2026, 12_51_25.png",
-}
-with tempfile.TemporaryDirectory() as temporary:
-    for name, filename in sources.items():
-        image = Image.open(args.source / filename).convert("RGBA")
-        image = image.crop(image.getchannel("A").getbbox())
+DEST = Path(__file__).resolve().parents[1] / "assets/ui/phone"
+FRAME_HUE = 0.1227  # tono del amarillo principal del marco (#FEC935)
+SIDE = {"phone": 1100}  # lado mayor al trazar; los íconos van a 640
+# v4.3.2: íconos con textura o degradés fuertes (casita, lupa, ✓): se trazan
+# más chicos, con un filtro de mediana y capas de color más gruesas, para
+# que cada SVG pese decenas de KB en vez de cientos. (lado, speckle, capas)
+HEAVY = {"room": (400, 12, 18), "search": (400, 12, 16), "check": (400, 10, 16)}
+
+def recolor_to_frame(im):
+    arr = np.array(im).astype(float) / 255
+    for y, x in zip(*np.nonzero(arr[:, :, 3] > 0)):
+        h, s, v = colorsys.rgb_to_hsv(*arr[y, x, :3])
+        if 0.45 < h < 0.75 and s > 0.08:
+            arr[y, x, :3] = colorsys.hsv_to_rgb(FRAME_HUE, s, v)
+    return Image.fromarray((arr * 255).round().astype("uint8"), "RGBA")
+
+DEST.mkdir(parents=True, exist_ok=True)
+with tempfile.TemporaryDirectory() as tmp:
+    for arg in sys.argv[1:]:
+        name, src = arg.split("=", 1)
+        im = Image.open(src).convert("RGBA")
+        a = np.array(im)[:, :, 3]
+        ys, xs = np.nonzero(a > 24)
+        im = im.crop((max(xs.min() - 6, 0), max(ys.min() - 6, 0), min(xs.max() + 7, im.width), min(ys.max() + 7, im.height)))
         if name == "contacts":
-            pixels = []
-            for r, g, b, a in image.getdata():
-                h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-                if .48 < h < .72 and s > .12:
-                    r, g, b = (round(c * 255) for c in colorsys.hsv_to_rgb(.125, s, v))
-                pixels.append((r, g, b, a))
-            image.putdata(pixels)
-        image.thumbnail((1100, 1500) if name == "phone" else (700, 700), Image.Resampling.LANCZOS)
-        prepared = Path(temporary) / f"{name}.png"
-        image.save(prepared)
-        output = destination / f"{name}.svg"
-        vtracer.convert_image_to_svg_py(str(prepared), str(output), colormode="color", hierarchical="stacked", mode="spline", filter_speckle=8, color_precision=5, layer_difference=24, corner_threshold=60, length_threshold=4, max_iterations=10, splice_threshold=45, path_precision=2)
-        svg = output.read_text()
-        svg = svg.replace('<svg ', f'<svg viewBox="0 0 {image.width} {image.height}" ', 1)
+            im = recolor_to_frame(im)
+        side = HEAVY[name][0] if name in HEAVY else SIDE.get(name, 640)
+        im.thumbnail((side, side), Image.Resampling.LANCZOS)
+        if name in HEAVY:
+            rgb = im.convert("RGB").filter(ImageFilter.MedianFilter(3)); rgb.putalpha(im.getchannel("A")); im = rgb
+        arr = np.array(im); arr[:, :, 3] = np.where(arr[:, :, 3] > 110, 255, 0); im = Image.fromarray(arr)
+        prepared = Path(tmp) / f"{name}.png"; im.save(prepared)
+        out = DEST / f"{name}.svg"
+        vtracer.convert_image_to_svg_py(str(prepared), str(out), colormode="color", hierarchical="stacked",
+            mode="spline", filter_speckle=HEAVY[name][1] if name in HEAVY else 6, color_precision=7,
+            layer_difference=HEAVY[name][2] if name in HEAVY else 10, corner_threshold=60,
+            length_threshold=4, max_iterations=10, splice_threshold=45, path_precision=1 if name in HEAVY else 2)
+        svg = out.read_text()
+        svg = re.sub(r'<\?xml[^>]*>\s*', '', svg)
+        svg = re.sub(r'<svg [^>]*>', f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {im.width} {im.height}" width="{im.width}" height="{im.height}">', svg, count=1)
         assert "<image" not in svg and "base64" not in svg
-        output.write_text(svg)
-        print(name, image.size, output.stat().st_size)
+        out.write_text(svg)
+        print(name, im.size, out.stat().st_size)

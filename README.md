@@ -1,5 +1,31 @@
 # Mascotito Beta
 
+## Beta v4.3.2 — Contactos dentro del celular
+
+- **Contactos y el chat viven dentro del celular ilustrado** (`assets/ui/phone/phone.svg`), abajo a la derecha, sobre el globo de Contactos. Diseño de pantalla según `referencia.png`: encabezado con avatar redondo y nombre, globos crema para los mensajes recibidos (izquierda) y verde menta para los propios (derecha), y abajo huellita + campo + Enviar.
+- **Mascota de cada contacto** a la izquierda, recortada a la cabeza como en la placa de bienestar, con **aro verde si está conectado y gris si no**. Se lee una vez por cada apertura del celular; mientras carga (o si la cuenta no tiene mascota) se ve una huellita.
+- **Chat de la sala** con el ícono de la casita (`room.svg`).
+- **Huellita del campo de texto:** abre un panel de emojis que se insertan en el mensaje.
+- **«•••» del encabezado** (sólo en chats privados): Visitar y Eliminar amigo, con confirmación.
+- **Huella del marco:** botón de inicio. Desde un chat vuelve a Contactos; en Contactos cierra el celular. También se cierra con Esc o con el globo de Contactos.
+- **Aceptar** una solicitud ahora es el **✓ verde** (`check.svg`) y **Buscar** es la **lupa** (`search.svg`), al lado del campo de usuario.
+- `accept.svg` (el + verde de la v4.3.1) ya no se usa y se puede borrar.
+
+## Beta v4.3.1 — Contactos: íconos de acciones
+
+- La pantalla «Chat» pasa a llamarse **Contactos**, con las mismas opciones de antes.
+- Solicitudes recibidas: **Aceptar** es un + verde (el mismo + de Agregar, recoloreado al verde del viejo botón Aceptar, en `assets/ui/phone/accept.svg`) y **Rechazar** es el − rojo de Eliminar.
+- **Visitar** usa `visit.svg` y **Chat** usa `message.svg`, tanto en la lista de Contactos como en «Mis amigos». Los mensajes sin leer se muestran como contador sobre el globo de Chat.
+- **Enviar**, dentro de una conversación, usa `send.svg`.
+- Todos los íconos nuevos tienen el mismo hover y pulsación que la barra de acciones y conservan su nombre accesible y la ayuda al pasar el cursor.
+
+## Beta v4.3 — Contactos, primer paso: íconos
+
+- El botón Amigos pasa a ser **Contactos**: ícono del globo de chat recoloreado al amarillo del marco del celular, sin texto visible. Mantiene el contador de mensajes sin leer, el resplandor con el panel abierto y un punto rojo sólo cuando no hay conexión.
+- Agregar y Eliminar pasan a ser los íconos **+** y **−**, con el mismo hover y pulsación que la barra de acciones. El + muestra el contador de solicitudes pendientes.
+- **Solicitudes se une a Agregar**: en la ventana de amigos desaparece la pestaña Solicitudes; en Agregar queda la búsqueda arriba y «Solicitudes recibidas» abajo.
+- Los PNG del celular y sus íconos quedan vectorizados en `assets/ui/phone/` (sólo trazados, sin imágenes incrustadas), reproducibles con `scripts/vectorize-phone-assets.py`. El marco del celular, Visitar, Chat y Enviar todavía no se usan: llegan en los próximos pasos de la v4.3.
+
 ## Beta v4.2.9 — Cierre de la serie v4.2
 
 - Inventario exclusivo para comida y bebida, con la ventana simplificada de `windowsv2.ai`, sin pestañas ni casilleros vacíos dibujados.

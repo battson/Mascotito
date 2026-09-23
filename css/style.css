@@ -4765,3 +4765,407 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .inventory-window .inventory-close-icon img { width: 36px; height: 36px; }
 .inventory-window .inventory-status { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
 #housing-edit-open { white-space: nowrap; font: 700 .85rem 'Baloo 2', sans-serif; }
+
+/* Beta v4.3: botón Contactos (ex Amigos) y herramientas + / − como íconos SVG.
+   Mismo lenguaje que la barra de acciones: sin fondo ni borde, elevación
+   suave al pasar el cursor, se hunde al presionar y resplandor mientras su
+   panel está abierto. */
+#stage-floor .room-chat-toggle {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  min-width: 0;
+  height: 76px;
+  min-height: 0;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  transition: transform .15s ease;
+}
+#stage-floor .room-chat-toggle:hover { background: transparent; transform: translateY(-2px) scale(1.06); }
+#stage-floor .room-chat-toggle:active { transform: translateY(1px) scale(.94); }
+#stage-floor .room-chat-toggle:focus-visible { outline: 3px solid #244962; outline-offset: -3px; }
+#stage-floor .room-chat-toggle.is-selected { box-shadow: none; }
+.room-chat-toggle-art { width: 68px; height: auto; pointer-events: none; }
+.room-chat-toggle.is-selected .room-chat-toggle-art {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 244, 1)) drop-shadow(0 0 8px rgba(255, 218, 122, 1));
+}
+#stage-floor .room-chat-toggle.is-offline { opacity: .72; }
+#stage-floor .room-chat-toggle.is-offline::after { content: none; }
+/* El punto de conexión sólo aparece cuando no hay conexión. */
+#stage-floor .room-chat-toggle .room-chat-contact-dot { display: none; }
+#stage-floor .room-chat-toggle.is-offline .room-chat-contact-dot {
+  display: block; position: absolute; left: 8px; bottom: 10px;
+  width: 12px; height: 12px; border: 2px solid #fff6e4; border-radius: 50%;
+  background: #d64545; box-shadow: none;
+}
+#stage-floor .room-chat-toggle b {
+  position: absolute; top: 2px; right: 0;
+  min-width: 22px; height: 22px; margin: 0; padding: 0 6px;
+  display: grid; place-items: center;
+  border: 2px solid #fff6e4; border-radius: 11px;
+  background: #d83b3e; color: #fff;
+  font: 700 .72rem/1 'Baloo 2', Arial, sans-serif;
+}
+#stage-floor .room-chat-toggle b[hidden] { display: none; }
+
+.room-chat-tools { gap: 18px; align-items: center; }
+.room-chat-tools .room-chat-tool-icon {
+  position: relative;
+  display: grid; place-items: center;
+  width: 58px; height: 52px; padding: 2px;
+  border: none; border-radius: 0; background: transparent;
+  cursor: pointer; transition: transform .15s ease;
+}
+.room-chat-tools .room-chat-tool-icon img { width: 44px; height: 44px; object-fit: contain; pointer-events: none; }
+/* El − es muy ancho y bajo: se muestra al mismo ancho visual que el +. */
+.room-chat-tools .room-chat-tool-icon.is-remove img { width: 54px; }
+.room-chat-tools .room-chat-tool-icon:hover { transform: translateY(-2px) scale(1.06); }
+.room-chat-tools .room-chat-tool-icon:active { transform: translateY(1px) scale(.94); }
+.room-chat-tools .room-chat-tool-icon:focus-visible { outline: 3px solid #244962; outline-offset: 0; }
+.room-chat-tools .room-chat-tool-icon b {
+  position: absolute; top: -2px; right: -4px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  display: grid; place-items: center;
+  border: 2px solid #fff6e4; border-radius: 10px;
+  background: #d83b3e; color: #fff;
+  font: 700 .68rem/1 'Baloo 2', Arial, sans-serif;
+}
+.room-chat-tools .room-chat-tool-icon b[hidden] { display: none; }
+
+/* Solicitudes recibidas, dentro de Agregar. */
+.friends-requests-block { margin-top: 18px; padding-top: 14px; border-top: 1px solid #e3d2b4; }
+.friends-requests-block .friends-subtitle { margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  #stage-floor .room-chat-toggle, .room-chat-tools .room-chat-tool-icon { transition: none; }
+}
+/* El panel sube para no tapar el ícono de Contactos, que ahora es más alto. */
+#stage-floor .room-chat-panel { bottom: 102px; height: min(510px, calc(100% - 122px)); }
+@media (max-width: 900px) {
+  #stage-floor .room-chat-panel { bottom: 90px; height: min(440px, calc(100% - 106px)); }
+}
+
+/* Beta v4.3.1: Aceptar (+ verde), Rechazar (− rojo), Visitar, Chat y Enviar como íconos SVG. */
+.friend-icon-btn,
+.room-chat-friend-actions .friend-icon-btn,
+.friend-item-actions .friend-icon-btn {
+  position: relative;
+  display: inline-grid; place-items: center;
+  width: 44px; height: 44px; min-width: 0; padding: 2px;
+  border: none; border-radius: 0; background: transparent; box-shadow: none;
+  cursor: pointer; transition: transform .15s ease;
+}
+.friend-icon-btn:hover:not(:disabled) { background: transparent; filter: none; transform: translateY(-2px) scale(1.06); }
+.friend-icon-btn:active:not(:disabled) { transform: translateY(1px) scale(.94); }
+.friend-icon-btn:focus-visible { outline: 3px solid #244962; outline-offset: 0; }
+.friend-icon-btn:disabled { opacity: .5; cursor: wait; }
+.friend-icon-art { width: 38px; height: 38px; object-fit: contain; pointer-events: none; }
+.friend-icon-btn.is-minus .friend-icon-art { width: 42px; }
+.friend-icon-badge {
+  position: absolute; top: -3px; right: -4px;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  display: grid; place-items: center;
+  border: 2px solid #fff6e4; border-radius: 9px;
+  background: #d83b3e; color: #fff;
+  font: 700 .64rem/1 'Baloo 2', Arial, sans-serif;
+}
+.room-chat-friend-actions { gap: 8px; align-items: center; }
+.friend-item-actions:has(.friend-icon-btn) { display: inline-flex; gap: 10px; align-items: center; }
+
+.room-chat-form .room-chat-send-icon {
+  display: grid; place-items: center;
+  width: 46px; min-width: 0; height: 46px; padding: 2px;
+  border: none; border-radius: 0; background: transparent;
+  cursor: pointer; transition: transform .15s ease;
+}
+.room-chat-form .room-chat-send-icon img { width: 42px; height: 42px; pointer-events: none; }
+.room-chat-form .room-chat-send-icon:hover:not(:disabled) { background: transparent; transform: translateY(-2px) scale(1.06); }
+.room-chat-form .room-chat-send-icon:active:not(:disabled) { transform: translateY(1px) scale(.94); }
+.room-chat-form .room-chat-send-icon:focus-visible { outline: 3px solid #244962; outline-offset: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .friend-icon-btn, .room-chat-form .room-chat-send-icon { transition: none; }
+}
+
+/* ===== Beta v4.3.2: Contactos y chat dentro del celular ilustrado ===== */
+/* Marco: assets/ui/phone/phone.svg (710 × 1100). La pantalla ocupa el
+   rectángulo crema medido sobre ese arte (11,4 % / 14 % / 11,8 % / 12,1 %). */
+#stage-floor #room-chat-panel.phone-panel {
+  right: 16px;
+  bottom: 102px;
+  width: auto;
+  height: min(580px, calc(100% - 122px));
+  max-height: none;
+  aspect-ratio: 710 / 1100;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  color: #4a2c17;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 8px 14px rgba(69, 35, 15, .28));
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: visible;
+}
+#stage-floor #room-chat-panel.phone-panel:not([hidden]) { display: block; }
+#room-chat-panel .phone-frame-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; user-select: none;
+}
+#room-chat-panel .phone-screen {
+  position: absolute;
+  left: 11.4%; right: 11.8%; top: 14%; bottom: 12.1%;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px 18px 22px 22px;
+  background: #faf2d9;
+}
+
+/* Encabezado: avatar redondo + nombre + ••• (como en la referencia). */
+#room-chat-panel .phone-screen header {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 0;
+  padding: 10px 10px 9px;
+  border: none;
+  border-bottom: 2px solid #efe0bd;
+  background: #f5e8c7;
+  color: #4a2c17;
+}
+#room-chat-panel .phone-screen header > div:not(.phone-menu-wrap) {
+  flex: 1; min-width: 0;
+  display: grid; grid-template-columns: 1fr; gap: 2px;
+}
+#room-chat-panel header .hud-eyebrow { display: none; }
+#room-chat-panel header strong {
+  grid-column: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #4a2c17;
+  font: 700 1.05rem/1.05 "Baloo 2", Arial, sans-serif;
+}
+#room-chat-panel .room-chat-participants {
+  grid-column: 1;
+  color: #9a7650; font: 400 .66rem/1.1 Arial, sans-serif;
+}
+#room-chat-panel header .room-chat-back {
+  flex: 0 0 26px; width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border: none; border-radius: 50%;
+  color: #7a5230; background: #ead7ae;
+  font: 700 .9rem/1 Arial, sans-serif; cursor: pointer;
+}
+#room-chat-panel header .room-chat-back[hidden] { display: none; }
+#room-chat-panel header .room-chat-back:hover { background: #e2c994; }
+.phone-header-avatar { display: contents; }
+.phone-header-avatar[hidden] { display: none; }
+
+/* Avatares: cabeza de la mascota recortada, aro verde conectado / gris no. */
+.contact-avatar {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-grid; place-items: center;
+  width: 40px; height: 40px;
+  overflow: hidden;
+  border: 3px solid #b5a797;
+  border-radius: 50%;
+  background: #fff8e6;
+  box-sizing: border-box;
+}
+.contact-avatar.is-online { border-color: #43a957; }
+.contact-avatar.is-offline { border-color: #b5a797; }
+.contact-avatar.is-room { border-color: #d7bf8f; background: #fff3d6; }
+.contact-avatar.is-room img { width: 80%; height: 80%; object-fit: contain; }
+.contact-avatar.is-empty::after {
+  content: ""; width: 55%; height: 55%;
+  background: #c9a877;
+  -webkit-mask: url("../assets/ui/phone/paw-mask.svg") center / contain no-repeat;
+          mask: url("../assets/ui/phone/paw-mask.svg") center / contain no-repeat;
+}
+.contact-avatar-stage {
+  position: absolute;
+  width: 200%; height: 200%;
+  left: -50%; top: -30.5%;
+  pointer-events: none;
+}
+#room-chat-panel header .contact-avatar { width: 42px; height: 42px; }
+
+/* Menú ••• */
+.phone-menu-wrap { position: relative; flex: 0 0 auto; display: grid; }
+#room-chat-panel header .phone-menu-btn {
+  display: flex; gap: 3px; align-items: center; justify-content: center;
+  width: 34px; height: 26px; padding: 0;
+  border: none; border-radius: 13px; background: transparent; cursor: pointer;
+}
+#room-chat-panel header .phone-menu-btn[hidden] { display: none; }
+#room-chat-panel header .phone-menu-btn i { width: 7px; height: 7px; border-radius: 50%; background: #d7bf8f; }
+#room-chat-panel header .phone-menu-btn:hover,
+#room-chat-panel header .phone-menu-btn[aria-expanded="true"] { background: #ead7ae; }
+#room-chat-panel header .phone-menu-btn:hover i,
+#room-chat-panel header .phone-menu-btn[aria-expanded="true"] i { background: #a88455; }
+.phone-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 5;
+  display: grid; min-width: 160px; padding: 6px;
+  border: 2px solid #e5cf9f; border-radius: 14px;
+  background: #fffaf0; box-shadow: 0 6px 16px rgba(69, 35, 15, .2);
+}
+.phone-menu[hidden] { display: none; }
+#room-chat-panel header .phone-menu button {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; height: auto; padding: 7px 8px;
+  border: none; border-radius: 10px; background: transparent;
+  color: #4a2c17; font: 700 .8rem/1 Arial, sans-serif; text-align: left; cursor: pointer;
+}
+#room-chat-panel header .phone-menu button:hover,
+#room-chat-panel header .phone-menu button:focus-visible { background: #f5e8c7; }
+.phone-menu img { width: 26px; height: 26px; object-fit: contain; }
+
+/* Contactos */
+#room-chat-panel .room-chat-contacts {
+  flex: 1; min-height: 0;
+  padding: 8px 0 0;
+  overflow-y: auto;
+  background: transparent;
+  scrollbar-width: thin; scrollbar-color: #d7bf8f transparent;
+}
+#room-chat-panel .room-chat-tools { margin: 0 auto 8px; gap: 14px; }
+#room-chat-panel .room-chat-tools .room-chat-tool-icon { width: 46px; height: 42px; }
+#room-chat-panel .room-chat-tools .room-chat-tool-icon img { width: 36px; height: 36px; }
+#room-chat-panel .room-chat-tools .room-chat-tool-icon.is-remove img { width: 44px; }
+#room-chat-panel .room-chat-contact-list { display: grid; gap: 6px; padding: 0 8px 10px; }
+#room-chat-panel .room-chat-contact-item {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+  padding: 7px 8px;
+  border: 2px solid #efdfbb;
+  border-radius: 16px;
+  background: #fffaf0;
+  color: #4a2c17;
+}
+#room-chat-panel .room-chat-contact-item:last-child { border-bottom: 2px solid #efdfbb; }
+#room-chat-panel .room-chat-contact-item:hover,
+#room-chat-panel .room-chat-contact-item:focus-visible { background: #fdf3dc; outline: none; }
+#room-chat-panel button.room-chat-contact-item:focus-visible { outline: 3px solid #244962; outline-offset: -3px; }
+#room-chat-panel .room-chat-list-copy strong { color: #4a2c17; font: 700 .82rem/1.1 "Baloo 2", Arial, sans-serif; }
+#room-chat-panel .room-chat-list-copy small { color: #9a7650; font: 400 .66rem/1.1 Arial, sans-serif; }
+#room-chat-panel .room-chat-list-badge { border-radius: 10px; }
+#room-chat-panel .room-chat-friend-item { grid-template-columns: 40px minmax(0, 1fr) auto; }
+#room-chat-panel .room-chat-friend-actions { grid-column: auto; gap: 2px; }
+#room-chat-panel .room-chat-friend-actions .friend-icon-btn { width: 34px; height: 34px; }
+#room-chat-panel .room-chat-friend-actions .friend-icon-art { width: 30px; height: 30px; }
+#room-chat-panel .room-chat-contacts-empty { color: #9a7650; }
+
+/* Conversación: globos crema (recibidos, izquierda) y menta (propios, derecha). */
+#room-chat-panel .room-chat-conversation { flex: 1; min-height: 0; display: flex; flex-direction: column; background: transparent; }
+#room-chat-panel .room-chat-conversation[hidden] { display: none; }
+#room-chat-panel .room-chat-history { flex: 1; min-height: 0; }
+#room-chat-panel .room-chat-status,
+#room-chat-panel .room-chat-typing { border: none; background: transparent; color: #9a7650; }
+#room-chat-panel .room-chat-messages {
+  display: flex; flex-direction: column; gap: 8px;
+  min-height: 0; padding: 10px 10px 12px;
+  background: transparent;
+  scrollbar-width: thin; scrollbar-color: #d7bf8f transparent;
+}
+#room-chat-panel .room-chat-message,
+#room-chat-panel .room-chat-message.is-own {
+  position: relative;
+  display: grid; gap: 2px; justify-items: start;
+  max-width: 82%;
+  align-self: flex-start;
+  padding: 8px 12px 9px;
+  border: 2px solid #ead7b3;
+  border-radius: 16px 16px 16px 5px;
+  background: #fbf0dc;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, .55);
+}
+#room-chat-panel .room-chat-message.is-own {
+  align-self: flex-end; justify-items: end;
+  border-color: #bfdcc6;
+  border-radius: 16px 16px 5px 16px;
+  background: #dcefe0;
+}
+#room-chat-panel .room-chat-message-meta { color: #a07a52; font: 700 .6rem/1.1 Arial, sans-serif; }
+#room-chat-panel .room-chat-message.is-own .room-chat-message-meta { color: #6f9a7b; }
+#room-chat-panel .room-chat-message-body,
+#room-chat-panel .room-chat-message.is-own .room-chat-message-body {
+  max-width: none; padding: 0; border-radius: 0; background: transparent;
+  color: #4a2c17; font: 400 .82rem/1.3 Arial, sans-serif; overflow-wrap: anywhere;
+}
+#room-chat-panel .room-chat-empty { color: #9a7650; }
+
+/* Barra inferior: huellita (emojis) + campo + Enviar. */
+#room-chat-panel .room-chat-form {
+  position: relative;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  gap: 6px; padding: 8px;
+  border: none; border-top: 2px solid #efe0bd;
+  background: #f5e8c7;
+}
+#room-chat-panel .room-chat-form input {
+  height: 38px; padding: 0 12px;
+  border: 2px solid #e8d6b5; border-radius: 19px;
+  background: #fffaf0; color: #4a2c17;
+  font: 400 .8rem/1 Arial, sans-serif;
+}
+#room-chat-panel .room-chat-form input:focus { border-color: #d7a95f; outline: none; }
+#room-chat-panel .room-chat-form .phone-emoji-btn {
+  display: grid; place-items: center;
+  width: 38px; min-width: 0; height: 38px; padding: 0;
+  border: 2px solid #d7bf8f; border-radius: 50%;
+  background: #f1dfb6; cursor: pointer; transition: transform .15s ease;
+}
+#room-chat-panel .room-chat-form .phone-emoji-btn:hover { background: #ecd6a4; transform: translateY(-1px) scale(1.05); }
+#room-chat-panel .room-chat-form .phone-emoji-btn[aria-expanded="true"] { background: #e6c98c; }
+#room-chat-panel .room-chat-form .phone-emoji-btn:focus-visible { outline: 3px solid #244962; outline-offset: 0; }
+.paw-glyph { width: 22px; height: 22px; fill: #7a4a2a; }
+#room-chat-panel .room-chat-form .room-chat-send-icon { width: 40px; height: 40px; }
+#room-chat-panel .room-chat-form .room-chat-send-icon img { width: 38px; height: 38px; }
+.phone-emoji-panel {
+  position: absolute; left: 6px; right: 6px; bottom: calc(100% + 6px); z-index: 5;
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+  padding: 8px;
+  border: 2px solid #e5cf9f; border-radius: 16px;
+  background: #fffaf0; box-shadow: 0 6px 16px rgba(69, 35, 15, .2);
+}
+.phone-emoji-panel[hidden] { display: none; }
+#room-chat-panel .phone-emoji-panel button {
+  width: auto; min-width: 0; height: 32px; padding: 0;
+  border: none; border-radius: 8px; background: transparent;
+  font: 400 1.2rem/1 "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  cursor: pointer;
+}
+#room-chat-panel .phone-emoji-panel button:hover,
+#room-chat-panel .phone-emoji-panel button:focus-visible { background: #f5e8c7; outline: none; }
+
+/* Huella del marco: botón de inicio (vuelve a Contactos / cierra). */
+#room-chat-panel .phone-home-btn {
+  position: absolute; left: 42%; width: 16%; bottom: 2.2%; height: 8.6%;
+  padding: 0; border: none; border-radius: 50%;
+  background: transparent; cursor: pointer;
+}
+#room-chat-panel .phone-home-btn:hover { background: radial-gradient(closest-side, rgba(255, 244, 190, .55), transparent); }
+#room-chat-panel .phone-home-btn:active { background: radial-gradient(closest-side, rgba(122, 74, 42, .22), transparent); }
+#room-chat-panel .phone-home-btn:focus-visible { outline: 3px solid #244962; outline-offset: 0; }
+
+/* Buscar amigos: campo + lupa en una fila. */
+#add-friend-form { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: flex-end; gap: 10px; }
+#add-friend-form .name-field { flex: 1; min-width: 0; }
+.friend-search-btn {
+  flex: 0 0 auto; display: grid; place-items: center;
+  width: 50px; height: 50px; padding: 2px;
+  border: none; background: transparent; cursor: pointer; transition: transform .15s ease;
+}
+.friend-search-btn img { width: 44px; height: 44px; pointer-events: none; }
+.friend-search-btn:hover { transform: translateY(-2px) scale(1.06); }
+.friend-search-btn:active { transform: translateY(1px) scale(.94); }
+.friend-search-btn:focus-visible { outline: 3px solid #244962; outline-offset: 0; }
+
+@media (max-width: 900px) {
+  #stage-floor #room-chat-panel.phone-panel { right: 8px; bottom: 90px; height: min(480px, calc(100% - 100px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #room-chat-panel .room-chat-form .phone-emoji-btn, .friend-search-btn { transition: none; }
+}
