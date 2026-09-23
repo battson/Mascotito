@@ -2,6 +2,8 @@
 
 ## Alcance actual
 
+- Cada actualización debe entregarse con capturas de pantalla que muestren los cambios solicitados.
+
 - Botones de cierre: usar fondo circular del mismo color que la ventana que cierran y sombra `#000000 0 0 2px 0px`. En Inventario el fondo es `#f7e0cb`; reutilizar esta regla al crear o rediseñar cierres.
 
 - Priorizar escritorio. No dedicar trabajo a adaptación o revisión móvil por ahora.

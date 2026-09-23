@@ -4536,13 +4536,28 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 @media (prefers-reduced-motion: reduce) { .stage-transition, .stage-transition-mark { transition: none; animation: none; } }
 .shop-admin-controls button { min-width: 0; padding: 5px; font-size: 13px; }
 
-/* El chat rápido se centra respecto del escenario en todas las pantallas. */
+/* Chat rápido a la derecha para dejar espacio a las acciones. */
 .room-quick-chat {
-  left: 50%;
-  right: auto;
+  left: auto;
+  right: 20px;
   width: min(360px, calc(100% - 24px));
-  transform: translateX(-50%);
+  transform: none;
 }
+
+.room-quick-chat:not(.is-active):not([hidden]) {
+  display: block; padding: 0; border: 0; background: transparent;
+  box-shadow: none; opacity: 1;
+}
+.room-quick-chat:not(.is-active) input,
+.room-quick-chat:not(.is-active) button[type="submit"] { display: none; }
+.room-quick-chat .room-quick-chat-help {
+  width: 100%; height: auto; padding: 8px; background: transparent;
+  border: 0; color: #633719; font: 600 .76rem/1.4 "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+.room-quick-chat.is-active .room-quick-chat-help { display: none; }
+.room-quick-chat .room-quick-chat-help:hover,
+.room-quick-chat .room-quick-chat-help:focus-visible { background: transparent; }
 
 @media (max-width: 900px) {
   .room-quick-chat {
@@ -4597,7 +4612,8 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .inventory-window .modal-topbar h2 { color: #633719; }
 .inventory-window .inventory-grid { min-height: 0; }
 .inventory-window .inventory-item,
-.inventory-window .housing-inventory-card { background: #ffffff1a; }
+.inventory-window .housing-inventory-card { background: #ffffff1a; border-color: #ddc9a875; }
+.inventory-status:empty { display: none; }
 .inventory-close-icon {
   position: absolute;
   top: 48px; right: 10px; margin-top: -22px;

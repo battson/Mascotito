@@ -2408,9 +2408,7 @@ function refreshInventory() {
     el.inventoryWaterCooldown.textContent = waterCooldown ? formatCooldownLabel(remaining) : "";
   }
   if (el.inventoryStatus) {
-    el.inventoryStatus.textContent = sleeping
-      ? `${state.name} está durmiendo.`
-      : "Elegí un objeto para usarlo. La botella de agua es infinita.";
+    el.inventoryStatus.textContent = sleeping ? "" : "Elegí un objeto para usarlo. La botella de agua es infinita.";
   }
 }
 
@@ -5009,7 +5007,7 @@ function setupRoomChatUI() {
   el.friendsManageRemove?.addEventListener("click", () => openFriendsPanel("eliminar"));
   el.roomChatInput.addEventListener("input", updateLocalChatTyping);
   el.roomQuickChatInput?.addEventListener("input", updateLocalChatTyping);
-  el.roomQuickChat?.addEventListener("click", () => setQuickChatActive(true));
+  document.getElementById("room-quick-chat-help")?.addEventListener("click", () => setQuickChatActive(true));
   el.roomQuickChatInput?.addEventListener("focus", () => setQuickChatActive(true));
   el.roomQuickChatInput?.addEventListener("blur", () => {
     setTimeout(() => {

@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.2.5
+
+- Bordes de los ítems del inventario en `#ddc9a875`.
+- Se elimina el aviso de sueño dentro de Comida y bebida.
+- Chat rápido a la derecha: cerrado muestra un texto de ayuda; se abre con Enter o al pulsar ese texto, sin activarse al pasar el cursor.
+- Las actualizaciones se acompañan de capturas de pantalla de los cambios.
+
 ## Beta v4.2.4
 
 - Pescado del inventario recreado en SVG a partir de la imagen de referencia.
