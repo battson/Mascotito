@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.2.7</title>
+  <title>Mascotito — Beta v4.2.9</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.2.7</span>
+      <span class="badge" id="app-version-badge">Beta v4.2.9</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -80,8 +80,9 @@
            Modo prueba y Reiniciar progreso, que antes eran 3 controles
            sueltos (2 arriba + 1 en el pie). Ver options-menu más abajo y
            js/app.js (setupOptionsMenu). -->
+      <button id="housing-edit-open" class="secondary-btn" type="button">Decorar casa</button>
       <button id="btn-opciones" class="icon-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="options-menu" aria-label="Opciones" title="Opciones">
-        <svg class="icon gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.6 3.7 10.2 2h3.6l.6 1.7 1.8.8 1.6-.8 2.5 2.5-.8 1.6.8 1.8 1.7.6v3.6l-1.7.6-.8 1.8.8 1.6-2.5 2.5-1.6-.8-1.8.8-.6 1.7h-3.6l-.6-1.7-1.8-.8-1.6.8-2.5-2.5.8-1.6-.8-1.8-1.7-.6v-3.6l1.7-.6.8-1.8-.8-1.6 2.5-2.5 1.6.8 1.8-.8Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="options-username">Invitado</span><span id="options-arrow" aria-hidden="true">▴</span>
       </button>
       <div id="options-menu" class="options-menu" hidden role="menu" aria-label="Opciones">
         <!-- v3.4: pedido explícito — "Modo prueba" queda reservado sólo al
@@ -228,11 +229,6 @@
         <h2 class="sr-only">Inventario</h2>
         <button id="inventory-close" type="button" class="inventory-close-icon" aria-label="Cerrar inventario" title="Cerrar inventario"><img src="assets/ui/actions/cerrar.svg" alt="" draggable="false" /></button>
       </div>
-      <div id="inventory-tabs" class="inventory-tabs" role="tablist" aria-label="Categorías del inventario">
-        <button type="button" class="inventory-tab is-active" data-category="food">Comida y bebida</button>
-        <button type="button" class="inventory-tab" data-category="surface">Pisos y paredes</button>
-        <button type="button" class="inventory-tab" data-category="decor">Decoraciones</button>
-      </div>
       <div id="inventory-food-grid" class="inventory-grid">
         <button id="inventory-fish" class="inventory-item" type="button">
           <span class="inventory-item-visual">
@@ -250,7 +246,6 @@
           <span id="inventory-water-count">∞</span>
         </button>
       </div>
-      <div id="inventory-housing-grid" class="inventory-grid housing-inventory-grid" hidden></div>
       <nav id="inventory-pages" class="inventory-pages" aria-label="Páginas del inventario" hidden>
         <span id="inventory-page-status" class="sr-only" aria-live="polite"></span>
         <button id="inventory-prev" type="button" aria-label="Página anterior"><img src="assets/ui/inventory/arrow-left.svg" alt="" /></button>
@@ -511,7 +506,7 @@
             </div>
             <p id="housing-editor-hint">Elegí un objeto y tocá la casa para colocarlo. Podés arrastrar los objetos ya colocados.</p>
             <div id="housing-editor-items" class="housing-editor-items"></div>
-            <button id="housing-editor-remove" type="button" hidden>Guardar objeto en inventario</button>
+            <button id="housing-editor-remove" type="button" hidden>Retirar de la casa</button>
           </section>
           <!-- Manchas/desechos del entorno (sección 5) — se arman en JS,
                cada una es un botón chico clickeable que se retira sola.
@@ -667,7 +662,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.2.7 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.2.9 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

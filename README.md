@@ -1,5 +1,19 @@
 # Mascotito Beta
 
+## Beta v4.2.9 — Cierre de la serie v4.2
+
+- Inventario exclusivo para comida y bebida, con la ventana simplificada de `windowsv2.ai`, sin pestañas ni casilleros vacíos dibujados.
+- Stock, infinito y cooldowns conservados; páginas de hasta ocho consumibles, con flechas sólo cuando hacen falta.
+- Acceso «Decorar casa» en el encabezado de la casa propia. Paredes, pisos y decoraciones se eligen y usan desde ese panel; conservan su posesión y guardado.
+- Exportación reproducible del panel con `scripts/export-inventory-window-v2.py`. La siguiente etapa de versiones será v4.3.
+
+## Beta v4.2.8
+
+- Cooldown de comida y agua como el jabón: icono atenuado y contador pequeño superpuesto, sin cubrir toda la imagen.
+- Pesca sin cooldown, con tres partidas por día local. Cada inicio consume una partida, incluso si se cancela; el contador se guarda con el progreso y se renueva al cambiar el día.
+- Encabezado sin fondo, sombra ni borde.
+- Opciones muestra el nombre de usuario (Invitado en modo local) con ▴ al estar cerrado y ▾ al abrirse.
+
 ## Beta v4.2.7
 
 - Infinito del agua con el mismo estilo y posición que el stock de comida.

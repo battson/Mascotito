@@ -9,7 +9,7 @@
  * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
  */
 const APP_CHANNEL = "Beta";
-const APP_VERSION = "4.2.7";
+const APP_VERSION = "4.2.9";
 
 /**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
@@ -281,14 +281,8 @@ const PET_CONFIG = {
     beber: 18000,
     bañar: 20000,
     jugar: 25000,
-    // v3.2, pedido explícito ("el de jugar a pescar por 15m"): antes la
-    // Pesca compartía el cooldown genérico de minijuegos (jugar, 25s) con
-    // Pelota/Luciérnagas — ahora tiene el suyo propio, sumando 15min a
-    // esos mismos 25s (25s + 15min = 925000ms). Pelota/Luciérnagas siguen
-    // usando "jugar" (25s) sin cambios. Ver el handler de #game-play en
-    // setupGameSelector() (js/app.js), que elige la clave según el
-    // minijuego seleccionado.
-    pesca: 925000,
+    // Pesca usa un cupo diario de tres partidas, sin tiempo de espera.
+    pesca: 0,
     acariciar: 9000,
     hablar: 9000,
     medicina: 60000,

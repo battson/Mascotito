@@ -221,9 +221,7 @@ const el = {
   inventoryWaterCooldown: document.getElementById("inventory-water-cooldown"),
   inventoryFishCount: document.getElementById("inventory-fish-count"),
   inventoryStatus: document.getElementById("inventory-status"),
-  inventoryTabs: document.getElementById("inventory-tabs"),
   inventoryFoodGrid: document.getElementById("inventory-food-grid"),
-  inventoryHousingGrid: document.getElementById("inventory-housing-grid"),
   housingEditorPanel: document.getElementById("housing-editor-panel"),
   housingEditorHeading: document.getElementById("housing-editor-heading"),
   housingEditorToggle: document.getElementById("housing-editor-toggle"),
@@ -902,9 +900,9 @@ let housingEditing = false;
 let housingSelected = null;
 let housingDrag = null;
 let housingPanelDrag = null;
-let housingInventoryCategory = "food";
-let housingInventoryPage = 0;
-const HOUSING_INVENTORY_PAGE_SIZE = 8;
+
+let inventoryPage = 0;
+const INVENTORY_PAGE_SIZE = 8;
 const housingGiftSelections = {};
 
 function housingSceneElement(tag, attributes = {}) {
@@ -2261,6 +2259,8 @@ function updateCooldownButtons() {
 /** Cosas que no dependen de cooldown: mostrar/ocultar el botón de
  * Medicina (sólo si está enferma) y el tooltip de Jugar. */
 function updateActionsAvailability() {
+  const decorate = document.getElementById("housing-edit-open");
+  if (decorate) decorate.hidden = !state || !!activeVisit || el.game.hidden;
   const jugarWrap = document.getElementById("action-wrap-jugar");
   if (jugarWrap) jugarWrap.title = state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar ? "Está muy cansada para jugar" : "";
   const attention = {
@@ -2392,6 +2392,8 @@ function refreshInventory() {
   const fishCooldown = isOnCooldown("pescado");
   const waterCooldown = isOnCooldown("beber");
   const fishStock = Math.max(0, Number(state.inventory?.pescado) || 0);
+  el.inventoryFish?.classList.toggle("is-cooling-down", fishCooldown && fishStock > 0);
+  el.inventoryWater?.classList.toggle("is-cooling-down", waterCooldown);
   if (el.inventoryFish) {
     // Sin stock, el mismo recuadro se transforma en acceso a Pesca.
     el.inventoryFish.disabled = fishStock > 0 && (sleeping || fishCooldown || state.stats.saciedad >= PET_CONFIG.llenaUmbral);
@@ -2416,7 +2418,8 @@ function refreshInventory() {
 
 function openInventory() {
   refreshInventory();
-  showHousingInventoryCategory("food");
+  inventoryPage = 0;
+  renderInventoryPage();
   el.inventoryOverlay.hidden = false;
   el.inventoryFish?.focus();
 }
@@ -2567,49 +2570,16 @@ function claimHousingGift() {
   notifySystem("¡Tus cuatro regalos para la casa están en el inventario!");
 }
 
-function renderHousingInventory() {
-  if (!el.inventoryHousingGrid || !state?.housing) return;
-  el.inventoryHousingGrid.replaceChildren();
-  const category = housingInventoryCategory === "surface" ? ["wall", "floor"] : ["decor"];
-  const items = Object.values(HOUSING_ITEMS).filter((item) => category.includes(item.category) && state.housing.owned[item.id]);
-  const pageCount = Math.max(1, Math.ceil(items.length / HOUSING_INVENTORY_PAGE_SIZE));
-  housingInventoryPage = Math.min(housingInventoryPage, pageCount - 1);
-  document.getElementById("inventory-pages").hidden = pageCount <= 1;
-  document.getElementById("inventory-prev").hidden = housingInventoryPage === 0;
-  document.getElementById("inventory-next").hidden = housingInventoryPage === pageCount - 1;
-  document.getElementById("inventory-page-status").textContent = `Página ${housingInventoryPage + 1} de ${pageCount}`;
-  items.slice(housingInventoryPage * HOUSING_INVENTORY_PAGE_SIZE, (housingInventoryPage + 1) * HOUSING_INVENTORY_PAGE_SIZE).forEach((item) => {
-    const card = document.createElement("div");
-    card.className = "housing-inventory-card";
-    const img = document.createElement("img");
-    img.src = item.asset;
-    img.alt = "";
-    const name = document.createElement("strong");
-    name.className = "sr-only";
-    name.textContent = item.label;
-    card.append(img, name);
-    el.inventoryHousingGrid.appendChild(card);
-  });
-  if (!el.inventoryHousingGrid.children.length) {
-    const empty = document.createElement("p");
-    empty.textContent = "Todavía no tenés objetos en esta categoría.";
-    el.inventoryHousingGrid.appendChild(empty);
-  }
+function renderInventoryPage() {
+  const items = [...el.inventoryFoodGrid.querySelectorAll('.inventory-item')];
+  const pageCount = Math.max(1, Math.ceil(items.length / INVENTORY_PAGE_SIZE));
+  inventoryPage = Math.max(0, Math.min(inventoryPage, pageCount - 1));
+  items.forEach((item, index) => { item.hidden = Math.floor(index / INVENTORY_PAGE_SIZE) !== inventoryPage; });
+  document.getElementById('inventory-pages').hidden = pageCount <= 1;
+  document.getElementById('inventory-prev').hidden = inventoryPage === 0;
+  document.getElementById('inventory-next').hidden = inventoryPage === pageCount - 1;
+  document.getElementById('inventory-page-status').textContent = `Página ${inventoryPage + 1} de ${pageCount}`;
 }
-
-function showHousingInventoryCategory(category) {
-  housingInventoryCategory = category;
-  housingInventoryPage = 0;
-  document.getElementById("inventory-pages").hidden = true;
-  el.inventoryTabs?.querySelectorAll("[data-category]").forEach((tab) => {
-    tab.classList.toggle("is-active", tab.dataset.category === category);
-  });
-  el.inventoryFoodGrid.hidden = category !== "food";
-  el.inventoryHousingGrid.hidden = category === "food";
-  el.inventoryStatus.hidden = category !== "food";
-  if (category !== "food") renderHousingInventory();
-}
-
 function renderHousingEditorItems() {
   if (!state?.housing || !el.housingEditorItems) return;
   el.housingEditorItems.replaceChildren();
@@ -2634,6 +2604,7 @@ function renderHousingEditorItems() {
 function startHousingEdit() {
   if (!state?.housing || activeVisit || el.game.hidden) return;
   closeInventory();
+  closeAllMenus();
   housingEditing = true;
   housingSelected = null;
   el.stageFloor.classList.add("is-decorating");
@@ -2735,18 +2706,15 @@ function setupHousingUI() {
     clampHousingEditorPanel();
   });
   window.addEventListener("resize", clampHousingEditorPanel);
-  el.inventoryTabs?.addEventListener("click", (event) => {
-    const tab = event.target.closest("button[data-category]");
-    if (tab) showHousingInventoryCategory(tab.dataset.category);
-  });
+  document.getElementById("housing-edit-open")?.addEventListener("click", startHousingEdit);
   document.getElementById("inventory-prev")?.addEventListener("click", () => {
-    housingInventoryPage = Math.max(0, housingInventoryPage - 1);
-    renderHousingInventory();
+    inventoryPage = Math.max(0, inventoryPage - 1);
+    renderInventoryPage();
     if (document.activeElement.hidden) document.getElementById("inventory-next").focus();
   });
   document.getElementById("inventory-next")?.addEventListener("click", () => {
-    housingInventoryPage++;
-    renderHousingInventory();
+    inventoryPage++;
+    renderInventoryPage();
     if (document.activeElement.hidden) document.getElementById("inventory-prev").focus();
   });
   el.housingEditorClose?.addEventListener("click", stopHousingEdit);
@@ -3037,7 +3005,7 @@ let minigameSpawnTimer = null;
 // MINIGAMES). Pesca y Luciérnagas quedan sin cambios; son genéricas
 // (parametrizadas por game.id) así que no dependían de la de Pelota.
 const MINIGAMES = [
-  { id: "pesca", title: "Pesca", instructions: "Esperá a que pique y tocá ¡Tirar! Cada captura suma un pescado al terminar. Hasta 3 por partida.", symbol: "🎣", duration: 20, goal: 3, targetLife: 0 },
+  { id: "pesca", title: "Pesca", instructions: "Esperá a que pique y tocá ¡Tirar! Hasta 3 pescados por partida y 3 partidas por día, sin espera. Cada inicio cuenta, aunque canceles.", symbol: "🎣", duration: 20, goal: 3, targetLife: 0 },
   {
     id: "luciernagas",
     title: "Caza de luciérnagas",
@@ -3200,6 +3168,14 @@ function scheduleFishingCast() {
 }
 
 let selectedMinigame = "pesca";
+function fishingPlaysRemaining() {
+  ensureDailyProgress();
+  return Math.max(0, 3 - (state.daily.fishingPlays || 0));
+}
+function fishingLimitMessage() {
+  const remaining = fishingPlaysRemaining();
+  return remaining ? `Pesca: ${remaining} de 3 partidas disponibles hoy. Sin tiempo de espera.` : "Ya jugaste las 3 partidas de pesca de hoy. Volvé mañana.";
+}
 function openGameSelector(selected = null) {
   if (minigame || navLock) return;
   closeAllMenus();
@@ -3207,7 +3183,7 @@ function openGameSelector(selected = null) {
   const panel = document.getElementById("game-selector");
   panel.hidden = false;
   panel.querySelectorAll(".game-choice").forEach(card => { card.classList.toggle("is-open", card.dataset.game === selected); card.querySelector(".game-title").setAttribute("aria-expanded", String(card.dataset.game === selected)); });
-  document.getElementById("game-selector-note").textContent = "Elegí un minijuego y pulsá Play para empezar.";
+  document.getElementById("game-selector-note").textContent = fishingLimitMessage();
   panel.setAttribute("tabindex","-1");
   panel.focus();
   if(selected) panel.querySelector(`[data-game="${selected}"]`).scrollIntoView({block:"nearest",inline:"center"});
@@ -3228,14 +3204,20 @@ function setupGameSelector() {
   document.getElementById("game-selector-close").addEventListener("click", closeGameSelector);
   document.getElementById("game-play").addEventListener("click", () => {
     const note = document.getElementById("game-selector-note");
+    if (minigame) return;
     if (state.sleep.dormida) { note.textContent = "Despertá a tu mascota para jugar."; return; }
     if (state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar) { note.textContent = "Necesita descansar: no tiene suficiente energía."; return; }
-    // v3.2, pedido explícito: la Pesca tiene su PROPIO cooldown ("pesca",
-    // 15min más largo — ver cooldownsMs.pesca en js/config.js), separado
-    // del cooldown genérico "jugar" que siguen usando Pelota/Luciérnagas.
-    const cooldownKey = selectedMinigame === "pesca" ? "pesca" : "jugar";
-    if (isOnCooldown(cooldownKey)) { note.textContent = `Podés jugar de nuevo en ${formatCooldownPhrase(state.cooldowns[cooldownKey]-Date.now())}.`; return; }
-    registerInteraction(); startCooldown(cooldownKey); updateCooldownButtons();
+    if (selectedMinigame === "pesca") {
+      if (!fishingPlaysRemaining()) { note.textContent = fishingLimitMessage(); return; }
+      state.daily.fishingPlays = (state.daily.fishingPlays || 0) + 1;
+      state.cooldowns.pesca = 0;
+      // Guardar al iniciar evita recuperar una partida al cancelar o recargar.
+      trySave(state);
+    } else {
+      if (isOnCooldown("jugar")) { note.textContent = `Podés jugar de nuevo en ${formatCooldownPhrase(state.cooldowns.jugar-Date.now())}.`; return; }
+      startCooldown("jugar");
+    }
+    registerInteraction(); updateCooldownButtons();
     launchMinigame(MINIGAMES.find(game => game.id === selectedMinigame));
   });
 }
@@ -3395,6 +3377,7 @@ function openOptionsMenu() {
   closeAllMenus();
   el.optionsMenu.hidden = false;
   el.btnOpciones.setAttribute("aria-expanded", "true");
+  document.getElementById("options-arrow").textContent = "▾";
 }
 
 function closeOptionsMenu(returnFocus) {
@@ -3402,6 +3385,7 @@ function closeOptionsMenu(returnFocus) {
   if (!el.debugPanel.hidden) closeDebugMode();
   el.optionsMenu.hidden = true;
   el.btnOpciones.setAttribute("aria-expanded", "false");
+  document.getElementById("options-arrow").textContent = "▴";
   if (returnFocus) el.btnOpciones.focus();
 }
 
@@ -3580,6 +3564,7 @@ function setupDeleteAccountUI() {
 }
 
 function updateFooterText() {
+  document.getElementById("options-username").textContent = currentDisplayName || currentUsername || "Invitado";
   if (!el.footerText) return;
   if (window.Cloud && window.Cloud.enabled && currentUsername) {
     el.footerText.textContent = `Hecho por Jony · Mascotito ${APP_CHANNEL} v${APP_VERSION} · sesión: ${currentDisplayName} · guardado en la nube y en este navegador`;

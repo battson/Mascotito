@@ -240,7 +240,7 @@ function localDateKey(date = new Date()) {
 }
 
 function defaultDailyProgress() {
-  return { date: localDateKey(), feed: false, play: false, talk: false, rewarded: false };
+  return { date: localDateKey(), feed: false, play: false, talk: false, rewarded: false, fishingPlays: 0 };
 }
 
 function normalizeDailyProgress(raw) {
@@ -252,6 +252,7 @@ function normalizeDailyProgress(raw) {
     play: !!raw.play,
     talk: !!raw.talk,
     rewarded: !!raw.rewarded,
+    fishingPlays: Number.isFinite(raw.fishingPlays) ? Math.max(0, Math.min(3, Math.floor(raw.fishingPlays))) : 0,
   };
 }
 

@@ -4,7 +4,7 @@
 
 - Cada actualización debe entregarse con capturas de pantalla que muestren los cambios solicitados.
 
-- Cierre de Inventario (v4.2.6): sin fondo ni sombra y alineado con las categorías. Este pedido reemplaza el círculo crema previo para esta ventana.
+- Inventario v4.2.9: ventana simplificada de windowsv2.ai, sólo consumibles, cierre discreto en la esquina superior derecha; no tiene categorías.
 
 - Priorizar escritorio. No dedicar trabajo a adaptación o revisión móvil por ahora.
 - La experiencia móvil se definirá en una versión específica futura. El usuario contempla un juego principalmente de escritorio y funciones limitadas en celular; esas funciones todavía no están decididas.
@@ -14,7 +14,7 @@ Recordar al usuario el pendiente correspondiente al comenzar el rediseño de cad
 
 - [ ] Editor de mascota: reemplazar los guiones de hover y selección en partes y colores. Propuesta: aumento suave en hover y borde completo para selección.
 - [ ] Ropa y Tienda: reemplazar el subrayado naranja de las pestañas y subcategorías activas. Inventario ya no tiene subrayados (v4.2.6).
-- [ ] Inventario v4.2: revisar el marco integrado de windows.ai y después diseñar las categorías. El acceso Decorar casa fue retirado por pedido del usuario; su nueva ubicación o funcionamiento queda por definir con su propuesta.
+- [x] Inventario v4.2.9: marco simplificado integrado y objetos de vivienda reunidos en Decorar casa, accesible desde el encabezado. Cierra la serie v4.2; la siguiente etapa es v4.3.
 - [ ] Formularios: reemplazar la línea inferior de los campos de nombre, usuario, PIN y búsqueda de amigos. Propuesta: borde completo con esquinas redondeadas.
 - [x] Barra de acciones: resplandor para panel abierto aprobado por ahora con la intensidad actual. Sombra inferior descartada. Sin subrayado ni fondo; se conserva el estado accesible.
 
