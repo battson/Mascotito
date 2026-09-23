@@ -1921,7 +1921,7 @@ function renderDirt() {
     btn.style.top = d.yPct + "%";
     btn.setAttribute("aria-label", activeVisit ? "Suciedad de la casa anfitriona" : "Retirar suciedad del escenario");
     btn.innerHTML = '<img src="assets/items/poop.svg" alt="" />';
-    if (activeVisit) {
+    if (activeVisit || state.sleep.dormida) {
       btn.disabled = true;
       btn.tabIndex = -1;
     } else {
@@ -1935,6 +1935,7 @@ function renderDirt() {
 }
 
 function removeDirt(id) {
+  if (!state || state.sleep.dormida || activeVisit) return;
   const list = state.dirt[state.location];
   const idx = list.findIndex((d) => d.id === id);
   if (idx === -1) return;
@@ -2233,13 +2234,8 @@ function updateCooldownButtons() {
     const until = (state.cooldowns && state.cooldowns[key]) || 0;
     const remainingMs = until - Date.now();
     ringEl?.classList.toggle("is-cooling-down", remainingMs > 0 && key !== "hablar" && key !== "jugar");
-    // v2.4: el tile "dormir" es ahora el mismo botón que "Despertar"
-    // (toggle, ver updateSleepToggle) — antes esta condición comparaba
-    // contra la clave "despertar", que nunca existía como key real, así
-    // que el tile de dormir quedaba deshabilitado mientras dormía y hacía
-    // falta un botón aparte para poder despertar. Ahora se excluye "dormir"
-    // en sí: todo lo demás se bloquea mientras duerme, el toggle no.
-    const blockedByState = state.sleep.dormida && key !== "dormir";
+    // Los paneles siguen disponibles durante el sueño; el jabón queda bloqueado.
+    const blockedByState = state.sleep.dormida && key === "bañar";
     if (key === "hablar" || key === "jugar") { btnEl.disabled = false; if (labelEl) labelEl.textContent = ""; return; }
     if (remainingMs > 0) {
       btnEl.disabled = true;

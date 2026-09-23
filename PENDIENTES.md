@@ -16,6 +16,6 @@ Recordar al usuario el pendiente correspondiente al comenzar el rediseño de cad
 
 ## Para cerrar la barra de acciones de Beta v4.1
 
-- Tamaño, posición y separación aprobados por ahora: mantener los valores actuales.
+- v4.2.3: tamaño de los íconos duplicado por pedido del usuario; botones ampliados para contenerlos. Se conservan los dos grupos y su separación.
 - Resplandor aprobado por ahora; mantener los iconos sin sombra inferior.
 - Ya implementado: SVG sin nombres ni fondos, dos grupos (Inventario/Ropa/Tienda y Dormir/Jugar/Limpiar), hover, luna/sol y cooldown con icono atenuado y contador superpuesto.

@@ -2,6 +2,13 @@
 
 Los acuerdos por retomar al rediseñar cada sección están en [Pendientes de UI](PENDIENTES.md).
 
+## Beta v4.2.3
+
+- Se retira el cartel ilustrado de Inventario y se conserva el nombre accesible del panel.
+- El cierre ilustrado tiene un fondo circular crema.
+- Inventario, Ropa y Tienda se pueden abrir durante el sueño; el jabón y retirar suciedad quedan bloqueados.
+- Los íconos SVG de la barra de acciones duplican su tamaño, con espacio suficiente en sus botones.
+
 ## Beta v4.2
 
 - Inventario usa el marco original de windows.ai, con título en la pestaña superior y formato horizontal de 680 × 400 px. El marco se adapta por secciones para preservar las esquinas.

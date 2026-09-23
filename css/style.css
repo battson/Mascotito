@@ -4584,7 +4584,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   justify-content: center;
 }
 .inventory-window .modal-topbar::before {
-  content: "";
+  content: none;
   position: absolute;
   top: 0; left: 50%;
   width: 372px; height: 50px;
@@ -4600,8 +4600,8 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   top: 48px; right: 10px; margin-top: -22px;
   display: grid; place-items: center;
   width: 44px; height: 44px; padding: 6px;
-  border: 0; border-radius: 6px;
-  background: transparent; box-shadow: none;
+  border: 0; border-radius: 50%;
+  background: #fff9ec; box-shadow: none;
   cursor: pointer;
   transition: transform .15s ease;
 }
@@ -4638,8 +4638,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #actions-dock .is-cooling-down .action-art { opacity: .65; }
 #actions-dock .action-art {
   display: block;
-  width: 42px;
-  height: 42px;
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
   object-fit: contain;
   pointer-events: none;
   filter: none;
@@ -4655,6 +4656,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   transform: none;
   transition: transform .15s ease;
 }
+#stage-floor:not(.is-editing) #actions-dock .action-circle-wrap,
+#stage-floor:not(.is-editing) #actions-dock .cooldown-ring { width: 92px; }
+#stage-floor:not(.is-editing) #actions-dock .cooldown-ring { height: 92px; }
 #actions-dock .action-circle::after { display: none; }
 #stage-floor:not(.is-editing) #actions-dock .action-circle:hover:not(:disabled) {
   background: transparent;
@@ -4674,8 +4678,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   #stage-floor:not(.is-editing) #actions-dock { gap: 16px; }
   #actions-dock .action-group { gap: 4px; }
   #stage-floor:not(.is-editing) #actions-dock .action-circle-wrap,
-  #stage-floor:not(.is-editing) #actions-dock .cooldown-ring { width: 44px; }
-  #actions-dock .action-art { width: 36px; height: 36px; }
+  #stage-floor:not(.is-editing) #actions-dock .cooldown-ring { width: 80px; }
+  #stage-floor:not(.is-editing) #actions-dock .cooldown-ring { height: 80px; }
+  #actions-dock .action-art { width: 72px; height: 72px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #stage-floor:not(.is-editing) #actions-dock .action-circle { transition: none; }
