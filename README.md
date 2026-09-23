@@ -1,5 +1,18 @@
 # Mascotito Beta
 
+## Inventario cofre
+
+- Ventana, pescado, botella y cierre circular en SVG independientes.
+- Stock e infinito dentro de medallones dorados. Cooldowns con el mismo acabado, en su posición habitual.
+
+## Beta v4.3.4 — Navegación del celular
+
+- Contactos centrado y sin subtítulo.
+- Flecha pequeña amarilla, basada en la flecha del inventario.
+- Transiciones suaves entre pantallas, respetando la preferencia de movimiento reducido.
+- Confirmación antes de viajar desde Contactos o desde el menú del chat.
+- Confirmaciones de solicitudes y cruz roja para cancelar o rechazar.
+
 ## Beta v4.3.3 — Todo lo de amigos dentro del celular
 
 - **Se eliminó la ventana vieja de Amigos** (pestañas Mis amigos / Agregar / Eliminar) y el botón oculto de Amigos del encabezado. Todo vive en el celular.

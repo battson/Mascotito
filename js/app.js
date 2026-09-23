@@ -2384,7 +2384,7 @@ function buildActionsDock() {
 
 function refreshInventory() {
   if (!state) return;
-  if (el.inventoryFishCount) el.inventoryFishCount.textContent = `×${Math.max(0, Number(state.inventory?.pescado) || 0)}`;
+  if (el.inventoryFishCount) el.inventoryFishCount.textContent = String(Math.max(0, Number(state.inventory?.pescado) || 0));
   const sleeping = !!state.sleep?.dormida;
   const fishCooldown = isOnCooldown("pescado");
   const waterCooldown = isOnCooldown("beber");
@@ -4318,7 +4318,7 @@ const FRIEND_ICON = {
   visit: "assets/ui/phone/visit.svg",
   chat: "assets/ui/phone/message.svg",
   accept: "assets/ui/phone/check.svg",
-  reject: "assets/ui/phone/remove.svg",
+  reject: "assets/ui/actions/cerrar.svg",
 };
 function friendIconHtml(kind, label) {
   return `<img class="friend-icon-art" src="${FRIEND_ICON[kind]}" alt="" draggable="false" /><span class="sr-only">${label}</span>`;
@@ -4358,7 +4358,7 @@ function renderRequestsList() {
     el.requestsIncomingList.appendChild(
       friendRow(
         display,
-        `<button type="button" class="friend-btn-accept friend-icon-btn" title="Aceptar" data-user="${k}">${friendIconHtml("accept", "Aceptar")}</button><button type="button" class="friend-btn-reject friend-icon-btn is-minus" title="Rechazar" data-user="${k}">${friendIconHtml("reject", "Rechazar")}</button>`
+        `<button type="button" class="friend-btn-accept friend-icon-btn" title="Aceptar" data-user="${k}">${friendIconHtml("accept", "Aceptar")}</button><button type="button" class="friend-btn-reject friend-icon-btn" title="Rechazar" data-user="${k}">${friendIconHtml("reject", "Rechazar")}</button>`
       )
     );
   });
@@ -4424,13 +4424,15 @@ function setupFriendsUI() {
     const btn = ev.target.closest("button[data-user]");
     if (!btn || !window.Cloud) return;
     const target = btn.dataset.user;
-    btn.disabled = true;
-    if (btn.classList.contains("friend-btn-accept")) {
-      const res = await window.Cloud.acceptFriendRequest(currentUsername, currentDisplayName, target);
-      if (res.ok) notifySystem("Ahora son amigos.");
-    } else if (btn.classList.contains("friend-btn-reject")) {
-      await window.Cloud.rejectFriendRequest(currentUsername, target);
-    }
+    const accepting = btn.classList.contains("friend-btn-accept");
+    const display = myCloudData.friendRequests?.incoming?.[target]?.fromDisplay || target;
+    openPhoneConfirm(accepting ? `¿Aceptar la solicitud de ${display}?` : `¿Rechazar la solicitud de ${display}?`, async () => {
+      const res = accepting
+        ? await window.Cloud.acceptFriendRequest(currentUsername, currentDisplayName, target)
+        : await window.Cloud.rejectFriendRequest(currentUsername, target);
+      if (res?.ok === false) throw new Error("request_failed");
+      if (accepting) notifySystem("Ahora son amigos.");
+    });
   });
   el.addFriendForm?.addEventListener("submit", (ev) => {
     ev.preventDefault();
@@ -4528,7 +4530,7 @@ function showChatContacts() {
   stopDirectChatWatch();
   activeChatKind = null;
   if (el.roomChatTitle) el.roomChatTitle.textContent = "Contactos";
-  if (el.roomChatParticipants) el.roomChatParticipants.textContent = "Elegí una conversación";
+  if (el.roomChatParticipants) el.roomChatParticipants.textContent = "";
   setPhoneHeaderAvatar(null);
   setPhoneMenuVisible(false);
   setPhoneView("contacts");
@@ -4800,14 +4802,27 @@ function closePhoneConfirm() {
   if (el.phoneConfirm) el.phoneConfirm.hidden = true;
 }
 
+function confirmPhoneVisit(username, display) {
+  openPhoneConfirm(`¿Viajar a la casa de ${display}?`, () => {
+    setRoomChatOpen(false);
+    return openVisit(username, display);
+  });
+}
+
 // Muestra una sola pantalla del celular a la vez.
 function setPhoneView(view) {
   phoneView = view;
+  el.roomChatPanel.dataset.phoneView = view;
   if (el.roomChatContacts) el.roomChatContacts.hidden = view !== "contacts";
   if (el.roomChatConversation) el.roomChatConversation.hidden = view !== "chat";
   if (el.phoneSearch) el.phoneSearch.hidden = view !== "search";
   if (el.phoneRequests) el.phoneRequests.hidden = view !== "requests";
   if (el.roomChatBack) el.roomChatBack.hidden = view === "contacts";
+  const views = { contacts: el.roomChatContacts, chat: el.roomChatConversation, search: el.phoneSearch, requests: el.phoneRequests };
+  Object.values(views).forEach(node => node?.getAnimations().forEach(animation => animation.cancel()));
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    views[view]?.animate([{ opacity: 0, transform: "translateY(7px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 200, easing: "ease-out" });
+  }
 }
 
 function openPhoneSubview(view) {
@@ -4845,8 +4860,7 @@ function setupPhoneUI() {
     const display = activeDirectDisplayName || username;
     closePhoneMenu();
     if (b.dataset.phoneMenu === "visit") {
-      setRoomChatOpen(false);
-      openVisit(username, display);
+      confirmPhoneVisit(username, display);
       return;
     }
     openPhoneConfirm(`¿Eliminar a ${display} de tus amigos?`, async () => {
@@ -4866,7 +4880,12 @@ function setupPhoneUI() {
   el.phoneConfirmYes?.addEventListener("click", async () => {
     const action = phoneConfirmAction;
     el.phoneConfirmYes.disabled = true;
-    try { if (action) await action(); } finally { el.phoneConfirmYes.disabled = false; closePhoneConfirm(); }
+    try {
+      if (action) await action();
+      closePhoneConfirm();
+    } catch {
+      el.phoneConfirmText.textContent = "No se pudo completar. Probá de nuevo.";
+    } finally { el.phoneConfirmYes.disabled = false; }
   });
   document.addEventListener("click", (ev) => {
     if (el.roomChatMenu && !el.roomChatMenu.hidden && !ev.target.closest(".phone-menu-wrap")) closePhoneMenu();
@@ -5102,8 +5121,7 @@ function setupRoomChatUI() {
       const username = friendAction.dataset.username;
       const display = friendAction.dataset.display || username;
       if (friendAction.dataset.friendAction === "visit") {
-        setRoomChatOpen(false);
-        openVisit(username, display);
+        confirmPhoneVisit(username, display);
       } else {
         openDirectChatConversation(username, display);
       }

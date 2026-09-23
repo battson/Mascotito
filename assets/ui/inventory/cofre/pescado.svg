@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" fill="none">
+<title>Pescado azul</title><defs>
+<linearGradient id="blue" x2=".55" y2="1"><stop stop-color="#d8f7ff"/><stop offset=".42" stop-color="#7bd5fa"/><stop offset="1" stop-color="#239ce6"/></linearGradient>
+<linearGradient id="fin" x2=".5" y2="1"><stop stop-color="#a3e8ff"/><stop offset="1" stop-color="#268ed6"/></linearGradient>
+<linearGradient id="shine" x2=".3" y2="1"><stop stop-color="white" stop-opacity=".95"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient></defs>
+<g stroke="#184c6b" stroke-width="5" stroke-linejoin="round">
+<path d="M103 47Q119 4 161 24Q186 37 160 66Z" fill="url(#fin)"/>
+<path d="M96 168Q119 213 153 191Q163 181 157 164Z" fill="url(#fin)"/>
+<path d="M203 89Q245 46 259 68Q270 84 246 112Q275 146 254 159Q237 171 206 141C170 188 98 189 47 150Q-5 110 39 73C83 33 161 28 203 89Z" fill="url(#blue)"/>
+</g>
+<path d="M35 124C94 174 166 167 204 124Q237 154 253 144Q254 155 245 155L207 137C162 184 86 177 47 146Z" fill="#168bd0" opacity=".5"/>
+<path d="M41 76Q90 37 150 48Q172 53 155 68C101 50 60 89 41 99Q26 102 41 76Z" fill="url(#shine)"/>
+<path d="M103 61Q133 111 104 160" stroke="#328fc3" stroke-width="5" stroke-linecap="round"/>
+<path d="M137 91Q157 101 139 114M163 112Q181 123 162 134M132 134Q150 146 133 154" stroke="#3196cb" stroke-width="5" stroke-linecap="round"/>
+<path d="M118 42Q137 23 158 32M119 181Q136 191 146 183M222 94L248 76" stroke="#cdf3ff" stroke-width="7" stroke-linecap="round"/>
+<ellipse cx="65" cy="104" rx="14" ry="17" fill="#133951"/><circle cx="61" cy="97" r="5" fill="white"/>
+<path d="M33 123Q41 129 48 124" stroke="#21698e" stroke-width="3" stroke-linecap="round"/>
+<ellipse cx="56" cy="72" rx="14" ry="6" transform="rotate(-28 56 72)" fill="white" opacity=".9"/>
+</svg>

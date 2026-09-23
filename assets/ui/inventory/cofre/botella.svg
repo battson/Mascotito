@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 300" fill="none">
+<title>Botella de agua</title><defs>
+<linearGradient id="glass" x2="1" y2=".5"><stop stop-color="#249ddf"/><stop offset=".22" stop-color="#b4f0ff"/><stop offset=".55" stop-color="#e1faff"/><stop offset="1" stop-color="#49bcec"/></linearGradient>
+<linearGradient id="cap" x2=".8" y2="1"><stop stop-color="#64ceff"/><stop offset=".45" stop-color="#178fdb"/><stop offset="1" stop-color="#1264ae"/></linearGradient>
+<linearGradient id="label" x2="1" y2="1"><stop stop-color="#39caff"/><stop offset="1" stop-color="#0873cc"/></linearGradient>
+<linearGradient id="shine" x2="1" y2=".4"><stop stop-color="white" stop-opacity=".85"/><stop offset="1" stop-color="white" stop-opacity=".05"/></linearGradient>
+</defs>
+<g transform="rotate(-16 115 150)" stroke-linejoin="round">
+<path d="M88 50H142V72Q142 84 155 95Q170 108 170 129V239Q170 265 143 265H87Q60 265 60 239V129Q60 108 75 95Q88 84 88 72Z" fill="url(#glass)" stroke="#194967" stroke-width="5"/>
+<path d="M70 123Q112 133 160 123V222Q113 237 70 222Z" fill="url(#label)"/>
+<path d="M70 214Q112 229 160 215V226Q111 239 70 225Z" fill="#057fbe"/>
+<path d="M74 121V238Q74 251 91 254" stroke="#ddfaff" stroke-width="8" stroke-linecap="round"/>
+<path d="M149 133V237Q149 250 136 251" stroke="#53c5f2" stroke-width="8" stroke-linecap="round"/>
+<path d="M82 32Q82 24 93 24H139Q150 24 150 35V61Q150 69 139 69H93Q82 69 82 60Z" fill="url(#cap)" stroke="#194967" stroke-width="5"/>
+<path d="M91 35V53M103 37V56M117 38V57M133 37V55" stroke="#0665af" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+<ellipse cx="116" cy="32" rx="25" ry="6" fill="#81d9ff"/>
+<path d="M79 107Q112 94 150 108" stroke="white" stroke-width="8" stroke-linecap="round" opacity=".8"/>
+<path d="M90 136H102V217H90Z" fill="url(#shine)"/>
+<path d="M117 149C114 161 100 170 100 182A17 17 0 0 0 134 182C134 171 123 160 117 149Z" fill="#e5fbff" stroke="#9de6fa" stroke-width="2"/>
+<path d="M106 182Q105 191 115 193" stroke="white" stroke-width="4" stroke-linecap="round"/>
+</g></svg>
