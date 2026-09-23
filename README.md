@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v4.2.7
+
+- Infinito del agua con el mismo estilo y posición que el stock de comida.
+- Flecha anterior en la esquina inferior izquierda; siguiente en la derecha.
+- Cierre desplazado a la izquierda para igualar su margen derecho al margen izquierdo del primer botón de categorías.
+- Hover de cierre y flechas reducido a un aumento del 2 %, sin desplazamiento.
+- Se conserva la pelota redondeada del SVG actualizado manualmente.
+
 ## Beta v4.2.6
 
 - Chat rápido alineado a la izquierda de Amigos con 16 px de separación.
