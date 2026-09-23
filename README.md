@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v4.4.1 — Ajustes del vestidor
+
+- Retirada la colección de seis torsos y anteojos de v4.4; los guardados eliminan esas referencias y conservan las prendas anteriores.
+- Marco sin letrero ni perchero.
+- Vistas previas recortadas de las prendas originales para aprovechar el botón sin alterar su tamaño al equiparlas.
+
 ## Beta v4.4 — Vestidor
 
 - Ventana SVG de madera y dorado, vista previa y categorías con seis prendas por página.

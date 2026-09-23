@@ -2448,7 +2448,7 @@ function renderWardrobe() {
     button.setAttribute("aria-label", item.label || `Prenda ${item.setId}`);
     button.setAttribute("aria-pressed", String(equipped === item.id));
     button.title = item.label || `Prenda ${item.setId}`;
-    const image = document.createElement("img"); image.src = item.asset; image.alt = "";
+    const image = document.createElement("img"); image.src = /^conjunto[12]_(superior|inferior|calzado)$/.test(item.id) ? item.asset.replace("assets/clothes/", "assets/clothes/previews/") : item.asset; image.alt = "";
     button.append(image); el.wardrobeGrid.append(button);
   });
   el.wardrobeTabs.querySelectorAll('[data-slot]').forEach(button => {
@@ -2464,8 +2464,7 @@ function renderWardrobe() {
 
 function openWardrobe() {
   if (!state?.wardrobe) return;
-  // También incorpora la colección a sesiones abiertas antes de la actualización.
-  WARDROBE_SLOTS.forEach(slot => (CLOTHING_CATALOG[slot] || []).filter(item => item.starter).forEach(item => { state.wardrobe.owned[slot][item.id] = true; }));
+  state.wardrobe = normalizeWardrobe(state.wardrobe);
   wardrobeDraft = { ...state.wardrobe.equipped };
   wardrobeSlotActive = "superior"; wardrobePage = 0;
   el.wardrobeOverlay.hidden = false;

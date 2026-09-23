@@ -93,7 +93,7 @@ const WARDROBE_SLOTS = ["superior", "inferior", "calzado", "accesorios"];
 
 function defaultWardrobe() {
   return {
-    owned: Object.fromEntries(WARDROBE_SLOTS.map(slot => [slot, Object.fromEntries((typeof CLOTHING_CATALOG !== "undefined" ? CLOTHING_CATALOG[slot] || [] : []).filter(item => item.starter).map(item => [item.id, true]))])),
+    owned: { superior: {}, inferior: {}, calzado: {}, accesorios: {} },
     equipped: { superior: null, inferior: null, calzado: null, accesorios: null },
     betaWelcomeClaimed: false,
     betaWelcomeSet: null,
