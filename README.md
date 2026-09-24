@@ -1,5 +1,16 @@
 # Mascotito Beta
 
+## Beta v4.4.3 — Armario celeste
+
+- Marco de armario abierto y botones Quitar todo, Cancelar y Aceptar en SVG.
+- Sin adorno de conejo ni título de vista previa.
+- Mascota del vestidor sin animaciones, manteniendo las del juego.
+
+## Beta v4.4.2 — Categorías por íconos
+
+- Pestañas del vestidor sin texto visible, fondo ni marco; nombres accesibles y ayuda al pasar el cursor.
+- Anteojos SVG sólo como ícono de Accesorios, sin añadir una prenda.
+
 ## Beta v4.4.1 — Ajustes del vestidor
 
 - Retirada la colección de seis torsos y anteojos de v4.4; los guardados eliminan esas referencias y conservan las prendas anteriores.

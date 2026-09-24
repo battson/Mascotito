@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.4.1</title>
+  <title>Mascotito — Beta v4.4.3</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.4.1</span>
+      <span class="badge" id="app-version-badge">Beta v4.4.3</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -210,20 +210,20 @@
       <button id="wardrobe-close" type="button" class="dressing-close" aria-label="Cancelar y cerrar"><img src="assets/ui/inventory/cofre/cerrar.svg" alt="" /></button>
       <div class="dressing-layout">
         <section class="dressing-preview" aria-label="Vista previa del conjunto">
-          <h3>Vista previa</h3><div id="wardrobe-preview" class="pet-stage"></div>
-          <button id="wardrobe-clear" type="button">Quitar todo</button>
+          <div id="wardrobe-preview" class="pet-stage"></div>
+          <button id="wardrobe-clear" type="button" aria-label="Quitar todo" title="Quitar todo"><img src="assets/ui/wardrobe/quitar.svg" alt="" /></button>
         </section>
         <section class="dressing-collection" aria-label="Prendas disponibles">
           <div id="wardrobe-tabs" class="dressing-tabs" aria-label="Categorías de ropa">
-            <button type="button" data-slot="superior" class="is-active"><img src="assets/ui/actions/01-remera.svg" alt="" />Torso</button>
-            <button type="button" data-slot="inferior"><img src="assets/ui/wardrobe/piernas.svg" alt="" />Piernas</button>
-            <button type="button" data-slot="calzado"><img src="assets/ui/wardrobe/calzado.svg" alt="" />Calzado</button>
-            <button type="button" data-slot="accesorios"><img src="assets/clothes/corona-preview.png" alt="" />Accesorios</button>
+            <button type="button" data-slot="superior" aria-label="Torso" title="Torso" class="is-active"><img src="assets/ui/actions/01-remera.svg" alt="" /></button>
+            <button type="button" data-slot="inferior" aria-label="Piernas" title="Piernas"><img src="assets/ui/wardrobe/piernas.svg" alt="" /></button>
+            <button type="button" data-slot="calzado" aria-label="Calzado" title="Calzado"><img src="assets/ui/wardrobe/calzado.svg" alt="" /></button>
+            <button type="button" data-slot="accesorios" aria-label="Accesorios" title="Accesorios"><img src="assets/ui/wardrobe/accesorios.svg" alt="" /></button>
           </div>
           <div id="wardrobe-grid" class="wardrobe-grid"></div>
           <p id="wardrobe-empty" hidden>Todavía no tenés prendas en esta categoría. <button id="wardrobe-shop" type="button">Ir a la tienda</button></p>
           <nav class="dressing-pages" aria-label="Páginas de ropa"><button id="wardrobe-prev" type="button" aria-label="Página anterior"><img src="assets/ui/phone/back.svg" alt="" /></button><span id="wardrobe-page" aria-live="polite"></span><button id="wardrobe-next" type="button" aria-label="Página siguiente"><img src="assets/ui/phone/back.svg" alt="" /></button></nav>
-          <div class="dressing-actions"><button id="wardrobe-save" type="button">✓ Guardar</button><button id="wardrobe-close-action" type="button">Cancelar</button></div>
+          <div class="dressing-actions"><button id="wardrobe-save" type="button" aria-label="Aceptar y guardar" title="Aceptar y guardar"><img src="assets/ui/wardrobe/aceptar.svg" alt="" /></button><button id="wardrobe-close-action" type="button" aria-label="Cancelar" title="Cancelar"><img src="assets/ui/wardrobe/cancelar.svg" alt="" /></button></div>
         </section>
       </div>
     </section>
@@ -388,7 +388,7 @@
                 <button id="room-chat-send" class="room-chat-send-icon" type="submit" aria-label="Enviar" title="Enviar"><img src="assets/ui/phone/send.svg" alt="" draggable="false" /></button>
               </form>
             </section>
-            <!-- Beta v4.4.1: Buscar amigos y Solicitudes viven dentro del celular
+            <!-- Beta v4.4.3: Buscar amigos y Solicitudes viven dentro del celular
                  (reemplazan a la ventana vieja de Amigos). -->
             <section id="phone-search" class="phone-view" aria-label="Buscar amigos" hidden>
               <form id="add-friend-form" class="phone-search-form" autocomplete="off">
@@ -667,7 +667,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.4.1 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.4.3 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
