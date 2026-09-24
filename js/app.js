@@ -1577,10 +1577,10 @@ function submitOnboarding() {
 // que ahora se ve EXCLUSIVAMENTE en updateWellbeingAvatar() (el borde del
 // círculo) y en las frases espontáneas, no en una barra propia.
 const NEED_DEFS = [
-  { key: "saciedad", label: "Hambre", icon: "comer" },
-  { key: "hidratacion", label: "Sed", icon: "beber" },
-  { key: "higiene", label: "Higiene", icon: "limpiar" },
-  { key: "energia", label: "Energía", icon: "energia" },
+  { key: "saciedad", label: "Hambre", icon: "comer", art: "assets/ui/ficha/hambre.svg" },
+  { key: "hidratacion", label: "Sed", icon: "beber", art: "assets/ui/ficha/sed.svg" },
+  { key: "higiene", label: "Higiene", icon: "limpiar", art: "assets/ui/ficha/higiene.svg" },
+  { key: "energia", label: "Energía", icon: "energia", art: "assets/ui/ficha/energia.svg" },
 ];
 
 /** Arma las 4 filas compactas ícono+barra del panel de bienestar (ahora
@@ -1591,17 +1591,19 @@ const needMeterEls = {};
 function buildPrimaryMeters() {
   if (!el.wellbeingBars) return;
   el.wellbeingBars.innerHTML = "";
-  NEED_DEFS.forEach(({ key, label, icon }) => {
+  // Beta v4.5: cada necesidad es una celda de la ficha (ícono, nombre, % y barra).
+  NEED_DEFS.forEach(({ key, label, art }) => {
     const row = document.createElement("div");
-    row.className = "wellbeing-row";
+    row.className = "wellbeing-row need-cell";
+    row.dataset.need = key;
     const labelId = "wellbeing-label-" + key;
     row.innerHTML = `
-      ${iconSvg(icon)}
+      <img class="need-icon" src="${art}" alt="" draggable="false" />
       <span id="${labelId}" class="wellbeing-label">${label}</span>
+      <strong class="wellbeing-value">100%</strong>
       <div class="wellbeing-track" role="meter" aria-labelledby="${labelId}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
         <div class="wellbeing-fill meter-${key}"></div>
-      </div>
-      <strong class="wellbeing-value">100%</strong>`;
+      </div>`;
     el.wellbeingBars.appendChild(row);
     needMeterEls[key] = {
       track: row.querySelector(".wellbeing-track"),
@@ -1667,8 +1669,10 @@ function updateBondChip() {
   const { nivel, progreso } = bondLevel(state.bond.xp);
   const per = PET_CONFIG.bond.xpPorNivel;
   const current = Math.round(state.bond.xp % per);
-  if (el.headerLevelText) el.headerLevelText.textContent = "Nivel " + nivel;
+  if (el.headerLevelText) el.headerLevelText.textContent = "Nv. " + nivel;
   if (el.headerXpText) el.headerXpText.textContent = `${current} / ${per} XP`;
+  const levelTrack = document.getElementById("ficha-level-track");
+  if (levelTrack) levelTrack.title = `Nivel ${nivel} · ${current} / ${per} XP`;
   if (el.headerLevelFill) el.headerLevelFill.style.width = Math.round(progreso * 100) + "%";
 }
 
@@ -3785,29 +3789,113 @@ if (systemNoticeCloseBtn) systemNoticeCloseBtn.addEventListener("click", () => {
  *    desaparición automática de siempre a los 12s).
  * Las 3 se encadenan en vertical en syncHudLayout(), así que cualquier
  * cambio de alto/visibilidad acá necesita volver a llamarla. */
+const NEED_ALERT_ICONS = {
+  saciedad: "assets/ui/ficha/hambre.svg",
+  hidratacion: "assets/ui/ficha/sed.svg",
+  higiene: "assets/ui/ficha/higiene.svg",
+  energia: "assets/ui/ficha/energia.svg",
+  felicidad: "assets/ui/actions/04-pelota.svg",
+};
+
+// Beta v4.5: forma de burbuja (notificaciones.png redibujada en SVG limpio).
+// Se dibuja al tamaño real de cada aviso para que los extremos redondos y la
+// colita no se deformen; el relleno sale de las variables CSS --nb-fill y
+// --nb-rim, así "durmiendo" puede usar #eef1f6.
+const noticeBubbleObserver = typeof ResizeObserver === "function" ? new ResizeObserver((entries) => entries.forEach((entry) => drawNoticeBubble(entry.target))) : null;
+let noticeBubbleSeq = 0;
+function drawNoticeBubble(bubble) {
+  const w = bubble.offsetWidth, h = bubble.offsetHeight;
+  if (!w || !h) return;
+  let svg = bubble.querySelector(":scope > svg.nb-shape");
+  if (!svg) {
+    svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "nb-shape");
+    svg.setAttribute("aria-hidden", "true");
+    bubble.prepend(svg);
+  }
+  const tail = 11, s = 3, r = (h - tail - s) / 2, x0 = s / 2, y0 = s / 2, x1 = w - s / 2, y1 = h - tail - s / 2;
+  const tx = x0 + r * 0.95;
+  const d = `M${x0 + r},${y0} H${x1 - r} A${r},${r} 0 0 1 ${x1 - r},${y1} H${tx + 18} Q${tx + 13},${y1} ${tx + 13},${y1 + 5} V${y1 + tail - 3} Q${tx + 13},${y1 + tail} ${tx + 9},${y1 + tail - 1} Q${tx - 1},${y1 + tail - 4} ${tx - 6},${y1} H${x0 + r} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
+  const id = bubble.dataset.nbId || (bubble.dataset.nbId = "nb" + (++noticeBubbleSeq));
+  svg.setAttribute("width", w); svg.setAttribute("height", h); svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const band = Math.min(7, (y1 - y0) * 0.16);
+  svg.innerHTML = `<defs><clipPath id="${id}-c"><path d="${d}"/></clipPath></defs>
+    <path d="${d}" fill="var(--nb-fill)"/>
+    <g clip-path="url(#${id}-c)"><rect x="0" y="0" width="${w}" height="${y0 + band}" fill="var(--nb-rim)"/><rect x="0" y="${y1 - band}" width="${w}" height="${h}" fill="var(--nb-rim)"/></g>
+    <path d="M${x0 + r * 0.55},${y0 + r * 0.45} q${r * 0.25},-${r * 0.22} ${r * 0.6},-${r * 0.28}" class="nb-glint"/>
+    <path d="M${x1 - r * 0.9},${y0 + r * 0.18} q${r * 0.4},0 ${r * 0.62},${r * 0.3}" class="nb-glint"/>
+    <path d="${d}" fill="none" stroke="var(--nb-stroke)" stroke-width="${s}" stroke-linejoin="round"/>`;
+}
+function decorateNoticeBubbles(root = document) {
+  root.querySelectorAll(".nb").forEach((bubble) => {
+    drawNoticeBubble(bubble);
+    if (noticeBubbleObserver && !bubble.dataset.nbObserved) { bubble.dataset.nbObserved = "1"; noticeBubbleObserver.observe(bubble); }
+  });
+}
+
+// Beta v4.5: la bandeja de necesidades de la ficha se pliega con la flecha.
+// El estado se recuerda en este navegador (si el almacenamiento falla, sólo
+// no se recuerda).
+const FICHA_COLLAPSED_KEY = (typeof PET_CONFIG !== "undefined" ? PET_CONFIG.storageKey : "mascotito") + ".fichaPlegada";
+function setFichaCollapsed(collapsed, remember = true) {
+  const card = document.getElementById("wellbeing-widget");
+  const toggle = document.getElementById("ficha-toggle");
+  if (!card || !toggle) return;
+  card.classList.toggle("is-collapsed", collapsed);
+  toggle.setAttribute("aria-expanded", String(!collapsed));
+  const label = collapsed ? "Mostrar necesidades" : "Ocultar necesidades";
+  toggle.setAttribute("aria-label", label);
+  toggle.title = label;
+  document.getElementById("ficha-needs")?.setAttribute("aria-hidden", String(collapsed));
+  if (remember) { try { localStorage.setItem(FICHA_COLLAPSED_KEY, collapsed ? "1" : "0"); } catch (_) {} }
+}
+function setupFicha() {
+  const toggle = document.getElementById("ficha-toggle");
+  if (!toggle || toggle.dataset.ready) return;
+  toggle.dataset.ready = "1";
+  let saved = false;
+  try { saved = localStorage.getItem(FICHA_COLLAPSED_KEY) === "1"; } catch (_) {}
+  setFichaCollapsed(saved, false);
+  toggle.addEventListener("click", () => setFichaCollapsed(!document.getElementById("wellbeing-widget").classList.contains("is-collapsed")));
+  // Las notificaciones acompañan a la ficha mientras se pliega o despliega.
+  document.getElementById("ficha-needs")?.addEventListener("transitionend", syncHudLayout);
+  decorateNoticeBubbles();
+}
+
 function renderNotifications() {
   if (!state) return;
   const messages=[];
   for(const [key,phrase] of [["saciedad","tiene hambre"],["hidratacion","tiene sed"],["higiene","necesita un baño"],["energia","necesita descansar"],["felicidad","quiere jugar"]]) {
-    if(state.stats[key]<20) messages.push(state.name+" "+phrase);
+    if(state.stats[key]<20) messages.push({key, text: state.name+" "+phrase});
   }
   const card=document.getElementById("notification-card"); card.hidden=!messages.length;
-  const list=card.querySelector("ul");const content=messages.join("\n");
+  const list=card.querySelector("ul");const content=messages.map(m=>m.key+":"+m.text).join("\n");
   if(list.dataset.content!==content){
     list.dataset.content=content;
-    list.replaceChildren(...messages.map(msg=>{const li=document.createElement("li");li.textContent=msg;return li}));
+    // Beta v4.5: una burbuja por alerta, con el ícono de la necesidad baja.
+    list.replaceChildren(...messages.map(msg=>{
+      const li=document.createElement("li");
+      li.innerHTML=`<div class="nb nb-alert"><span class="nb-icon"><img src="${NEED_ALERT_ICONS[msg.key]}" alt="" /></span><p></p></div>`;
+      li.querySelector("p").textContent=msg.text;
+      return li;
+    }));
+    decorateNoticeBubbles(list);
   }
 
   const sleepCard=document.getElementById("sleep-notice-card");
   if(sleepCard){
+    const wasHidden=sleepCard.hidden;
     sleepCard.hidden=!state.sleep.dormida;
+    if(wasHidden&&!sleepCard.hidden) requestAnimationFrame(()=>decorateNoticeBubbles(sleepCard));
     const p=sleepCard.querySelector("p");
     if(p) p.textContent=`${state.name} está durmiendo.`;
   }
 
   const sysCard=document.getElementById("system-notice-card");
   if(sysCard){
+    const wasHidden=sysCard.hidden;
     sysCard.hidden=!systemNotice;
+    if(wasHidden&&!sysCard.hidden) requestAnimationFrame(()=>decorateNoticeBubbles(sysCard));
     const p=sysCard.querySelector("p");
     if(p) p.textContent=systemNotice;
   }
@@ -3893,6 +3981,7 @@ function setupStageModals() {
   // puerta acá) se sacó del todo — ya no hay nada que inicializar acá.
   el.btnAleatorio.innerHTML = iconSvg("dado") + "<span>Aleatorio</span>";
   buildPrimaryMeters();
+  setupFicha();
   buildActionsDock();
   buildFeedMenu();
   buildDebugPanel();

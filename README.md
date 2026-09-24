@@ -1,5 +1,26 @@
 # Mascotito Beta
 
+## Beta v4.5 — Ficha del personaje
+
+- **Ficha nueva** según `Referencia_ficha.png`: marco vectorial (`assets/ui/ficha/ficha.svg`, convertido de `ficha.png` sin los rellenos de muestra), mini-foto con el aro de ánimo, nombre, **«Nv. X» y barra de XP** (se mudaron desde el encabezado) y cuatro celdas con ícono, nombre, % y barra.
+- **Íconos nuevos** en SVG: comedero (Hambre), gota (Sed), esponja con burbujas (Higiene) y rayo (Energía).
+- **Plegable:** la flecha del círculo de la derecha oculta y muestra las necesidades con una transición; la flecha gira y las notificaciones acompañan. Se recuerda en el navegador. El marco se arma con tres cortes del mismo SVG (cabecera, necesidades y base), así se pliega sin deformarse.
+- **Notificaciones en burbuja** (forma de `notificaciones.png` redibujada en SVG limpio, con el fondo editable): alertas de necesidad con su ícono; «… está durmiendo» con luna y «zzz» sobre #eef1f6; avisos del sistema con un ícono de información y la × para cerrar.
+- El encabezado ya no muestra nivel ni XP.
+- Pantalla del celular con sombra interna (`box-shadow: inset #0000005c -1px -8px 9px`).
+- El punto de conexión (v3.5) sigue al lado del nombre.
+- Assets reproducibles con `scripts/vectorize-ficha-assets.py`.
+
+## Beta v4.4.6 — Ajustes del celular
+
+- El marco del celular (`.phone-frame-art`) va con `z-index: 10`, siempre por encima de la pantalla.
+- La pantalla (`.phone-screen`) ya no fija su propio `top`/`bottom` (usa los de la base) y suma `padding-top: 2%`.
+- El «•••» del chat sólo cambia el color de los tres puntos al pasar el mouse o con el menú abierto; el botón ya no cambia de fondo.
+
+## Beta v4.4.5 — Marco vectorial del celular
+
+- Nuevo `phone.svg` exportado desde Illustrator (pantalla transparente, 27 KB) con sus proporciones (798,1 × 1149,7) y la pantalla reubicada.
+
 ## Beta v4.4.4 — Vista previa apoyada
 
 - Armario sin puertas ni bisagras.

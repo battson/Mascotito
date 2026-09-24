@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.4.5</title>
+  <title>Mascotito — Beta v4.5</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,17 +37,13 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.4.5</span>
+      <span class="badge" id="app-version-badge">Beta v4.5</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
          dejó de mostrarse el texto de la hora. -->
     <div class="header-progress" aria-label="Progreso del jugador">
 
-      <div class="header-level">
-        <div class="header-level-row"><strong id="header-level-text">Nivel 1</strong><span id="header-xp-text">0 / 50 XP</span></div>
-        <div class="header-level-track"><div id="header-level-fill" class="header-level-fill"></div></div>
-      </div>
       <button id="btn-edit-pet" class="header-edit-btn" type="button" aria-label="Editar mascota" title="Editar mascota">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.2-1 10.4-10.4-3.2-3.2L5 15.8 4 20Z"/><path d="M13.8 7l3.2 3.2"/></svg><span>Editar mascota</span>
       </button>
@@ -388,7 +384,7 @@
                 <button id="room-chat-send" class="room-chat-send-icon" type="submit" aria-label="Enviar" title="Enviar"><img src="assets/ui/phone/send.svg" alt="" draggable="false" /></button>
               </form>
             </section>
-            <!-- Beta v4.4.5: Buscar amigos y Solicitudes viven dentro del celular
+            <!-- Beta v4.5: Buscar amigos y Solicitudes viven dentro del celular
                  (reemplazan a la ventana vieja de Amigos). -->
             <section id="phone-search" class="phone-view" aria-label="Buscar amigos" hidden>
               <form id="add-friend-form" class="phone-search-form" autocomplete="off">
@@ -425,21 +421,29 @@
                renderPetLayers/updateWellbeingAvatar en js/app.js) + placa
                2x2. Debajo, un recuadro con el nombre. Contenido de las
                barras armado por buildPrimaryMeters() en js/app.js. -->
-          <div class="wellbeing-widget play-only" id="wellbeing-widget">
-            <div class="hud-card-title-row">
-              <div>
-                <span class="hud-eyebrow">ESTADO</span>
-                <h3 id="pet-name">Mi mascota</h3>
-              </div>
-              <span class="hud-status-dot" aria-hidden="true"></span>
-            </div>
-            <div id="wellbeing-hud" class="wellbeing-hud">
+          <!-- Beta v4.5: ficha del personaje (assets/ui/ficha/ficha.svg).
+               El marco se arma con tres cortes del mismo SVG (arriba,
+               necesidades y base) para que la bandeja de necesidades se
+               pliegue con transición sin deformar el dibujo. -->
+          <section class="wellbeing-widget ficha play-only" id="wellbeing-widget" aria-label="Ficha de la mascota">
+            <div class="ficha-top">
               <div class="wellbeing-avatar" id="wellbeing-avatar">
                 <div id="wellbeing-avatar-stage" class="pet-stage wellbeing-avatar-stage" aria-hidden="true"></div>
               </div>
+              <div class="ficha-info">
+                <div class="ficha-name-row"><h3 id="pet-name">Mi mascota</h3><span class="hud-status-dot" title="Estado de conexión" aria-hidden="true"></span></div>
+                <div class="ficha-level-row"><strong id="header-level-text">Nv. 1</strong><span id="header-xp-text" class="sr-only">0 / 50 XP</span></div>
+                <div class="ficha-level-track" id="ficha-level-track"><div id="header-level-fill" class="header-level-fill"></div></div>
+              </div>
+              <button id="ficha-toggle" class="ficha-toggle" type="button" aria-expanded="true" aria-controls="ficha-needs" aria-label="Ocultar necesidades" title="Ocultar necesidades">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+              </button>
+            </div>
+            <div class="ficha-needs" id="ficha-needs">
               <div id="wellbeing-bars" class="wellbeing-bars"></div>
             </div>
-          </div>
+            <div class="ficha-base" aria-hidden="true"></div>
+          </section>
 
           <!-- Nivel/vínculo (antes arriba de todo el escenario, ver
                historial) — v2.5: pedido explícito, ahora vive DENTRO de
@@ -494,10 +498,21 @@
                   js/app.js, que arma las 3 y las encadena en vertical
                   (syncHudLayout). -->
           <aside id="notification-card" class="notification-card play-only" hidden aria-label="Alertas de bienestar" aria-live="polite"><ul></ul></aside>
-          <aside id="sleep-notice-card" class="notification-card sleep-notice-card play-only" hidden aria-label="Aviso de descanso" aria-live="polite"><p></p></aside>
+          <!-- Beta v4.5: cada aviso es una burbuja (forma SVG dibujada por
+               drawNoticeBubble() en js/app.js, con el fondo editable). -->
+          <aside id="sleep-notice-card" class="notification-card sleep-notice-card play-only" hidden aria-label="Aviso de descanso" aria-live="polite">
+            <div class="nb nb-sleep">
+              <span class="nb-icon"><img src="assets/ui/ficha/luna.svg" alt="" /></span>
+              <p></p>
+              <span class="nb-trail"><img src="assets/ui/ficha/zzz.svg" alt="" /></span>
+            </div>
+          </aside>
           <aside id="system-notice-card" class="notification-card system-notice-card play-only" hidden aria-label="Avisos" aria-live="polite">
-            <p></p>
-            <button id="system-notice-close" type="button" class="notice-close-btn" aria-label="Cerrar aviso">×</button>
+            <div class="nb nb-system">
+              <span class="nb-icon"><svg class="nb-info" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="1.8"/><path d="M12 11v7"/></svg></span>
+              <p></p>
+              <span class="nb-trail"><button id="system-notice-close" type="button" class="nb-close" aria-label="Cerrar aviso" title="Cerrar aviso">×</button></span>
+            </div>
           </aside>
           <div id="location-deco" class="location-deco play-only" aria-hidden="true">
             <span class="cloud cloud-1"></span>
@@ -667,7 +682,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.4.5 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.5 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
