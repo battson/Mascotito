@@ -2459,7 +2459,16 @@ function renderWardrobe() {
   document.getElementById('wardrobe-prev').hidden = wardrobePage === 0;
   document.getElementById('wardrobe-next').hidden = wardrobePage === pages - 1;
   document.getElementById('wardrobe-page').textContent = `${wardrobePage + 1} / ${pages}`;
-  renderPetLayers(document.getElementById('wardrobe-preview'), state.look, { equipped: wardrobeDraft });
+  const preview = document.getElementById('wardrobe-preview');
+  renderPetLayers(preview, state.look, { equipped: wardrobeDraft });
+  // El personaje y la tarima comparten coordenadas: los pies apoyan en y=318.
+  preview.querySelectorAll('svg.pet-layer').forEach(layer => layer.setAttribute('viewBox', '75 0 250 385'));
+  if (!preview.querySelector('.dressing-platform')) {
+    const platform = document.createElement('img');
+    platform.src = 'assets/ui/wardrobe/tarima.svg'; platform.alt = '';
+    platform.className = 'pet-layer dressing-platform';
+    preview.prepend(platform);
+  }
 }
 
 function openWardrobe() {

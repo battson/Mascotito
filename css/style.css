@@ -5382,3 +5382,17 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 }
 .wardrobe-window .dressing-close { top: 48px; z-index: 5; }
 @media (max-width:650px) { .wardrobe-window .dressing-close { top: 58px; } }
+
+/* v4.4.4: apoyo de la mascota sobre una tarima, sin sombra flotante. */
+#wardrobe-preview::before { content: none; }
+#wardrobe-preview .pet-layer { transform: none; object-fit: contain; }
+.wardrobe-window { padding-inline: 60px; }
+.wardrobe-window .dressing-close { right: 48px; }
+@media (max-width:650px) {
+ .wardrobe-window { padding-inline: 28px; }
+ .wardrobe-window .dressing-close { right: 25px; }
+}
+/* v4.4.5: proporciones y pantalla del vector actualizado. */
+#stage-floor #room-chat-panel.phone-panel { aspect-ratio: 798.1 / 1149.7; }
+#room-chat-panel .phone-screen { z-index: 4; left: 14%; right: 14%; top: 16%; bottom: 14%; border-radius: 30px 30px 35px 35px; }
+#room-chat-panel .phone-home-btn { z-index: 5; }

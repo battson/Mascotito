@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v4.4.4 — Vista previa apoyada
+
+- Armario sin puertas ni bisagras.
+- Tilde de aceptar sin relleno negro accidental.
+- Tarima SVG alineada con los pies de la mascota y retirada la sombra flotante.
+
 ## Beta v4.4.3 — Armario celeste
 
 - Marco de armario abierto y botones Quitar todo, Cancelar y Aceptar en SVG.
