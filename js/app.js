@@ -1688,6 +1688,10 @@ function ensureDailyProgress() {
 function updateDailyGoals() {
   if (!state) return;
   ensureDailyProgress();
+  // Beta v4.5.1: se quitó el sistema de Objetivos. Sólo queda el contador
+  // de monedas (state.daily se conserva por las partidas diarias de Pesca).
+  if (el.coinCount) el.coinCount.textContent = String(state.economy.coins || 0);
+  return;
   const goals = [
     ["feed", el.dailyFeed],
     ["play", el.dailyPlay],
@@ -1717,6 +1721,8 @@ function updateDailyGoals() {
 }
 
 function recordDailyGoal(key) {
+  // Beta v4.5.1: sistema de Objetivos quitado — no registra ni premia nada.
+  return false;
   if (!state) return false;
   ensureDailyProgress();
   if (state.daily[key]) return false;
@@ -2352,7 +2358,8 @@ function buildActionsDock() {
   const defs = [
     { key: "inventario", icon: "inventario", label: "Inventario", handler: openInventory, noCooldown: true },
     { key: "ropa", icon: "ropa", label: "Ropa", handler: openWardrobe, noCooldown: true },
-    { key: "tienda", icon: "tienda", label: "Tienda", handler: openShop, noCooldown: true },
+    // Beta v4.5.1: Tienda deshabilitada hasta su rediseño.
+    { key: "tienda", icon: "tienda", label: "Tienda (próximamente)", handler: () => {}, noCooldown: true, disabled: true, isFull: () => true },
     { key: "dormir", icon: "dormir", label: "Dormir", handler: toggleSueño, noCooldown: true },
     { key: "jugar", icon: "jugar", label: "Jugar", handler: doJugar },
     { key: "bañar", icon: "limpiar", label: "Limpiar", visualClass: "limpiar", handler: doBañar, isFull: () => state.stats.higiene >= PET_CONFIG.llenaUmbral },
@@ -2370,7 +2377,7 @@ function buildActionsDock() {
     const { wrap, ring, btn, cd, caption } = createActionButton({ key: def.key, icon: def.icon, label: def.label, id: "btn-" + def.key, visualClass: def.visualClass });
     btn.addEventListener("click", def.handler);
     btn.disabled = !!def.disabled;
-    if (def.disabled) wrap.classList.add("is-disabled");
+    if (def.disabled) { wrap.classList.add("is-disabled"); wrap.title = def.label; }
     groups[index < 3 ? 0 : 1].appendChild(wrap);
     if (!def.noCooldown) {
       actionRegistry[def.key] = { btnEl: btn, ringEl: ring, labelEl: cd, captionEl: caption, isFull: def.isFull };

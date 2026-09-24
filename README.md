@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.5.1 — Ajustes de la ficha
+
+- Se quitó el sistema de **Objetivos** (tarjeta y premios). `state.daily` se conserva sólo para las 3 partidas diarias de Pesca.
+- **Tienda deshabilitada** hasta su rediseño: el botón queda atenuado («Tienda (próximamente)») y el vestidor ya no ofrece «Ir a la tienda».
+- La flecha de plegar la ficha y la × de las notificaciones quedan centradas en su círculo y su pastilla (el mínimo táctil de 44 px las estiraba hacia abajo). La × ahora es un SVG.
+- Vestidor: íconos nuevos para Piernas (pantalón), Calzado (zapatos) y Accesorios (anteojos), vectorizados desde los PNG (fondo negro quitado) en `assets/ui/wardrobe/`.
+
 ## Beta v4.5 — Ficha del personaje
 
 - **Ficha nueva** según `Referencia_ficha.png`: marco vectorial (`assets/ui/ficha/ficha.svg`, convertido de `ficha.png` sin los rellenos de muestra), mini-foto con el aro de ánimo, nombre, **«Nv. X» y barra de XP** (se mudaron desde el encabezado) y cuatro celdas con ícono, nombre, % y barra.
