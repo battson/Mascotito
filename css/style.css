@@ -5714,3 +5714,77 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   #stage-floor .visit-home-btn { width: 44px; height: 48px; }
 }
 @media (prefers-reduced-motion: reduce) { #stage-floor .visit-home-btn { transition: none; } }
+
+/* ===== Beta v4.5.3 =====
+   Placa de nombre de las otras mascotas: el calzado termina ~21% por encima
+   del borde inferior del walker (el arte tiene aire abajo). La placa se
+   ubica apenas debajo del calzado, en % para que acompañe cualquier ancho. */
+#stage-floor .visit-host-tag,
+#stage-floor .remote-player-tag { bottom: calc(20.3% - var(--plate-h)); }
+
+/* Globo de charla más redondo (pedido v4.5.3). */
+#stage-floor .speech-bubble,
+#stage-floor .remote-action-bubble { border-radius: 50%; padding: 8% 8%; }
+#stage-floor .remote-action-bubble { top: auto; height: auto; max-width: min(260px, 70vw); }
+
+/* ===== Beta v4.5.4 =====
+   Globo de charla con borde marrón; la colita también lleva borde
+   (::before marrón debajo del ::after crema). */
+#stage-floor .speech-bubble { border: 2px solid #6b4526; }
+#stage-floor .speech-bubble::before {
+  content: ""; position: absolute; left: 50%; bottom: -24px;
+  width: 0; height: 0;
+  border-left: 18px solid transparent; border-right: 6px solid transparent;
+  border-top: 25px solid #6b4526;
+  transform: translateX(-50%) skewX(-8deg);
+}
+#stage-floor .speech-bubble::after { bottom: -19px; filter: none; }
+
+/* Barra del chat de la sala (arte vectorial): el marco verde se estira por
+   el centro (border-image), el campo crema también y «Enviar» es su propio
+   SVG. Todas las medidas salen del arte: --u = alto de la barra / 314.
+   Sin activar muestra el mismo marco con la ayuda dentro del campo. */
+#room-quick-chat,
+#room-quick-chat:not(.is-active):not([hidden]) {
+  --h: 58px; --u: calc(var(--h) / 314);
+  box-sizing: border-box; height: var(--h);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start;
+  gap: calc(var(--u) * 14);
+  padding: calc(var(--u) * 62) calc(var(--u) * 54) 0 calc(var(--u) * 54);
+  border: 0; border-style: solid; border-width: 0; border-radius: 0;
+  border-image: url('../assets/ui/chat/barra.svg') 0 200 fill / 0 calc(var(--u) * 200) stretch;
+  background: none; box-shadow: none; opacity: 1;
+  filter: drop-shadow(0 4px 6px rgba(60, 35, 15, .18));
+}
+#room-quick-chat[hidden] { display: none; }
+#room-quick-chat.has-error { filter: drop-shadow(0 0 3px rgba(184, 62, 50, .9)); }
+#room-quick-chat input,
+#room-quick-chat .room-quick-chat-help {
+  box-sizing: border-box; width: 100%; height: calc(var(--u) * 193); min-width: 0; min-height: 0; margin: 0;
+  padding: 0 calc(var(--u) * 44) calc(var(--u) * 6);
+  border: 0; border-style: solid; border-width: 0; border-radius: 0;
+  border-image: url('../assets/ui/chat/campo.svg') 0 200 fill / 0 calc(var(--u) * 200) stretch;
+  background: none; box-shadow: none; outline: none;
+  color: #4a2c17; font: 600 .8rem/1 "Baloo 2", Arial, sans-serif; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#room-quick-chat .room-quick-chat-help { color: #8a6f4c; cursor: text; }
+#room-quick-chat .room-quick-chat-help:hover,
+#room-quick-chat .room-quick-chat-help:focus-visible { background: none; color: #633719; }
+#room-quick-chat input::placeholder { color: #a8946f; }
+#room-quick-chat.has-error input::placeholder { color: #9a2f27; }
+#room-quick-chat .room-quick-chat-send,
+#room-quick-chat:not(.is-active) .room-quick-chat-send {
+  display: block; grid-column: 2; grid-row: 1;
+  width: calc(var(--u) * 496); height: calc(var(--u) * 198);
+  min-width: 0; min-height: 0; padding: 0; margin: 0;
+  border: 0; border-radius: 0; background: none; box-shadow: none; cursor: pointer;
+  transition: transform .12s ease, filter .12s ease;
+}
+/* Sin activar, «Enviar» se ve pero todavía no hay nada que mandar. */
+#room-quick-chat:not(.is-active) .room-quick-chat-send { pointer-events: none; }
+#room-quick-chat .room-quick-chat-send img { display: block; width: 100%; height: 100%; pointer-events: none; }
+#room-quick-chat .room-quick-chat-send:hover:not(:disabled),
+#room-quick-chat .room-quick-chat-send:focus-visible { background: none; transform: translateY(-1px); filter: brightness(1.05); }
+#room-quick-chat .room-quick-chat-send:active:not(:disabled) { transform: translateY(1px) scale(.96); }
+#room-quick-chat .room-quick-chat-send:disabled { opacity: .55; cursor: not-allowed; }

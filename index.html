@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.5.2</title>
+  <title>Mascotito — Beta v4.5.4</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.5.2</span>
+      <span class="badge" id="app-version-badge">Beta v4.5.4</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -590,10 +590,10 @@
                comparte exactamente el mismo canal que la conversación de
                la casa dentro del panel de chat. -->
           <form id="room-quick-chat" class="room-quick-chat play-only" hidden autocomplete="off">
-            <button id="room-quick-chat-help" class="room-quick-chat-help" type="button">Presioná Enter o hacé clic acá para hablar</button>
+            <button id="room-quick-chat-help" class="room-quick-chat-help" type="button">Presioná Enter para hablar…</button>
             <label class="sr-only" for="room-quick-chat-input">Escribir en la sala actual</label>
             <input id="room-quick-chat-input" type="text" maxlength="180" autocomplete="off" placeholder="Presioná Enter para hablar en la sala..." required />
-            <button id="room-quick-chat-send" type="submit">Enviar</button>
+            <button id="room-quick-chat-send" class="room-quick-chat-send" type="submit" aria-label="Enviar" title="Enviar"><img src="assets/ui/chat/enviar.svg" alt="" draggable="false" /></button>
           </form>
 
           <div class="stage-actions-row" id="stage-actions-row">
@@ -670,7 +670,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.5.2 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.5.4 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

@@ -430,7 +430,13 @@ function makeInlineLayer(innerMarkup, extraClass) {
 
 let clothingRenderId = 0;
 function uniquifySvgIds(markup, suffix) {
-  const ids = [...new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]))];
+  // Sólo se renombran los ids que algo referencia (url(#…), href="#…"):
+  // recortes, máscaras, filtros y degradados. Los ids estructurales
+  // (#ropa-brazo-izq, #ropa-calzado-der…) quedan intactos porque
+  // alignClothingLayers los busca para centrar mangas y calzado (v4.5.3).
+  const declared = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
+  const referenced = new Set([...markup.matchAll(/(?:url\(\s*['"]?#|href="#)([^"')\s]+)/g)].map((m) => m[1]));
+  const ids = [...declared].filter((id) => referenced.has(id));
   if (!ids.length) return markup;
   const esc = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = new RegExp(`(id="|#)(${ids.sort((x, y) => y.length - x.length).map(esc).join("|")})(?=["')\\s])`, "g");

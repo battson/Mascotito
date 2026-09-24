@@ -1,5 +1,17 @@
 # Mascotito Beta
 
+## Beta v4.5.4 — Barra de chat y ficha sin hojas
+
+- **Globo de charla** con borde marrón de 2px; la colita también lleva borde.
+- **Barra del chat de la sala (casa)** nueva, vectorizada del arte sin el ícono de la izquierda ni las hojas: `assets/ui/chat/barra.svg` (marco que se estira), `campo.svg` (campo de texto) y `enviar.svg` (botón con hover y efecto al presionar). Se ve siempre; sin activar muestra «Presioná Enter para hablar…» dentro del campo. Las medidas salen del arte (`--u = alto / 314`). El chat del celular queda como estaba.
+- **Ficha del personaje** sin las hojas de arriba a la izquierda; el contorno se completó donde estaban. Mismo tamaño y recortes, así que todo lo demás queda igual.
+
+## Beta v4.5.3 — Ropa, placas y globos
+
+- **Vestimenta alineada otra vez:** el arreglo del trazo negro (v4.5.2) renombraba todos los ids de las prendas, incluidos los que usa la alineación (`#ropa-brazo-*`, `#ropa-calzado-*`). Ahora sólo se renombran los ids referenciados (recortes, máscaras, filtros, degradados): mangas centradas y la base del calzado coincide con la de las piernas, sin volver el trazo negro.
+- **Placa de nombre de las otras mascotas** justo debajo de su calzado (en %, acompaña cualquier tamaño).
+- **Globo de charla más redondo:** `border-radius: 50%` y `padding: 8% 8%`, también en los globos de las mascotas visitantes.
+
 ## Beta v4.5.2 — Visitas y armario
 
 - **Sin la ventana «De visita»:** al visitar, arriba al centro aparece el nombre del lugar («Casa de …») con el mismo estilo que el contador de monedas y, debajo, la **puerta abierta** (`assets/ui/puerta.svg`) para volver a casa: poca opacidad en reposo, 100 % al pasar el mouse y se achica un poco al presionarla. El estado de conexión queda para lectores de pantalla.
