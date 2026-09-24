@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.5.1</title>
+  <title>Mascotito — Beta v4.5.2</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.5.1</span>
+      <span class="badge" id="app-version-badge">Beta v4.5.2</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -316,14 +316,14 @@
           </div>
           <!-- v3.8: la visita usa esta misma casa, sin overlay ni escenario
                duplicado. La barra identifica al anfitrión y permite volver. -->
-          <section id="visit-context" class="visit-context play-only" hidden aria-live="polite">
-            <div>
-              <span class="hud-eyebrow">DE VISITA</span>
-              <strong id="visit-title">Casa de...</strong>
-              <span id="visit-status-line">Conectando...</span>
-              <span id="visit-room-count" class="visit-room-count">Comprobando presencia...</span>
-            </div>
-            <button id="visit-close" type="button" class="secondary-btn">Volver a casa</button>
+          <!-- Beta v4.5.2: sin la ventana «De visita». Arriba al centro, con el
+               estilo del contador de monedas, el nombre del lugar y debajo la
+               puerta para volver a casa. Estado y presencia quedan sólo para
+               lectores de pantalla. -->
+          <section id="visit-context" class="visit-context visit-badge play-only" hidden aria-live="polite">
+            <strong id="visit-title">Casa de...</strong>
+            <span class="sr-only"><span id="visit-status-line">Conectando...</span> <span id="visit-room-count" class="visit-room-count">Comprobando presencia...</span></span>
+            <button id="visit-close" type="button" class="visit-home-btn" aria-label="Volver a casa" title="Volver a casa"><img src="assets/ui/puerta.svg" alt="" draggable="false" /></button>
           </section>
           <!-- v3.9.2: chat instantáneo asociado a la sala actual, con
                participantes e indicador efímero de escritura. -->
@@ -670,7 +670,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.5.1 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.5.2 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar

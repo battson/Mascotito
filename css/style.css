@@ -5591,3 +5591,126 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .nb-close:hover svg { stroke: #2f4520; }
 /* Tienda deshabilitada hasta su rediseño. */
 #btn-tienda:disabled { cursor: not-allowed; }
+
+/* ===== Beta v4.5.2: armario nuevo (assets/ui/wardrobe/armario.svg, 860 × 688) =====
+   Todo se ubica en % sobre el dibujo: arco con tarima a la izquierda
+   (la mascota apoya los pies en la tarima pintada) y 6 celdas pintadas a
+   la derecha, donde caen los botones de prenda. */
+#wardrobe-overlay .wardrobe-window {
+  position: relative;
+  width: min(1000px, 96vw, calc(90vh * 860 / 688)); height: auto; max-height: none;
+  aspect-ratio: 860 / 688;
+  padding: 0; border: 0; border-radius: 0; box-shadow: none;
+  background: url('../assets/ui/wardrobe/armario.svg') center / 100% 100% no-repeat;
+  overflow: visible;
+}
+#wardrobe-overlay .dressing-layout { display: block; position: absolute; inset: 0; height: auto; gap: 0; }
+#wardrobe-overlay .dressing-preview,
+#wardrobe-overlay .dressing-collection { position: absolute; inset: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; pointer-events: none; }
+#wardrobe-overlay .dressing-preview > *, #wardrobe-overlay .dressing-collection > * { pointer-events: auto; }
+#wardrobe-overlay #wardrobe-preview {
+  position: absolute; left: 9.3%; top: 32%; width: 26.74%; height: 51.45%;
+  flex: none; margin: 0;
+}
+#wardrobe-overlay #wardrobe-preview .dressing-platform { display: none; }
+#wardrobe-overlay .dressing-preview #wardrobe-clear {
+  position: absolute; left: 17.1%; top: 83.9%; width: 11.2%; height: 3.4%;
+  padding: 0; border: 0; background: none; box-shadow: none; transition: transform .15s ease;
+}
+#wardrobe-overlay .dressing-tabs {
+  position: absolute; left: 41.5%; width: 51.2%; top: 18.6%; height: 12.8%;
+  display: grid; grid-template-columns: repeat(4, 1fr); align-items: center; gap: 0; margin: 0;
+}
+#wardrobe-overlay .dressing-tabs button { height: 100%; min-height: 0; }
+#wardrobe-overlay .dressing-tabs img { width: 58px; height: 48px; }
+#wardrobe-overlay .wardrobe-grid {
+  position: absolute; left: 41.5%; width: 51.2%; top: 34.6%; height: 40%;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+  column-gap: 2.5%; row-gap: 4%; padding: 0; overflow: visible;
+}
+#wardrobe-overlay .wardrobe-item {
+  padding: 10%; border: 0; border-radius: 16px; background: transparent;
+  transition: transform .15s ease, background-color .15s ease;
+}
+#wardrobe-overlay .wardrobe-item:hover { transform: scale(1.03); background: #fff6e060; }
+#wardrobe-overlay .wardrobe-item.is-selected { border: 0; background: #ffe9a655; box-shadow: inset 0 0 0 3px #e0a834; }
+#wardrobe-overlay .wardrobe-item img { max-height: none; }
+#wardrobe-overlay #wardrobe-empty {
+  position: absolute; left: 41.5%; width: 51.2%; top: 34.6%; height: 40%;
+  display: grid; place-content: center; margin: 0; padding: 0 8%;
+  text-align: center; color: #6b4a2a; font: 700 15px/1.35 'Baloo 2', sans-serif;
+}
+#wardrobe-overlay #wardrobe-empty[hidden] { display: none; }
+#wardrobe-overlay .dressing-pages { position: absolute; left: 41.5%; width: 51.2%; top: 75.4%; height: 4.6%; min-height: 0; margin: 0; }
+#wardrobe-overlay .dressing-actions {
+  position: absolute; left: 41.5%; width: 51.2%; top: 80.6%; height: 7.4%;
+  display: flex; flex-direction: row-reverse; justify-content: flex-start; gap: 3%; margin: 0; padding: 0; border: 0;
+}
+#wardrobe-overlay .dressing-actions #wardrobe-save,
+#wardrobe-overlay .dressing-actions #wardrobe-close-action { flex: 0 0 30%; width: 30%; height: 100%; }
+#wardrobe-overlay .wardrobe-window .dressing-close { top: 9.5%; right: 3.2%; width: 4.4%; height: auto; aspect-ratio: 1; z-index: 5; }
+#wardrobe-overlay .dressing-preview #wardrobe-clear:hover,
+#wardrobe-overlay .dressing-actions button:hover { transform: scale(1.03); }
+#wardrobe-overlay .dressing-preview #wardrobe-clear:active,
+#wardrobe-overlay .dressing-actions button:active { transform: scale(.95); }
+
+/* ===== Beta v4.5.2: placa del jugador (assets/ui/placa_player.svg, 792 × 338) =====
+   Tres tramos con border-image: los extremos con las orejitas quedan fijos
+   (266 y 271 u) y sólo se estira el tramo recto del medio, así la placa
+   crece con nombres largos sin deformarse. */
+#stage-floor .visit-host-tag,
+#stage-floor .remote-player-tag {
+  --plate-h: 38px;
+  box-sizing: border-box;
+  height: var(--plate-h);
+  bottom: -26px;
+  max-width: 320px;
+  gap: 6px;
+  padding: calc(var(--plate-h) * .27) 2px 0;
+  border-style: solid;
+  border-width: 0 calc(var(--plate-h) * 271 / 338) 0 calc(var(--plate-h) * 266 / 338);
+  border-image: url('../assets/ui/placa_player.svg') 0 271 0 266 fill / 0 calc(var(--plate-h) * 271 / 338) 0 calc(var(--plate-h) * 266 / 338) stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 5px rgba(60, 35, 15, .18));
+  color: #5a3a22;
+  font: 800 .82rem/1 "Baloo 2", sans-serif;
+}
+#stage-floor #visit-host-presence,
+#stage-floor .remote-live-dot { width: 9px; height: 9px; flex: 0 0 9px; margin-left: 2px; border-radius: 50%; background: #a79a8c; box-shadow: none; }
+#stage-floor .visit-host-walker.is-online #visit-host-presence,
+#stage-floor .remote-live-dot { background: #3dae4f; box-shadow: 0 0 0 2px rgba(61, 174, 79, .2); }
+
+/* ===== Beta v4.5.2: nombre del lugar visitado + puerta para volver ===== */
+#stage-floor #visit-context.visit-badge {
+  top: 14px; left: 50%; transform: translateX(-50%);
+  width: auto; max-width: min(520px, 60%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 0; border: 0; background: none; box-shadow: none; backdrop-filter: none;
+  pointer-events: none;
+}
+#stage-floor #visit-context.visit-badge[hidden] { display: none; }
+#stage-floor #visit-title {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 900 30px/1.1 "Baloo 2", sans-serif;
+  color: #ffe052; -webkit-text-stroke: 3px #78410d; paint-order: stroke fill;
+  text-shadow: 0 3px 0 #512a0c;
+}
+#stage-floor .visit-home-btn {
+  pointer-events: auto;
+  width: 58px; height: 64px; min-width: 0; min-height: 0; padding: 0;
+  border: 0; background: none; cursor: pointer;
+  opacity: .55;
+  transition: opacity .18s ease, transform .15s ease;
+}
+#stage-floor .visit-home-btn img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+#stage-floor .visit-home-btn:hover,
+#stage-floor .visit-home-btn:focus-visible { opacity: 1; }
+#stage-floor .visit-home-btn:active { opacity: 1; transform: scale(.9); }
+#stage-floor .visit-home-btn:focus-visible { outline: 3px solid #244962; outline-offset: 2px; }
+@media (max-width: 600px) {
+  #stage-floor #visit-title { font-size: 22px; -webkit-text-stroke-width: 2px; }
+  #stage-floor .visit-home-btn { width: 44px; height: 48px; }
+}
+@media (prefers-reduced-motion: reduce) { #stage-floor .visit-home-btn { transition: none; } }

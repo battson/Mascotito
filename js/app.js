@@ -429,11 +429,23 @@ function makeInlineLayer(innerMarkup, extraClass) {
 }
 
 let clothingRenderId = 0;
+function uniquifySvgIds(markup, suffix) {
+  const ids = [...new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]))];
+  if (!ids.length) return markup;
+  const esc = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(id="|#)(${ids.sort((x, y) => y.length - x.length).map(esc).join("|")})(?=["')\\s])`, "g");
+  return markup.replace(pattern, (_, pre, id) => `${pre}${id}-${suffix}`);
+}
 function makeClothingLayer(slot, itemId, extraClass) {
   const item = getClothingItem(slot, itemId);
   if (!item?.inline) return null;
-  // Cada vista usa su propio degradado, incluso si otra mascota lleva la misma prenda.
-  const markup = item.starter ? item.inline.replaceAll(`${item.id}-color`, `${item.id}-color-${++clothingRenderId}`) : item.inline;
+  // Beta v4.5.2: cada copia de una prenda usa ids propios (recortes,
+  // máscaras, filtros, degradados). Antes sólo lo hacían las remeras nuevas:
+  // con varias mascotas en pantalla (la propia, la mini-foto, el vestidor
+  // oculto y la visitada) pantalones y zapatos tomaban el recorte de la
+  // primera copia del documento y, si esa estaba oculta, se veían con un
+  // trazo negro hasta que otra copia cambiaba cuál era "la primera".
+  const markup = uniquifySvgIds(item.inline, `r${++clothingRenderId}`);
   return makeInlineLayer(markup, `pet-layer-clothing pet-layer-clothing-${slot} ${extraClass || ""}`);
 }
 

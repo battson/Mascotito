@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.5.2 — Visitas y armario
+
+- **Sin la ventana «De visita»:** al visitar, arriba al centro aparece el nombre del lugar («Casa de …») con el mismo estilo que el contador de monedas y, debajo, la **puerta abierta** (`assets/ui/puerta.svg`) para volver a casa: poca opacidad en reposo, 100 % al pasar el mouse y se achica un poco al presionarla. El estado de conexión queda para lectores de pantalla.
+- **Placa del jugador** (`assets/ui/placa_player.svg`, exportada del .ai) para el dueño de la casa visitada y los demás jugadores de la sala: nombre y punto a la derecha (verde en línea, gris si no). Se estira con nombres largos sin deformarse (extremos con orejitas fijos, tramo del medio elástico).
+- **Armario nuevo** (`assets/ui/wardrobe/armario.svg`, exportado del .ai): la mascota apoya en la tarima pintada del arco y las prendas caen en las 6 celdas del dibujo. Misma lógica de prueba, Guardar y Cancelar.
+- **Arreglo del trazo negro** en pantalones y zapatos de otras mascotas: cada copia de una prenda usa ids propios para sus recortes, máscaras y filtros. Antes, si la primera copia del documento estaba oculta (por ejemplo, la mascota del amigo en la lista del celular cerrado), las demás copias se dibujaban rotas hasta abrir el celular.
+
 ## Beta v4.5.1 — Ajustes de la ficha
 
 - Se quitó el sistema de **Objetivos** (tarjeta y premios). `state.daily` se conserva sólo para las 3 partidas diarias de Pesca.
