@@ -4600,7 +4600,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .inventory-window .housing-inventory-card { padding: 4px; }
 .inventory-window .housing-inventory-card img { height: 88px; }
 .inventory-window .inventory-grid { overflow: hidden; }
-#inventory-fish-count, #inventory-water-count {
+#inventory-fish-count, #inventory-water-count, #inventory-can-count {
   position: absolute; top: 0; right: 4px; z-index: 2;
   font: 800 24px/1.2 "Baloo 2", sans-serif; color: #fddc35;
   -webkit-text-stroke: 2px #9c7514; paint-order: stroke fill;
@@ -5200,7 +5200,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #inventory-water .inventory-item-visual img { width: auto; height: min(120px, 18cqw); max-width: 100%; transform: none; }
 .inventory-window .inventory-close-icon { top: 0; right: 0; width: 48px; height: 48px; padding: 0; z-index: 3; }
 .inventory-window .inventory-close-icon img { width: 100%; height: 100%; }
-#inventory-fish-count, #inventory-water-count,
+#inventory-fish-count, #inventory-water-count, #inventory-can-count,
 .inventory-window .inventory-fish-cooldown, .inventory-window .inventory-water-cooldown {
   display: grid; place-items: center;
   border: 2px solid #75400e;
@@ -5209,17 +5209,18 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   box-shadow: inset 0 0 0 2px #fff0a0, 0 1px 1px #5c310b25;
   font-family: "Baloo 2", sans-serif; font-weight: 800;
 }
-#inventory-fish-count, #inventory-water-count {
+#inventory-fish-count, #inventory-water-count, #inventory-can-count {
   top: 0; right: 0; min-width: 38px; width: max-content; height: auto; aspect-ratio: 1; padding: 3px; box-sizing: border-box;
   border-radius: 50%; font-size: 23px; line-height: 1;
 }
 #inventory-water-count { font-size: 28px; }
+#inventory-can .inventory-item-visual img { transform: scale(.8); }
 .inventory-window .inventory-fish-cooldown, .inventory-window .inventory-water-cooldown {
   border-radius: 20px; padding: 2px 8px; font-size: 13px; line-height: 1.25;
 }
 .inventory-window .inventory-fish-overlay[hidden] { display: none; }
 @media (max-width: 480px) {
-  #inventory-fish-count, #inventory-water-count { min-width: 28px; height: auto; font-size: 18px; padding: 2px; }
+  #inventory-fish-count, #inventory-water-count, #inventory-can-count { min-width: 28px; height: auto; font-size: 18px; padding: 2px; }
   #inventory-water-count { font-size: 22px; }
   .inventory-window .inventory-close-icon { width: 40px; height: 40px; }
   .inventory-window .inventory-fish-cooldown, .inventory-window .inventory-water-cooldown { font-size: 11px; padding-inline: 5px; }

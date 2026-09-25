@@ -297,7 +297,11 @@ function normalizeState(raw) {
     world: normalizeWorld(raw.world),
     digestion: { pending: Array.isArray(raw.digestion?.pending) ? raw.digestion.pending.filter(Number.isFinite).slice(0,40).sort((a,b)=>a-b) : [] },
     petPosition: { xPct: clamp(raw.petPosition?.xPct || 50, 8,92), yPct: clamp(raw.petPosition?.yPct || 75,40,88) },
-    inventory: { pescado: Number.isFinite(raw.inventory?.pescado) ? Math.max(0, Math.floor(raw.inventory.pescado)) : 0 },
+    inventory: {
+      pescado: Number.isFinite(raw.inventory?.pescado) ? Math.max(0, Math.floor(raw.inventory.pescado)) : 0,
+      // Beta v4.6.1: chatarra de Pesca; más adelante se podrá vender.
+      lata: Number.isFinite(raw.inventory?.lata) ? Math.max(0, Math.floor(raw.inventory.lata)) : 0,
+    },
     wardrobe: normalizeWardrobe(raw.wardrobe),
     housing: normalizeHousing(raw.housing, !raw.housing),
     daily: normalizeDailyProgress(raw.daily),
@@ -324,7 +328,7 @@ function createNewState(name, look, housingGiftStatus = "none") {
     economy: { coins: 0 },
     unlockedColors: {},
     world: normalizeWorld(null),
-    inventory: { pescado: 0 },
+    inventory: { pescado: 0, lata: 0 },
     wardrobe: defaultWardrobe(),
     housing: defaultHousing(housingGiftStatus),
     digestion: { pending: [] },

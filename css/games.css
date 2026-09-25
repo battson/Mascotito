@@ -183,61 +183,169 @@
 #stage-floor .games-action.is-hot { animation: gamesHot .7s ease-in-out infinite alternate; }
 @keyframes gamesHot { to { box-shadow: inset 0 -4px 0 #e5ab25, 0 3px 0 #a8740f, 0 0 0 6px rgba(255, 224, 82, .45); } }
 
-/* Medidor de Pesca: aguja que va y viene sobre una zona verde. */
-#stage-floor .games-meter {
+/* ----------------------------------------------------------- Pesca (v4.6.1)
+   El lago mide 1672 × 941; todo lo de la escena se ubica en % de ese lienzo. */
+#stage-floor .game-card-icon {
   position: relative;
+  height: 100%;
+  background: linear-gradient(#eaf7fb, #cfeaf3);
+}
+#stage-floor .game-card-icon img {
+  position: absolute;
+  inset: 6% 0;
   width: 100%;
-  height: 26px;
-  border: 3px solid #5a3a22;
-  border-radius: 999px;
-  background: #fbf7e6;
-  box-shadow: 0 3px 0 rgba(60, 35, 15, .25);
+  height: 88%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 0 rgba(60, 35, 15, .14));
+  transition: transform .2s ease;
 }
-#stage-floor .games-meter[hidden] { display: none; }
-#stage-floor .games-meter-zone {
+#stage-floor .game-card:hover .game-card-icon img { transform: rotate(-6deg) scale(1.04); }
+
+/* El área de juego sigue en 2:1 (entra en pantallas bajas): el lago, más
+   alto, se apoya abajo y recorta un poco de cielo. */
+#stage-floor .fishing-scene { position: absolute; left: 0; right: 0; bottom: -2%; aspect-ratio: 1672 / 941; }
+#stage-floor .fs-lake,
+#stage-floor .fs-hull {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  border-radius: 999px;
-  background: linear-gradient(#9bd96a, #6fb04a);
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
 }
-#stage-floor .games-meter-needle {
+/* Sólo el casco del barco (desde el borde rojo hacia abajo), encima de la mascota. */
+#stage-floor .fs-hull {
+  clip-path: polygon(10.77% 64.08%, 26.91% 63.34%, 35.89% 62.8%, 41.87% 62.27%, 47.85% 61.53%,
+    50.84% 61%, 52.63% 60.57%, 54.72% 60.57%, 54.72% 100%, 10.77% 100%);
+}
+#stage-floor .fs-fx { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* Mascota: lienzo de 400 × 400 que cae sobre 460 unidades del lago. */
+@property --fs-arm { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+@property --fs-flex { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+#stage-floor .fs-pet {
+  --fs-arm: 0deg;
+  --fs-flex: 0deg;
   position: absolute;
-  top: -8px;
-  width: 8px;
-  height: 36px;
-  margin-left: -4px;
-  border: 2px solid #5a3a22;
-  border-radius: 4px;
-  background: #f2663f;
+  left: 29.3%;
+  top: 27.5%;
+  width: 27.5%;
+  aspect-ratio: 1;
+}
+#stage-floor .fs-pet-body { position: absolute; inset: 0; transform-origin: 50% 66%; }
+#stage-floor .fs-pet .fs-pet-stage { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; }
+#stage-floor .fs-rod-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+/* El brazo derecho sostiene la caña: brazo, manga y caña giran juntos desde el hombro. */
+#stage-floor .fs-pet #brazo-der { animation: none; transform: rotate(calc(-55deg + var(--fs-arm))); }
+#stage-floor .fs-pet .ropa-brazo-der { animation: none; transform: rotate(calc(-55deg + var(--fs-arm))) scale(1.14); }
+#stage-floor .fs-rod-arm { transform-origin: 221.2px 198.8px; transform: rotate(var(--fs-arm)); }
+#stage-floor .fs-rod-flex { transform: rotate(var(--fs-flex)); }
+#stage-floor .fs-paw { fill: var(--pet-body-color, #6cb9dd); stroke: rgba(0, 0, 0, .08); stroke-width: 3; }
+
+/* Poses de cada fase (sin movimiento reducido quedan estas). */
+#stage-floor [data-phase="wait"] .fs-pet,
+#stage-floor [data-phase="nibble"] .fs-pet,
+#stage-floor [data-phase="bite"] .fs-pet { --fs-arm: 8deg; }
+#stage-floor [data-phase="reel"] .fs-pet { --fs-arm: -12deg; }
+
+/* 1) Quieta, antes de lanzar: respira y mece la caña. */
+#stage-floor [data-phase="idle"] .fs-pet { animation: fsIdleArm 2.4s ease-in-out infinite; }
+#stage-floor [data-phase="idle"] .fs-pet-body { animation: fsBreath 2.4s ease-in-out infinite; }
+@keyframes fsIdleArm { 0%, 100% { --fs-arm: -4deg; --fs-flex: 0deg; } 50% { --fs-arm: 3deg; --fs-flex: -2deg; } }
+@keyframes fsBreath { 0%, 100% { transform: none; } 50% { transform: translateY(-1.2%) rotate(-1deg); } }
+
+/* 2) Lanza: lleva la caña atrás y la tira hacia adelante (la bocha sale a los 420 ms). */
+#stage-floor [data-phase="cast"] .fs-pet { animation: fsCastArm 1.04s cubic-bezier(.3, .7, .3, 1) both; }
+#stage-floor [data-phase="cast"] .fs-pet-body { animation: fsCastBody 1.04s ease both; }
+@keyframes fsCastArm {
+  0% { --fs-arm: 0deg; --fs-flex: 0deg; }
+  32% { --fs-arm: -50deg; --fs-flex: -8deg; }
+  48% { --fs-arm: 26deg; --fs-flex: 10deg; }
+  66% { --fs-arm: 5deg; --fs-flex: -4deg; }
+  100% { --fs-arm: 8deg; --fs-flex: 0deg; }
+}
+@keyframes fsCastBody {
+  32% { transform: rotate(-6deg) translateX(-2%); }
+  48% { transform: rotate(6deg) translateX(2%); }
+  100% { transform: rotate(2deg); }
 }
 
-/* Pesca: boya, ondas, sombras de peces y el salto al sacar uno. */
-#stage-floor .gw-boya { transform-box: fill-box; transform-origin: 50% 70%; animation: gwFlota 2.4s ease-in-out infinite; }
-#stage-floor [data-phase="bite"] .gw-boya { animation: gwPica .32s ease-in-out infinite alternate; }
-#stage-floor [data-phase="reel"] .gw-boya { animation: gwTira .5s ease-in-out infinite alternate; }
-@keyframes gwFlota { 50% { transform: translateY(3px); } }
-@keyframes gwPica { from { transform: translateY(2px); } to { transform: translateY(14px) rotate(-8deg); } }
-@keyframes gwTira { from { transform: translate(-6px, 4px) rotate(-6deg); } to { transform: translate(6px, 8px) rotate(6deg); } }
-#stage-floor .gw-onda { transform-box: fill-box; transform-origin: center; opacity: 0; animation: gwOnda 2.8s ease-out infinite; }
-#stage-floor .gw-onda-2 { animation-delay: 1.4s; }
-#stage-floor [data-phase="bite"] .gw-onda,
-#stage-floor [data-phase="reel"] .gw-onda { animation-duration: .9s; }
-@keyframes gwOnda { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(2.6); } }
-#stage-floor .gw-sombra-a { animation: gwNadaA 7s linear infinite; }
-#stage-floor .gw-sombra-b { animation: gwNadaB 9s linear infinite; }
-@keyframes gwNadaA { from { transform: translate(-60px, 300px); } to { transform: translate(860px, 250px); } }
-@keyframes gwNadaB { from { transform: translate(860px, 150px) scaleX(-1); } to { transform: translate(-60px, 190px) scaleX(-1); } }
-#stage-floor .gw-pez-salta.is-jumping { animation: gwSalta 1s ease-out; }
-@keyframes gwSalta {
-  0% { opacity: 0; transform: translate(0, 60px) rotate(0); }
-  15% { opacity: 1; }
-  55% { opacity: 1; transform: translate(40px, -120px) rotate(-20deg); }
-  100% { opacity: 0; transform: translate(80px, -40px) rotate(25deg); }
+/* 3) Espera con la bocha en el agua; tiembla cuando tantean y se inclina cuando pica. */
+#stage-floor [data-phase="wait"] .fs-pet { animation: fsWaitArm 3s ease-in-out infinite; }
+#stage-floor :is([data-phase="wait"], [data-phase="nibble"]) .fs-pet-body { animation: fsWaitBody 3s ease-in-out infinite; }
+#stage-floor [data-phase="nibble"] .fs-pet { animation: fsNibbleArm .65s ease-in-out; }
+#stage-floor [data-phase="bite"] .fs-pet { animation: fsBiteArm .26s ease-in-out infinite alternate; }
+#stage-floor [data-phase="bite"] .fs-pet-body { transform: rotate(5deg) translateX(1.5%); transition: transform .2s ease; }
+@keyframes fsWaitArm { 0%, 100% { --fs-arm: 8deg; --fs-flex: 0deg; } 50% { --fs-arm: 5deg; --fs-flex: 1.5deg; } }
+@keyframes fsWaitBody { 0%, 100% { transform: rotate(2deg); } 50% { transform: rotate(3deg) translateY(.8%); } }
+@keyframes fsNibbleArm {
+  0%, 100% { --fs-arm: 8deg; --fs-flex: 0deg; }
+  25% { --fs-arm: 11deg; --fs-flex: 5deg; }
+  50% { --fs-arm: 7deg; --fs-flex: -1deg; }
+  75% { --fs-arm: 10deg; --fs-flex: 3deg; }
 }
-#stage-floor .gw-pez-salta { transform-box: fill-box; transform-origin: center; }
+@keyframes fsBiteArm { from { --fs-arm: 9deg; --fs-flex: 4deg; } to { --fs-arm: 15deg; --fs-flex: 11deg; } }
 
-/* Penales: cartel de resultado de cada tiro. */
+/* 4) Recoge: tira la caña para arriba y la sacude mientras enrolla. */
+#stage-floor [data-phase="reel"] .fs-pet { animation: fsReelArm .9s ease-out both; }
+#stage-floor [data-phase="reel"] .fs-pet-body { animation: fsReelBody .9s ease-out both; }
+@keyframes fsReelArm {
+  0% { --fs-arm: 10deg; --fs-flex: 6deg; }
+  25% { --fs-arm: -30deg; --fs-flex: -10deg; }
+  40% { --fs-arm: -22deg; --fs-flex: -4deg; }
+  55% { --fs-arm: -32deg; --fs-flex: -9deg; }
+  70% { --fs-arm: -24deg; --fs-flex: -3deg; }
+  100% { --fs-arm: -12deg; --fs-flex: 0deg; }
+}
+@keyframes fsReelBody {
+  25% { transform: rotate(-6deg) translateX(-2%); }
+  40% { transform: rotate(-4deg) translateX(-1.5%); }
+  55% { transform: rotate(-6deg) translateX(-2%); }
+  100% { transform: rotate(-1deg); }
+}
+
+/* Hilo, bocha y ondas (en unidades del lago). */
+#stage-floor .fs-line { fill: none; stroke: #f6ecd2; stroke-width: 3.5; stroke-linecap: round; }
+#stage-floor .fs-line-shadow { fill: none; stroke: rgba(74, 44, 23, .5); stroke-width: 6.5; stroke-linecap: round; }
+#stage-floor .fs-bobber-bob { transform-origin: -6px 28px; }
+#stage-floor [data-phase="idle"] .fs-bobber-bob { animation: fsSwing 1.6s ease-in-out infinite alternate; }
+#stage-floor [data-phase="wait"] .fs-bobber-bob { animation: fsFloat 2.2s ease-in-out infinite; }
+#stage-floor [data-phase="nibble"] .fs-bobber-bob { animation: fsNibble .65s ease-in-out; }
+#stage-floor [data-phase="bite"] .fs-bobber-bob { animation: fsBite .5s ease-in-out infinite; }
+@keyframes fsSwing { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+@keyframes fsFloat { 0%, 100% { transform: none; } 50% { transform: translateY(4px) rotate(4deg); } }
+@keyframes fsNibble {
+  0%, 100% { transform: none; }
+  20% { transform: translateY(7px) rotate(-10deg); }
+  45% { transform: translateY(1px) rotate(6deg); }
+  70% { transform: translateY(6px) rotate(-6deg); }
+}
+@keyframes fsBite {
+  0%, 100% { transform: translateY(6px) rotate(-6deg); }
+  50% { transform: translateY(26px) rotate(-14deg); }
+}
+
+#stage-floor .fs-ripple { fill: none; stroke: #ffffff; stroke-width: 4; opacity: 0; transform-box: fill-box; transform-origin: center; }
+#stage-floor .fs-ripples.is-splash .fs-ripple:nth-child(1) { animation: fsRipple .9s ease-out; }
+#stage-floor .fs-ripples.is-splash .fs-ripple:nth-child(2) { animation: fsRipple 1.1s ease-out .15s; }
+#stage-floor .fs-ripples.is-nibble .fs-ripple:nth-child(1) { animation: fsRippleSmall .65s ease-out; }
+#stage-floor .fs-ripples.is-nibble .fs-ripple:nth-child(2) { animation: fsRippleSmall .65s ease-out .3s; }
+#stage-floor .fs-ripples.is-bite .fs-ripple:nth-child(1) { animation: fsRipple .6s ease-out infinite; }
+#stage-floor .fs-ripples.is-bite .fs-ripple:nth-child(2) { animation: fsRipple .6s ease-out .3s infinite; }
+/* Onda suave de fondo mientras la bocha flota. */
+#stage-floor .fs-ripples:is(.is-splash, .is-nibble, .is-bite) .fs-ripple:nth-child(3) { animation: fsRippleSoft 2.4s ease-out .9s infinite; }
+@keyframes fsRipple { from { opacity: .95; transform: scale(.4); } to { opacity: 0; transform: scale(2.6); } }
+@keyframes fsRippleSmall { from { opacity: .8; transform: scale(.5); } to { opacity: 0; transform: scale(1.5); } }
+@keyframes fsRippleSoft { from { opacity: .55; transform: scale(.7); } to { opacity: 0; transform: scale(1.9); } }
+
+/* Lo que sale del agua cuelga debajo de la bocha. */
+#stage-floor .fs-catch { opacity: 0; transform-origin: -6px 50px; }
+#stage-floor .games-arena[data-catch] .fs-catch { opacity: 1; animation: fsCatch .4s ease-in-out infinite alternate; }
+@keyframes fsCatch { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+#stage-floor [data-catch="fish"] .fs-catch-img { transform-box: fill-box; transform-origin: center; transform: rotate(-80deg); }
+
+/* Cartel de resultado: cada tiro de Penales y lo que sale en Pesca. */
 #stage-floor .games-banner {
   position: absolute;
   left: 50%;
@@ -248,11 +356,15 @@
   background: #fffdf3;
   font: 900 34px/1 "Baloo 2", sans-serif;
   color: #4a2c17;
+  white-space: nowrap;
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%) scale(.6);
 }
 #stage-floor .games-banner[data-result="gol"] { background: #ffe052; }
+#stage-floor .games-banner[data-result="lata"] { background: #e6ecef; }
+#stage-floor .games-arena[data-game="pesca"] .games-banner { left: 76%; top: 22%; }
+#stage-floor .games-banner img { width: 1.25em; height: 1.25em; margin-right: 10px; object-fit: contain; vertical-align: middle; }
 #stage-floor .games-banner.is-on { animation: gamesBanner 1.35s ease forwards; }
 @keyframes gamesBanner {
   15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
@@ -314,10 +426,11 @@
 @media (prefers-reduced-motion: reduce) {
   #stage-floor .games-window,
   #stage-floor .games-result-card,
-  #stage-floor .gw-boya,
-  #stage-floor .gw-onda,
-  #stage-floor .gw-sombra-a,
-  #stage-floor .gw-sombra-b,
+  #stage-floor .fs-pet,
+  #stage-floor .fs-pet-body,
+  #stage-floor .fs-bobber-bob,
+  #stage-floor .fs-ripple,
+  #stage-floor .fs-catch,
   #stage-floor .games-action.is-hot { animation: none; }
 }
 

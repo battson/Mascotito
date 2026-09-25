@@ -1,5 +1,14 @@
 # Mascotito Beta
 
+## Beta v4.6.1 — Pesca en el lago
+
+- **Pesca rediseñada:** lago con barco; la mascota va sentada adentro del barco y sostiene la caña. La caña está dividida en base (con la mano de la mascota encima), hilo y bocha, que se animan por separado.
+- **Cómo se juega:** tres lanzamientos por partida (se mantienen 3 partidas por día). «Lanzar» tira la bocha, que cae al agua con ondas; los peces la tantean y después pican. Hay que tocar «Pescar» justo cuando pica: si se toca antes o se deja pasar, se pierde ese tiro. Al pescar sale un pescado (80 %) o una lata (20 %), que queda colgando de la bocha mientras se recoge.
+- **Mascota animada:** quieta antes de lanzar, lanzando, esperando con la bocha en el agua (se inclina cuando pica) y recogiendo.
+- **Latas:** se guardan en el cofre del inventario junto al pescado y la botella (aparecen cuando hay al menos una). Por ahora no se usan; más adelante serán chatarra para vender.
+- **Menú de juegos:** la tarjeta de Pesca muestra el ícono de la caña. Se retira el medidor con aguja de la Pesca anterior.
+- Arte nuevo en `assets/games/fishing/` (lago, caña, ícono, bocha y lata), vectorizado a SVG con `scripts/vectorize-fishing-assets.py`.
+
 ## Beta v4.6 — Jugar
 
 - **Ventana de juegos nueva**, con el estilo de la ficha: crema con borde verde, título tipo moneda, tarjetas ilustradas y botones amarillos «Jugar». Cada tarjeta muestra si está disponible (partidas de pesca que quedan hoy o espera de Penales).

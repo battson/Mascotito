@@ -217,6 +217,7 @@ const el = {
   inventoryFishCatch: document.getElementById("inventory-fish-catch"),
   inventoryWater: document.getElementById("inventory-water"),
   inventoryWaterCooldown: document.getElementById("inventory-water-cooldown"),
+  inventoryCan: document.getElementById("inventory-can"),
   inventoryFishCount: document.getElementById("inventory-fish-count"),
   inventoryStatus: document.getElementById("inventory-status"),
   inventoryFoodGrid: document.getElementById("inventory-food-grid"),
@@ -2424,6 +2425,13 @@ function refreshInventory() {
     el.inventoryFishCooldown.textContent = fishCooldown ? formatCooldownLabel(remaining) : "";
   }
   if (el.inventoryFishCatch) el.inventoryFishCatch.hidden = fishStock > 0;
+  const canStock = Math.max(0, Number(state.inventory?.lata) || 0);
+  if (el.inventoryCan) {
+    // Sin latas no ocupa lugar en el cofre (ver renderInventoryPage).
+    if (canStock > 0) delete el.inventoryCan.dataset.empty; else el.inventoryCan.dataset.empty = "1";
+    el.inventoryCan.setAttribute("aria-label", `Latas: ${canStock}. Chatarra de pesca; más adelante se va a poder vender.`);
+    document.getElementById("inventory-can-count").textContent = String(canStock);
+  }
   if (el.inventoryWater) el.inventoryWater.disabled = sleeping || waterCooldown || state.stats.hidratacion >= PET_CONFIG.llenaUmbral;
   if (el.inventoryWaterCooldown) {
     const remaining = Math.max(0, (state.cooldowns?.beber || 0) - Date.now());
@@ -2610,7 +2618,9 @@ function claimHousingGift() {
 }
 
 function renderInventoryPage() {
-  const items = [...el.inventoryFoodGrid.querySelectorAll('.inventory-item')];
+  const all = [...el.inventoryFoodGrid.querySelectorAll('.inventory-item')];
+  all.forEach((item) => { if (item.dataset.empty) item.hidden = true; });
+  const items = all.filter((item) => !item.dataset.empty);
   const pageCount = Math.max(1, Math.ceil(items.length / INVENTORY_PAGE_SIZE));
   inventoryPage = Math.max(0, Math.min(inventoryPage, pageCount - 1));
   items.forEach((item, index) => { item.hidden = Math.floor(index / INVENTORY_PAGE_SIZE) !== inventoryPage; });

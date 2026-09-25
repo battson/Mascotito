@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Beta v4.6 — Jugar
+   Beta v4.6 — Jugar (Pesca rehecha en v4.6.1)
    Selector de juegos, Pesca, Penales y pantalla de resultado.
    Todo lo de Jugar vive acá (antes estaba dentro de app.js). Usa funciones
    globales de app.js (state, el, gainFelicidad, addBond, trySave, …) sólo
@@ -16,10 +16,10 @@ const GAMES = {
   pesca: {
     id: "pesca",
     title: "Pesca",
-    blurb: "Esperá a que pique, tirá y frená la aguja en la zona verde para sacar el pescado.",
-    duration: 30,
+    blurb: "Lanzá la bocha, esperá a que pique y tocá Pescar justo a tiempo. A veces sale una lata…",
+    casts: 3,
     goal: 2,
-    maxScore: 3,
+    fishChance: .8,
   },
   penales: {
     id: "penales",
@@ -32,9 +32,18 @@ const GAMES = {
 
 const GAME_ICON = {
   coin: "assets/shop/moneda.svg",
-  fish: "assets/items/fish-item.svg",
+  fish: "assets/ui/inventory/cofre/pescado.svg",
+  can: "assets/games/fishing/can.svg",
   energy: "assets/ui/ficha/energia.svg",
   ball: "assets/ui/actions/04-pelota.svg",
+};
+
+// Beta v4.6.1: arte de Pesca (vectorizado con scripts/vectorize-fishing-assets.py).
+const FISHING_ART = {
+  lake: "assets/games/fishing/lake.svg",
+  rod: "assets/games/fishing/rod.svg",
+  icon: "assets/games/fishing/rod-icon.svg",
+  bobber: "assets/games/fishing/bobber.svg",
 };
 const SVG_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.8 8.2 3 4.5 6.6 4.5c2.2 0 3.6 1.3 5.4 3.3 1.8-2 3.2-3.3 5.4-3.3 3.6 0 5.8 3.7 4.2 7.3C19.5 16.4 12 21 12 21z" fill="#f06a8a" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 const SVG_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z" fill="#ffd34d" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';
@@ -44,45 +53,73 @@ const $g = (id) => document.getElementById(id);
 // ---------------------------------------------------------------- Escenas
 
 let gamesSceneId = 0;
-function fishingSceneSvg() {
+// Tarjeta del selector: sólo la caña sobre fondo liso.
+function fishingCardArt() {
+  return `<div class="game-card-icon"><img src="${FISHING_ART.icon}" alt="" draggable="false" /></div>`;
+}
+
+// Geometría de la escena de Pesca, en unidades del lago (1672 × 941).
+const FISHING_SCENE = {
+  w: 1672,
+  h: 941,
+  // La bocha cae en esta zona del agua, a la derecha del barco.
+  target: { x0: 1180, x1: 1440, y0: 690, y1: 790 },
+  hang: 88,      // largo del hilo con la bocha colgando de la punta
+  bobberW: 58,   // ancho de la bocha dibujada
+};
+
+/*
+ * Capas, de atrás hacia adelante:
+ *  1. el lago completo (con el barco);
+ *  2. la mascota sosteniendo la caña (base de la caña; el hilo y la bocha
+ *     van aparte para poder animarlos);
+ *  3. otra vez el lago, recortado al casco del barco: tapa la mitad de
+ *     abajo de la mascota y la deja «adentro» del barco;
+ *  4. hilo, ondas, bocha y lo que se pesca.
+ */
+function fishingSceneHtml() {
   const u = ++gamesSceneId;
-  return `<svg class="games-scene" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-  <defs>
-    <linearGradient id="gw-agua-${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fdcf0"/><stop offset="1" stop-color="#3f9fc7"/></linearGradient>
-    <linearGradient id="gw-pasto-${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b6e07c"/><stop offset="1" stop-color="#8cc55a"/></linearGradient>
-  </defs>
-  <rect width="800" height="400" fill="url(#gw-agua-${u})"/>
-  <g class="gw-brillos" fill="#ffffff" opacity=".35">
-    <rect x="90" y="150" width="70" height="6" rx="3"/><rect x="560" y="300" width="90" height="6" rx="3"/>
-    <rect x="620" y="170" width="46" height="6" rx="3"/><rect x="170" y="330" width="54" height="6" rx="3"/>
-  </g>
-  <path d="M0 0H800V58C730 74 690 52 620 64S520 84 440 70 330 52 250 68 110 80 0 62Z" fill="url(#gw-pasto-${u})" stroke="#5a3a22" stroke-width="4"/>
-  <g stroke="#5a3a22" stroke-width="3" stroke-linecap="round" fill="none">
-    <path d="M70 66C66 40 72 22 80 8M86 68C88 44 96 30 108 20M100 66C104 50 114 42 126 38"/>
-    <path d="M700 64C696 40 700 24 708 10M716 66C720 46 728 34 740 28"/>
-  </g>
-  <g fill="#7fbf4f" stroke="#5a3a22" stroke-width="3.5" stroke-linejoin="round">
-    <path d="M150 300a46 26 0 1 0 60 -20l-28 16z"/>
-    <path d="M640 110a38 22 0 1 0 48 -18l-22 14z"/>
-    <path d="M700 330a30 17 0 1 0 38 -12l-18 10z"/>
-  </g>
-  <circle cx="194" cy="283" r="9" fill="#ff9fc0" stroke="#5a3a22" stroke-width="3"/>
-  <g class="gw-sombras" fill="#1f5f7d" opacity=".32">
-    <ellipse class="gw-sombra gw-sombra-a" cx="0" cy="0" rx="34" ry="12"/>
-    <ellipse class="gw-sombra gw-sombra-b" cx="0" cy="0" rx="26" ry="9"/>
-  </g>
-  <line class="gw-linea" x1="400" y1="-10" x2="400" y2="206" stroke="#fdfdf6" stroke-width="3"/>
-  <g class="gw-ondas" fill="none" stroke="#ffffff" stroke-width="3">
-    <ellipse class="gw-onda gw-onda-1" cx="400" cy="226" rx="30" ry="9"/>
-    <ellipse class="gw-onda gw-onda-2" cx="400" cy="226" rx="30" ry="9"/>
-  </g>
-  <g class="gw-boya">
-    <path d="M384 220a16 16 0 0 1 32 0z" fill="#ffffff" stroke="#5a3a22" stroke-width="4"/>
-    <path d="M384 220a16 16 0 0 0 32 0z" fill="#f2663f" stroke="#5a3a22" stroke-width="4"/>
-    <rect x="397" y="190" width="6" height="16" rx="3" fill="#f2663f" stroke="#5a3a22" stroke-width="3"/>
-  </g>
-  <image class="gw-pez-salta" href="assets/items/fish.svg" x="350" y="150" width="100" height="70" opacity="0"/>
-</svg>`;
+  const S = FISHING_SCENE;
+  const bw = S.bobberW, bh = bw * 393 / 400;
+  // La caña (1000 × 750) se toma de la empuñadura (170, 590); la punta,
+  // donde sale el hilo, queda en (935, 95). Escala dentro del lienzo 400 × 400 de la mascota.
+  const k = .33, hx = 298, hy = 204;
+  return `<div class="fishing-scene" aria-hidden="true">
+  <img class="fs-lake" src="${FISHING_ART.lake}" alt="" draggable="false" />
+  <div class="fs-pet">
+    <div class="fs-pet-body">
+      <div class="pet-stage fs-pet-stage"></div>
+      <svg class="fs-rod-layer" viewBox="0 0 400 400">
+        <g class="fs-rod-arm">
+          <g class="fs-rod-flex" style="transform-origin: ${hx}px ${hy}px">
+            <image href="${FISHING_ART.rod}" x="${hx - 170 * k}" y="${hy - 590 * k}" width="${1000 * k}" height="${750 * k}"/>
+            <circle class="fs-rod-tip" cx="${hx + 765 * k}" cy="${hy - 495 * k}" r="1" fill="none"/>
+          </g>
+          <circle class="fs-paw" cx="${hx}" cy="${hy}" r="9.5"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <img class="fs-hull" src="${FISHING_ART.lake}" alt="" draggable="false" />
+  <svg class="fs-fx" viewBox="0 0 ${S.w} ${S.h}">
+    <defs>
+      <clipPath id="fs-waterline-${u}" clipPathUnits="userSpaceOnUse"><rect class="fs-waterline" x="-200" y="-400" width="400" height="800"/></clipPath>
+    </defs>
+    <g class="fs-ripples" transform="translate(-999 -999)">
+      <ellipse class="fs-ripple" rx="34" ry="9"/><ellipse class="fs-ripple" rx="34" ry="9"/><ellipse class="fs-ripple" rx="34" ry="9"/>
+    </g>
+    <path class="fs-line-shadow" d=""/>
+    <path class="fs-line" d=""/>
+    <g class="fs-bobber" transform="translate(-999 -999)">
+      <g class="fs-catch"><image class="fs-catch-img" href="${GAME_ICON.fish}" x="-58" y="34" width="104" height="82"/></g>
+      <g clip-path="url(#fs-waterline-${u})">
+        <g class="fs-bobber-bob">
+          <image href="${FISHING_ART.bobber}" x="${-bw * .62}" y="${-bh * .02}" width="${bw}" height="${bh}"/>
+        </g>
+      </g>
+    </g>
+  </svg>
+</div>`;
 }
 
 function penaltySceneSvg() {
@@ -193,7 +230,7 @@ function renderGameCards() {
   if (!box) return;
   box.innerHTML = Object.values(GAMES).map((g) => `
     <article class="game-card" data-game="${g.id}">
-      <div class="game-card-art">${g.id === "pesca" ? fishingSceneSvg() : penaltySceneSvg()}</div>
+      <div class="game-card-art" data-art="${g.id}">${g.id === "pesca" ? fishingCardArt() : penaltySceneSvg()}</div>
       <div class="game-card-body">
         <h3>${g.title}</h3>
         <p>${g.blurb}</p>
@@ -281,9 +318,10 @@ function launchGame(id) {
   const arena = $g("minigame-arena");
   arena.hidden = false;
   arena.dataset.game = id;
-  arena.innerHTML = (id === "pesca" ? fishingSceneSvg() : penaltySceneSvg()) + `
+  delete arena.dataset.phase;
+  delete arena.dataset.catch;
+  arena.innerHTML = (id === "pesca" ? fishingSceneHtml() : penaltySceneSvg()) + `
     <div class="games-controls">
-      <div class="games-meter" hidden><span class="games-meter-zone"></span><span class="games-meter-needle"></span></div>
       <button type="button" class="games-btn games-action"></button>
     </div>`;
   panel.hidden = false;
@@ -309,8 +347,8 @@ function updateGameChips() {
   const score = $g("minigame-score");
   const time = $g("minigame-time");
   if (g.id === "pesca") {
-    score.innerHTML = `<img src="${GAME_ICON.fish}" alt="" /> ${minigame.score}/${g.maxScore}`;
-    time.textContent = `${Math.max(0, minigame.remaining)} s`;
+    score.innerHTML = `<img src="${GAME_ICON.fish}" alt="Pescados" /> ${minigame.score} <img src="${GAME_ICON.can}" alt="Latas" /> ${minigame.cans}`;
+    time.textContent = `Lanzamiento ${Math.min(minigame.cast + 1, g.casts)}/${g.casts}`;
   } else {
     score.innerHTML = `<img src="${GAME_ICON.ball}" alt="" /> ${minigame.score} ${minigame.score === 1 ? "gol" : "goles"}`;
     time.textContent = `Tiro ${Math.min(minigame.shot + 1, g.shots)}/${g.shots}`;
@@ -327,95 +365,216 @@ function setAction(label, { disabled = false, hot = false } = {}) {
 }
 
 // ---------------------------------------------------------------- Pesca
+// Tres lanzamientos por partida: Lanzar → la bocha cae al agua → los peces
+// la tantean → pica y hay que tocar Pescar a tiempo. Si se toca antes o se
+// deja pasar, el tiro se pierde. Lo que sale: 80 % pescado, 20 % lata.
+// La mascota tiene una animación por fase (ver data-phase en games.css):
+// idle, cast (lanza), wait/nibble/bite (espera) y reel (recoge).
+
+const fsLerp = (a, b, p) => a + (b - a) * p;
+const fsEaseInOut = (p) => (p < .5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2);
 
 function startFishing() {
-  minigame.remaining = minigame.type.duration;
-  updateGameChips();
-  minigame.clock = setInterval(() => {
-    if (!minigame) return;
-    minigame.remaining -= 1;
-    updateGameChips();
-    if (minigame.remaining <= 0 && minigame.phase !== "reel") finishMinigame(false);
-  }, 1000);
-  fishingWait();
+  const m = minigame;
+  m.cast = 0;
+  m.cans = 0;
+  m.castId = 0;
+  m.bob = { mode: "hang" };
+  const stage = gamesQ(".fs-pet-stage");
+  if (stage) {
+    renderPetLayers(stage, state.look, state.wardrobe);
+    // La mano que tapa la caña usa el mismo color de cuerpo.
+    gamesQ(".fs-pet")?.style.setProperty("--pet-body-color", stage.style.getPropertyValue("--pet-body-color"));
+  }
+  gamesFrame(fishingDraw);
+  fishingReady();
 }
 
-function fishingWait() {
-  if (!minigame) return;
-  if (minigame.remaining <= 0) { finishMinigame(false); return; }
-  minigame.phase = "wait";
-  const arena = $g("minigame-arena");
-  arena.dataset.phase = "wait";
-  gamesQ(".games-meter").hidden = true;
-  setAction("Esperando…", { disabled: true });
-  gamesHint("Esperá a que pique…");
-  gamesTimer(() => {
-    if (!minigame || minigame.phase !== "wait") return;
-    minigame.phase = "bite";
-    arena.dataset.phase = "bite";
-    setAction("¡Tirar!", { hot: true });
-    gamesHint("¡Picó! Tocá ¡Tirar!");
-    gamesTimer(() => {
-      if (!minigame || minigame.phase !== "bite") return;
-      gamesHint("Se escapó… Esperá el próximo.");
-      gamesTimer(fishingWait, 700);
-      minigame.phase = "lost";
-      arena.dataset.phase = "wait";
-      setAction("Esperando…", { disabled: true });
-    }, 1500);
-  }, 1100 + Math.random() * 2200);
+function fishingPhase(phase) {
+  minigame.phase = phase;
+  $g("minigame-arena").dataset.phase = phase;
+}
+
+function fishingReady() {
+  const m = minigame;
+  if (!m) return;
+  if (m.cast >= m.type.casts) { finishMinigame(false); return; }
+  fishingPhase("idle");
+  fishingRipples("off");
+  hidePenaltyBanner();
+  delete $g("minigame-arena").dataset.catch;
+  m.bob = { mode: "hang" };
+  updateGameChips();
+  setAction("Lanzar", { hot: true });
+  gamesHint(m.cast ? "¡Otra vez! Tocá Lanzar." : "Tocá Lanzar para tirar la bocha al agua.");
 }
 
 function fishingAction() {
   const m = minigame;
-  if (m.phase === "wait") { gamesHint("Todavía no picó. Esperá la señal."); return; }
-  if (m.phase === "bite") { fishingReel(); return; }
-  if (m.phase === "reel") fishingStopNeedle();
+  if (m.phase === "idle") fishingCast();
+  else if (m.phase === "bite") fishingReel(true);
+  else if (m.phase === "wait" || m.phase === "nibble") fishingReel(false, "early");
 }
 
-function fishingReel() {
+function fishingCast() {
   const m = minigame;
-  m.phase = "reel";
-  $g("minigame-arena").dataset.phase = "reel";
-  const meter = gamesQ(".games-meter");
-  meter.hidden = false;
-  // La zona verde se achica un poco con cada pescado.
-  m.zoneW = Math.max(16, 28 - m.score * 5);
-  m.zoneX = 8 + Math.random() * (84 - m.zoneW);
-  const zone = meter.querySelector(".games-meter-zone");
-  zone.style.left = m.zoneX + "%";
-  zone.style.width = m.zoneW + "%";
-  const needle = meter.querySelector(".games-meter-needle");
-  const period = 1300 - m.score * 180;
-  const t0 = performance.now();
-  setAction("¡Recoger!", { hot: true });
-  gamesHint("¡Frená la aguja en la zona verde!");
-  gamesFrame((t) => {
-    const p = ((t - t0) % (period * 2)) / period;
-    m.needle = (p <= 1 ? p : 2 - p) * 100;
-    needle.style.left = m.needle + "%";
-  });
+  const T = FISHING_SCENE.target;
+  const id = ++m.castId;
+  fishingPhase("cast");
+  setAction("Pescar", { disabled: true });
+  gamesHint("¡Allá va!");
+  m.target = { x: fsLerp(T.x0, T.x1, Math.random()), y: fsLerp(T.y0, T.y1, Math.random()) };
+  // La bocha se suelta cuando la caña pasa hacia adelante (ver fsCast).
+  gamesTimer(() => { if (m.castId === id) m.bob = { mode: "fly", from: fishingHangPoint(performance.now()), t0: performance.now(), dur: 620 }; }, 420);
+  gamesTimer(() => fishingLanded(id), 420 + 620);
 }
 
-function fishingStopNeedle() {
+function fishingLanded(id) {
   const m = minigame;
-  gamesStopFrame();
-  const inZone = m.needle >= m.zoneX - 1 && m.needle <= m.zoneX + m.zoneW + 1;
-  m.phase = "result";
-  if (inZone) {
-    m.score += 1;
-    updateGameChips();
-    popHearts();
-    const fish = gamesQ(".gw-pez-salta");
-    fish?.classList.remove("is-jumping"); void fish?.getBBox?.(); fish?.classList.add("is-jumping");
-    gamesHint(m.score >= m.type.maxScore ? "¡Tres pescados! Buena pesca." : "¡Lo sacaste!");
-    setAction("¡Bien!", { disabled: true });
-    if (m.score >= m.type.maxScore) { gamesTimer(() => finishMinigame(false), 1100); return; }
-  } else {
-    gamesHint("¡Se soltó! Probá de nuevo.");
-    setAction("Uy…", { disabled: true });
+  if (!m || m.castId !== id) return;
+  m.bob = { mode: "water" };
+  fishingRipples("splash");
+  fishingPhase("wait");
+  setAction("Pescar");
+  gamesHint("Esperá a que pique…");
+  // Primero la tantean (de 1 a 3 veces) y después pican de verdad.
+  let at = 1000 + Math.random() * 1300;
+  const nibbles = 1 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < nibbles; i++) {
+    gamesTimer(() => fishingNibble(id), at);
+    at += 850 + Math.random() * 900;
   }
-  gamesTimer(fishingWait, 1100);
+  gamesTimer(() => fishingBite(id), at);
+}
+
+function fishingNibble(id) {
+  const m = minigame;
+  if (!m || m.castId !== id || (m.phase !== "wait" && m.phase !== "nibble")) return;
+  fishingPhase("nibble");
+  fishingRipples("nibble");
+  gamesHint("Algo está tanteando la bocha… ¡todavía no!");
+  gamesTimer(() => {
+    if (minigame !== m || m.castId !== id || m.phase !== "nibble") return;
+    fishingPhase("wait");
+    gamesHint("Esperá a que pique…");
+  }, 650);
+}
+
+function fishingBite(id) {
+  const m = minigame;
+  if (!m || m.castId !== id || (m.phase !== "wait" && m.phase !== "nibble")) return;
+  fishingPhase("bite");
+  fishingRipples("bite");
+  setAction("¡Pescar!", { hot: true });
+  gamesHint("¡Picó! ¡Tocá Pescar!");
+  gamesTimer(() => { if (minigame === m && m.castId === id && m.phase === "bite") fishingReel(false, "late"); }, 1400);
+}
+
+function fishingReel(hooked, why = "") {
+  const m = minigame;
+  const id = ++m.castId;
+  const item = hooked ? (Math.random() < m.type.fishChance ? "fish" : "can") : null;
+  fishingPhase("reel");
+  setAction("Pescar", { disabled: true });
+  fishingRipples(hooked ? "splash" : "off");
+  const arena = $g("minigame-arena");
+  if (item) {
+    arena.dataset.catch = item;
+    gamesQ(".fs-catch-img")?.setAttribute("href", item === "fish" ? GAME_ICON.fish : GAME_ICON.can);
+  }
+  m.bob = { mode: "reel", from: { ...m.target }, t0: performance.now(), dur: 900 };
+  gamesHint(item ? "¡Recogé, recogé!" : why === "early" ? "¡Muy pronto! El pez se asustó." : "Se escapó… Había que tocar más rápido.");
+  gamesTimer(() => {
+    if (minigame !== m || m.castId !== id) return;
+    m.cast += 1;
+    const stage = gamesQ(".fs-pet-stage");
+    if (item === "fish") {
+      m.score += 1;
+      popHearts();
+      playMouthAnim(stage, "feliz", 900);
+      showPenaltyBanner("¡Un pescado!", "gol", GAME_ICON.fish);
+      gamesHint("¡Lo sacaste!");
+    } else if (item === "can") {
+      m.cans += 1;
+      playMouthAnim(stage, "hablar", 700);
+      showPenaltyBanner("Una lata…", "lata", GAME_ICON.can);
+      gamesHint("Bueno, algo es algo. Queda en el inventario.");
+    }
+    updateGameChips();
+    gamesTimer(fishingReady, item ? 1500 : 700);
+  }, 900);
+}
+
+/** Punta de la caña, en unidades del lago (sigue a las animaciones CSS). */
+function fishingTip() {
+  const tip = gamesQ(".fs-rod-tip");
+  const fx = gamesQ(".fs-fx");
+  if (!tip || !fx) return null;
+  const a = tip.getBoundingClientRect();
+  const r = fx.getBoundingClientRect();
+  if (!r.width) return null;
+  return {
+    x: (a.left + a.width / 2 - r.left) * FISHING_SCENE.w / r.width,
+    y: (a.top + a.height / 2 - r.top) * FISHING_SCENE.h / r.height,
+  };
+}
+
+function fishingHangPoint(t, tip = fishingTip()) {
+  if (!tip) return { x: 0, y: 0 };
+  return { x: tip.x + Math.sin(t / 520) * 5, y: tip.y + FISHING_SCENE.hang };
+}
+
+/** Cada cuadro: posición de la bocha, línea de agua y curva del hilo. */
+function fishingDraw(t) {
+  const m = minigame;
+  if (!m || m.type.id !== "pesca") return false;
+  const tip = fishingTip();
+  const bobber = gamesQ(".fs-bobber");
+  if (!tip || !bobber) return;
+  const b = m.bob;
+  const hang = fishingHangPoint(t, tip);
+  let x = hang.x, y = hang.y, sag = 0, inWater = false;
+  if (b.mode === "fly") {
+    const p = Math.min(1, (t - b.t0) / b.dur);
+    x = fsLerp(b.from.x, m.target.x, p);
+    y = fsLerp(b.from.y, m.target.y, p) - 300 * 4 * p * (1 - p);
+    sag = 30 * p;
+  } else if (b.mode === "water") {
+    x = m.target.x;
+    y = m.target.y;
+    inWater = true;
+    sag = m.phase === "bite" ? 6 : m.phase === "nibble" ? 36 : 70;
+  } else if (b.mode === "reel") {
+    const p = Math.min(1, (t - b.t0) / b.dur);
+    const e = fsEaseInOut(p);
+    x = fsLerp(b.from.x, hang.x, e);
+    y = fsLerp(b.from.y, hang.y, e) - 150 * 4 * e * (1 - e);
+    inWater = p < .12;
+    sag = 4;
+  }
+  bobber.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  // En el agua se esconde la parte de abajo de la bocha (flota a medias).
+  const bh = FISHING_SCENE.bobberW * 393 / 400;
+  gamesQ(".fs-waterline")?.setAttribute("height", inWater ? String(400 + bh * .64) : "800");
+  const mx = (tip.x + x) / 2, my = (tip.y + y) / 2 + sag;
+  const d = `M${tip.x.toFixed(1)} ${tip.y.toFixed(1)}Q${mx.toFixed(1)} ${my.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`;
+  gamesQ(".fs-line")?.setAttribute("d", d);
+  gamesQ(".fs-line-shadow")?.setAttribute("d", d);
+}
+
+/** Ondas alrededor de la bocha: splash, nibble, bite u off (calma). */
+function fishingRipples(kind) {
+  const g = gamesQ(".fs-ripples");
+  const m = minigame;
+  if (!g || !m) return;
+  if (m.target) {
+    const bh = FISHING_SCENE.bobberW * 393 / 400;
+    g.setAttribute("transform", `translate(${m.target.x.toFixed(1)} ${(m.target.y + bh * .6).toFixed(1)})`);
+  }
+  // Reinicia la animación aunque se repita el mismo tipo.
+  g.setAttribute("class", "fs-ripples");
+  void g.getBoundingClientRect();
+  g.setAttribute("class", `fs-ripples is-${kind}`);
 }
 
 // -------------------------------------------------------------- Penales
@@ -546,11 +705,12 @@ function penaltyShoot() {
   }, 560);
 }
 
-function showPenaltyBanner(text, result) {
+function showPenaltyBanner(text, result, icon = "") {
   const arena = $g("minigame-arena");
   let b = arena.querySelector(".games-banner");
   if (!b) { b = document.createElement("div"); b.className = "games-banner"; arena.appendChild(b); }
   b.textContent = text;
+  if (icon) b.insertAdjacentHTML("afterbegin", `<img src="${icon}" alt="" />`);
   b.dataset.result = result;
   b.classList.remove("is-on"); void b.offsetWidth; b.classList.add("is-on");
 }
@@ -575,7 +735,9 @@ function finishMinigame(cancelled = false) {
   const success = finished.score >= g.goal;
   emitRealtimeAction("play_end", { game: g.id, result: success ? "win" : "finish" });
   const fishCaught = g.id === "pesca" ? finished.score : 0;
+  const cansCaught = g.id === "pesca" ? finished.cans || 0 : 0;
   state.inventory.pescado += fishCaught;
+  state.inventory.lata = (state.inventory.lata || 0) + cansCaught;
   const happiness = success ? PET_CONFIG.play.felicidad : Math.max(2, Math.round(PET_CONFIG.play.felicidad * .45));
   const energyCost = success ? PET_CONFIG.play.energiaCosto : Math.max(1, Math.round(PET_CONFIG.play.energiaCosto * .6));
   const xp = success ? PET_CONFIG.play.vinculo : Math.max(1, Math.round(PET_CONFIG.play.vinculo * .5));
@@ -594,14 +756,15 @@ function finishMinigame(cancelled = false) {
   playMouthAnim(el.gameStage, success ? "feliz" : "hablar", 900);
 
   const title = g.id === "pesca"
-    ? (success ? "¡Buena pesca!" : fishCaught ? "¡Algo sacamos!" : "Hoy no picaron")
+    ? (success ? "¡Buena pesca!" : fishCaught ? "¡Algo sacamos!" : cansCaught ? "Sólo salieron latas" : "Hoy no picaron")
     : (success ? "¡Golazo de partido!" : "¡Buen intento!");
   const scoreLine = g.id === "pesca"
-    ? `${fishCaught} ${fishCaught === 1 ? "pescado" : "pescados"}`
+    ? `${fishCaught} ${fishCaught === 1 ? "pescado" : "pescados"}${cansCaught ? ` y ${cansCaught} ${cansCaught === 1 ? "lata" : "latas"}` : ""}`
     : `${finished.score} de ${g.shots} goles`;
   const rows = [
     `<li><img src="${GAME_ICON.coin}" alt="" /><span>Monedas</span><b>+${coins}</b></li>`,
     fishCaught ? `<li><img src="${GAME_ICON.fish}" alt="" /><span>Pescados al inventario</span><b>+${fishCaught}</b></li>` : "",
+    cansCaught ? `<li><img src="${GAME_ICON.can}" alt="" /><span>Latas al inventario</span><b>+${cansCaught}</b></li>` : "",
     `<li>${SVG_HEART}<span>Felicidad</span><b>+${happiness}</b></li>`,
     `<li>${SVG_STAR}<span>Experiencia</span><b>+${xp}</b></li>`,
     `<li><img src="${GAME_ICON.energy}" alt="" /><span>Energía</span><b class="is-cost">−${energyCost}</b></li>`,
