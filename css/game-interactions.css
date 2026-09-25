@@ -1,0 +1,12 @@
+/* Avoid accidental text selection in the play UI. */
+body:has(#game:not([hidden])) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Conversation text can be copied. Inputs remain editable in all forms. */
+#room-chat-conversation .room-chat-history,
+#room-chat-conversation .room-chat-history *,
+input, textarea, [contenteditable]:not([contenteditable="false"]) {
+  -webkit-user-select: text;
+  user-select: text;
+}

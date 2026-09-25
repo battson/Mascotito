@@ -334,11 +334,7 @@ body {
      el piso. */
   transform-origin: 50% 100%;
   animation: bob 3.2s ease-in-out infinite;
-  /* v2.2: acariciar ahora se hace clickeando directo al personaje (antes
-     vivía en el menú de Afecto) — el cursor de mano es la única pista
-     visual de que el personaje mismo es clickeable (ver doAcariciar /
-     el click listener sobre #game-stage en js/app.js). */
-  cursor: pointer;
+  cursor: default;
 }
 @keyframes bob {
   0%, 100% { transform: scaleY(1); }
@@ -966,7 +962,7 @@ body {
 .wellbeing-avatar-stage.mood-critico .pet-layer-boca #boca-shape { transform: scale(0.85, -1); }
 
 /* v2.3: animación de apertura/cierre de boca (pedido explícito), atada
-   SOLO a acciones puntuales (Comer/Beber/Hablar, y Acariciar como
+   SOLO a acciones puntuales (Comer/Beber/Hablar, y minijuegos como
    reacción de alegría) — nunca en bucle permanente. #boca-shape (arriba)
    sigue siendo lo único que mueve el ánimo; esto sólo cruza la opacidad
    entre #boca-closed y #boca-open (dos dibujos reales, ver
@@ -1010,7 +1006,7 @@ body {
   86% { opacity: 0.5; }
 }
 
-/* Alegría (reacción de Acariciar): una sonrisa-apertura breve, un solo
+/* Alegría (reacción de minijuego): una sonrisa-apertura breve, un solo
    pulso. */
 .game-stage.mouth-anim-feliz .pet-layer-boca #boca-closed { animation: mouth-joy-closed 0.48s ease-out 1; }
 .game-stage.mouth-anim-feliz .pet-layer-boca #boca-open { animation: mouth-joy-open 0.48s ease-out 1; }
@@ -1998,7 +1994,7 @@ body {
 .game-stage.sick,
 .wellbeing-avatar-stage.sick { filter: saturate(0.7) brightness(0.98); }
 
-/* Corazones/destellos al acariciar — <span> chicos que agrega/saca JS
+/* Corazones/destellos al acertar en un minijuego — <span> chicos que agrega/saca JS
  * (popHearts) sobre #walker. */
 .heart-pop {
   position: absolute;
@@ -2779,7 +2775,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
    arriba" — se baja el ancla de #walker (pero sin llegar a superponerse con
    .stage-actions-row, ver el mismo ajuste más abajo en @media(max-width:640px)). */
 .walker { width:clamp(340px,31vw,440px); bottom:55px; }
-.walker .game-stage { width:100%; height:auto; aspect-ratio:1; cursor:pointer; touch-action:manipulation; }
+.walker .game-stage { width:100%; height:auto; aspect-ratio:1; cursor:default; touch-action:manipulation; }
 .speech-bubble { top:auto; bottom:88%; height:auto; padding:16px 20px 20px; max-width:min(300px,80vw); overflow-wrap:anywhere; }
 .flies,.bath-fx,.zzz-fx,.heart-pop,.pet-shadow { pointer-events:none; }
 .debug-panel { inset:0; width:100%; height:100dvh; max-height:none; z-index:2147483647; padding:24px; margin:0; background:rgba(15,30,48,.72); display:grid; place-items:center; overflow:auto; }
@@ -2874,7 +2870,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .debug-title { margin-top:0; font-size:1rem; }
 .debug-row { gap:7px; font-size:.8rem; }
 .debug-row button { padding:7px; }
-#game-stage[aria-disabled="true"] { cursor:default; }
 .game-selector { position:absolute; inset:8% 12% 17%; z-index:55; background:#fff8e8; color:#244962; padding:26px; overflow:auto; box-shadow:0 20px 50px #101a3266; }
 .selector-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .selector-heading h2 { margin:4px 0 20px; }

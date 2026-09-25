@@ -86,7 +86,7 @@ function defaultCooldowns() {
   // v3.2: "pesca" es el cooldown propio del minijuego de Pesca (antes
   // compartía "jugar" con Pelota/Luciérnagas) — ver cooldownsMs.pesca en
   // js/config.js.
-  return { pescado: 0, comidaBasica: 0, snack: 0, golosina: 0, beber: 0, bañar: 0, jugar: 0, pesca: 0, acariciar: 0, hablar: 0, medicina: 0 };
+  return { pescado: 0, comidaBasica: 0, snack: 0, golosina: 0, beber: 0, bañar: 0, jugar: 0, pesca: 0, hablar: 0, medicina: 0 };
 }
 
 const WARDROBE_SLOTS = ["superior", "inferior", "calzado", "accesorios"];
@@ -161,7 +161,6 @@ function normalizeCooldowns(rawCooldowns) {
     bañar: numOr(c.bañar, numOr(c.limpieza, fallback.bañar)),
     jugar: numOr(c.jugar, fallback.jugar),
     pesca: numOr(c.pesca, fallback.pesca),
-    acariciar: numOr(c.acariciar, fallback.acariciar),
     hablar: numOr(c.hablar, fallback.hablar),
     medicina: numOr(c.medicina, fallback.medicina),
   };

@@ -54,7 +54,7 @@ const PET_CONFIG = {
     energia: 0.0556 * 2.5, // energía 150% más rápido → ×2.5
     // Felicidad no es "una necesidad que se atiende con una acción única"
     // como las de arriba — sube con cuidados variados (jugar, golosinas,
-    // caricias, hablar) y baja sola despacio si hay abandono/aburrimiento/
+    // hablar) y baja sola despacio si hay abandono/aburrimiento/
     // suciedad/enfermedad. Decae lento a propósito: no queremos que sea
     // una barra más para perseguir todo el tiempo.
     felicidad: 0.0231, // 100/(72*60), ~3 días de 100 a 0 sin ningún cuidado
@@ -138,9 +138,8 @@ const PET_CONFIG = {
     juguetesVisibleMs: 2600,
   },
 
-  // ---------- Afecto: acariciar / hablar ----------
+  // ---------- Diálogo ----------
   affection: {
-    acariciar: { felicidad: 4, vinculo: 5 },
     hablar: { felicidad: 2, vinculo: 3 },
   },
 
@@ -213,7 +212,7 @@ const PET_CONFIG = {
     // multiplicarse hasta por esto (bastante más rápido que el ritmo
     // normal de decayPerMinute.felicidad).
     decayMultiplierMax: 3.5,
-    // Con el promedio en 0, cualquier ganancia de ánimo (jugar, acariciar,
+    // Con el promedio en 0, cualquier ganancia de ánimo (jugar,
     // hablar, comer, limpiar una mancha, medicina) rinde sólo esta
     // fracción de lo normal — nunca llega a 0, siempre entra algo.
     gainMultiplierMin: 0.25,
@@ -224,7 +223,7 @@ const PET_CONFIG = {
   energiaCansadaUmbral: 35,
   energiaMuyCansadaUmbral: 15,
 
-  // ---------- Pedidos espontáneos ("¿Jugamos?", "Necesito un mimo") ----------
+  // ---------- Pedidos espontáneos ("¿Jugamos?", "¿Charlamos?") ----------
   // v2.5: pedido explícito — "el tiempo de repetición va acortándose
   // dependiendo de qué tan baja esté esa necesidad". Ya no es una sola
   // probabilidad/espera fija: cada necesidad floja tiene una "urgencia"
@@ -283,7 +282,6 @@ const PET_CONFIG = {
     jugar: 25000,
     // Pesca usa un cupo diario de tres partidas, sin tiempo de espera.
     pesca: 0,
-    acariciar: 9000,
     hablar: 9000,
     medicina: 60000,
   },

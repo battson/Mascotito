@@ -873,11 +873,7 @@ let runHoldTimer = null;
 
 function setupClickToWalk() {
   el.stageFloor.addEventListener("pointerdown", (event) => {
-    // Un click sobre una mancha/el juguete/el personaje no debe además
-    // mover a la mascota hacia ahí — esos elementos ya manejan su propio
-    // click (pedido explícito, sección 10: "menús/manchas/botones no
-    // deben activar accidentalmente el movimiento de fondo"; el personaje
-    // se suma en v2.2, porque clickearlo ahora acaricia en vez de mover).
+    // Los elementos de la escena no deben activar movimiento de fondo.
     if (event.target.closest(".dirt-item") || event.target.closest("#toy-ball") || event.target.closest("#game-stage")) return;
     registerInteraction();
     if (walkMax <= 0 || !canWalk()) return;
@@ -1806,7 +1802,7 @@ function getPriorityStatus() {
     return { text: `${name} ${lowest[2]}.`, cls: "status-critico" };
   }
   if (s.stats.felicidad < PET_CONFIG.mood.critico) {
-    return { text: `${name} está muy triste, necesita mimos y compañía.`, cls: "status-critico" };
+    return { text: `${name} está muy triste, necesita jugar y compañía.`, cls: "status-critico" };
   }
   if (s.stats.energia < PET_CONFIG.energiaMuyCansadaUmbral) {
     return { text: `${name} está muy cansada, quizás sea hora de dormir.`, cls: "status-aviso" };
@@ -2001,7 +1997,6 @@ function refreshUI() {
   updateSleepToggle();
   updateActionsAvailability();
   updateConnectionIndicator();
-  el.gameStage.setAttribute("aria-disabled", String(Math.round(state.stats.felicidad) >= 100 || state.sleep.dormida));
 }
 
 function capturePetPosition() {
@@ -2050,8 +2045,8 @@ function startGame(transition = null) {
 }
 
 // ---------- Animación de boca (v2.3, pedido explícito) ----------
-// Sólo se dispara desde acciones puntuales (Comer/Beber/Hablar/Acariciar,
-// esta última como reacción de alegría) — nunca queda en bucle permanente
+// Sólo se dispara desde acciones puntuales (Comer/Beber/Hablar/minijuegos)
+// — nunca queda en bucle permanente
 // ni se inventó ninguna acción nueva para lucirla. Cada clase mueve
 // #boca-anim, un grupo NUEVO adentro de #boca-shape que envuelve el path
 // de la boca (ver js/manifest.js): el ánimo (mood-*) sigue rotando/
@@ -2136,7 +2131,7 @@ const FELICIDAD_BORDE = { feliz: 50, enojo: 25 };
 
 /** v3.2, pedido explícito: "que cueste subir el ánimo si estas [las
  * demás necesidades] siguen bajas" — centraliza acá TODA ganancia de
- * ánimo (jugar, acariciar, hablar, comer, limpiar una mancha, medicina)
+ * ánimo (jugar, hablar, comer, limpiar una mancha, medicina)
  * en vez de tocar cada punto por separado; el multiplicador real sale de
  * moodCouplingFactors() en js/state.js (mismo mecanismo que acelera el
  * decaimiento en applyDecay). */
@@ -2176,8 +2171,8 @@ function pickRequestCategory() {
     candidatos.push({ categoria: "triste", urgencia: statUrgency(s.felicidad, FELICIDAD_BORDE.enojo) ?? 100 });
   } else if (s.felicidad < FELICIDAD_BORDE.feliz) {
     // Tono más liviano — alterna entre "enojo" y los pedidos de siempre
-    // (jugar/mimo), todos válidos para esta franja de felicidad.
-    const liviana = ["enojo", "jugar", "mimo"];
+    // de jugar, válidos para esta franja de felicidad.
+    const liviana = ["enojo", "jugar"];
     candidatos.push({
       categoria: liviana[Math.floor(Math.random() * liviana.length)],
       urgencia: statUrgency(s.felicidad, FELICIDAD_BORDE.feliz) ?? 0,
@@ -2364,15 +2359,7 @@ function createActionButton({ key, icon, label, id, visualClass }) {
 function buildActionsDock() {
   el.actionsDock.innerHTML = "";
 
-  // Orden pedido (sección 6): Alimentar, Beber, Limpiar, Dormir, Jugar,
-  // Hablar. Medicina queda condicional (sólo visible si está enferma) al
-  // final, "en un lugar claro" pero sin ocupar espacio de siempre.
-  // "Limpiar" reutiliza la acción de bañar (misma key/cooldown de
-  // siempre, PET_CONFIG.cooldownsMs.bañar) — sólo cambian el ícono/label
-  // visibles. v2.2: "Afecto" (menú Acariciar+Hablar) se separó — Acariciar
-  // ahora es un click directo sobre el personaje (ver doAcariciar/
-  // setupPetClick) y Hablar quedó como una acción normal del dock, con su
-  // propio cooldown, igual que Beber/Bañar.
+  // Accesos a paneles, seguidos por las acciones de cuidado y juego.
   const defs = [
     { key: "inventario", icon: "inventario", label: "Inventario", handler: openInventory, noCooldown: true },
     { key: "ropa", icon: "ropa", label: "Ropa", handler: openWardrobe, noCooldown: true },
@@ -3312,14 +3299,7 @@ function toggleSueño() {
   updateCooldownButtons();
 }
 
-// ---------- Afecto: acariciar (click directo al personaje) / hablar ----------
-// v2.2: "acariciar" dejó de vivir en un menú — pedido explícito: "que la
-// opción de acariciar sea sólo haciendo click al personaje". Ahora
-// doAcariciar() se dispara clickeando #game-stage directo (setupPetClick,
-// más abajo); "Hablar" pasó a ser un botón normal del dock de acciones
-// (con su propio cooldown, ver buildActionsDock) en vez de compartir un
-// menú con Acariciar.
-
+// ---------- Reacciones de minijuegos y diálogo ----------
 const PET_REACTIONS = ["💕", "✨", "💫"];
 function popHearts() {
   const n = 3;
@@ -3332,41 +3312,6 @@ function popHearts() {
     el.walker.appendChild(span);
     setTimeout(() => span.remove(), 1400);
   }
-}
-
-function doAcariciar() {
-  if (state.sleep.dormida) { notifySystem(`${state.name} está durmiendo. No se puede acariciar mientras descansa.`); return; }
-  if (Math.round(state.stats.felicidad) >= 100) { showBubble("No quiero más caricias"); return; }
-  if (isOnCooldown("acariciar")) { popHearts(); return; }
-  registerInteraction();
-  startIdle(1000, 1500);
-  gainFelicidad(PET_CONFIG.affection.acariciar.felicidad);
-  addBond(PET_CONFIG.affection.acariciar.vinculo);
-  startCooldown("acariciar");
-  trySave(state);
-  refreshUI();
-  updateCooldownButtons();
-  popHearts();
-  playMouthAnim(el.gameStage, "feliz", 480);
-  emitRealtimeAction("pet");
-}
-
-/** Click directo sobre el personaje (juego) = acariciar. Ver también la
- * exclusión agregada en setupClickToWalk (#game-stage no debe además
- * mover a la mascota hacia donde se clickeó). No se agrega en el
- * escenario de personalización (#preview-stage) — ahí no hay stats. */
-function setupPetClick() {
-  if (!el.gameStage) return;
-  el.gameStage.setAttribute("role", "button");
-  el.gameStage.setAttribute("tabindex", "0");
-  el.gameStage.setAttribute("aria-label", "Acariciar mascota");
-  el.gameStage.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); el.gameStage.click(); } });
-  el.gameStage.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    if (housingEditing) return;
-    if (!state || el.game.hidden) return;
-    doAcariciar();
-  });
 }
 
 let lastTalkPhrase = "";
@@ -3781,8 +3726,7 @@ if (el.btnAleatorio) el.btnAleatorio.addEventListener("click", randomizeLook);
 if (el.nameInput) el.nameInput.addEventListener("input", clearNameError);
 
 // Cerrar el menú de comida si se clickea afuera (el de Opciones tiene su
-// propio listener en setupOptionsMenu; Afecto/Acariciar dejó de ser un
-// menú en v2.2 — ver doAcariciar/setupPetClick).
+// propio listener en setupOptionsMenu).
 document.addEventListener("click", (ev) => {
   if (el.feedMenu && !el.feedMenu.hidden && !ev.target.closest("#feed-menu") && !ev.target.closest("#btn-comer")) {
     el.feedMenu.hidden = true;
@@ -4018,7 +3962,7 @@ function setupStageModals() {
   setupStageHover();
   setupPreviewStageHover();
   setupWalking();
-  setupPetClick();
+  setupGameChatKeyboard();
   setupMinigames();
   setupGameSelector();
   setupVisibilityRecalc();
@@ -5309,15 +5253,6 @@ function setupRoomChatUI() {
       el.roomQuickChatInput.focus();
     }
   });
-  document.addEventListener("keydown", (ev) => {
-    if (ev.defaultPrevented || ev.key !== "Enter" || ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey || ev.shiftKey) return;
-    if (!el.roomQuickChat || el.roomQuickChat.hidden || el.game?.hidden || el.stageFloor?.classList.contains("is-editing") || minigame) return;
-    if (!el.roomChatPanel?.hidden || document.querySelector(".modal-overlay:not([hidden])") || !document.getElementById("game-selector")?.hidden) return;
-    const target = ev.target;
-    if (target instanceof Element && target.closest("input, textarea, select, button, a, [contenteditable='true']")) return;
-    ev.preventDefault();
-    setQuickChatActive(true);
-  });
   document.addEventListener("visibilitychange", () => { if (document.hidden) stopLocalChatTyping(); });
   window.addEventListener("pagehide", stopLocalChatTyping);
   el.roomChatForm.addEventListener("submit", async (ev) => {
@@ -5383,18 +5318,6 @@ function showRemoteBubble(walker, text, ms = 2200) {
   }, ms);
 }
 
-function popRemoteHearts(walker) {
-  for (let i = 0; i < 3; i += 1) {
-    const heart = document.createElement("span");
-    heart.className = "heart-pop";
-    heart.textContent = PET_REACTIONS[Math.floor(Math.random() * PET_REACTIONS.length)];
-    heart.style.left = `${42 + Math.random() * 16}%`;
-    heart.style.animationDelay = `${i * 90}ms`;
-    walker.appendChild(heart);
-    setTimeout(() => heart.remove(), 1400);
-  }
-}
-
 function scheduleRemoteEffect(walker, key, callback, delay) {
   walker._remoteEffectTimers = walker._remoteEffectTimers || {};
   clearTimeout(walker._remoteEffectTimers[key]);
@@ -5431,10 +5354,6 @@ function replayRemoteAction(event, allowQueue = true) {
     case "talk":
       playMouthAnim(stage, "hablar", 3200);
       showRemoteBubble(walker, event.data?.text || "¡Hola!", 3200);
-      break;
-    case "pet":
-      popRemoteHearts(walker);
-      playMouthAnim(stage, "feliz", 520);
       break;
     case "bathe":
       fx?.classList.remove("bathing");

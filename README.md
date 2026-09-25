@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## En preparación — base para v4.6
+
+- Roadmap hasta la última Beta (v4.9) en [PENDIENTES.md](PENDIENTES.md).
+- Enter durante el juego dirige al chat disponible y no vuelve a pulsar el último botón enfocado. Los campos de formularios mantienen su funcionamiento nativo.
+- No se selecciona texto accidentalmente en el escenario; el historial del chat del celular y los campos de entrada permiten seleccionar/copiar texto.
+- Se retira acariciar, incluyendo sus recompensas de felicidad/XP y cooldown. El ánimo, sus expresiones y las recompensas de otras actividades se conservan.
+- Inicio de consolidación gradual: reglas de interacción en `js/game-interactions.js` y `css/game-interactions.css`.
+
 ## Beta v4.5.4 — Barra de chat y ficha sin hojas
 
 - **Globo de charla** con borde marrón de 2px; la colita también lleva borde.

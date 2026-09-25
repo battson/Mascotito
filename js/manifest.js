@@ -442,7 +442,7 @@ const PET_PARTS_MANIFEST = {
   //  v2.3 también: cada boca ahora envuelve su path en un `#boca-anim`
   //  adentro de `#boca-shape`, con el MISMO transform-origin — es el
   //  gancho que usan las animaciones de apertura/cierre (Comer/Beber/
-  //  Hablar/Acariciar, ver css/style.css ".mouth-anim-*" y
+  //  Hablar/minijuegos, ver css/style.css ".mouth-anim-*" y
   //  playMouthAnim() en js/app.js). `#boca-shape` sigue siendo lo único
   //  que toca el ánimo (mood-*), así que ambas cosas se combinan solas
   //  sin pisarse: el ánimo rota/escala la boca entera, la animación de
@@ -1014,7 +1014,7 @@ const PET_TALK_PHRASES = [
   "Hoy es un lindo día para estar juntos.",
 ];
 
-// Pedidos espontáneos (sección 8: "¿Jugamos?", "Necesito un mimo"; v2.5:
+// Pedidos espontáneos (sección 8: "¿Jugamos?"; v2.5:
 // "las necesidades... se transmiten en frases que va diciendo la mascota
 // cada tanto") — cada clave es un motivo posible; maybeShowRequest (js/
 // app.js) elige la categoría según qué necesidad esté más floja en ese
@@ -1052,15 +1052,6 @@ const PET_REQUEST_PHRASES = {
     "¡Traé el juguete, dale!",
     "Tengo energía para una aventura.",
     "¿Elegimos un juego?",
-  ],
-  mimo: [
-    "Necesito un mimo.",
-    "¿Me acariciás un poco?",
-    "Vení que te quiero cerca.",
-    "Un poco de cariño me vendría bien.",
-    "¿Me hacés upa un ratito?",
-    "Quiero un poquito de compañía.",
-    "Una caricia me alegraría.",
   ],
   sueño: [
     "Tengo sueño...",

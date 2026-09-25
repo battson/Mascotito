@@ -1,27 +1,66 @@
-# Pendientes de rediseño UI
+# Roadmap de Mascotito — cierre de la Beta
 
-## Alcance actual
+## Estado y forma de trabajo
 
-- v4.4 cerrada (celular de Contactos, inventario cofre, vestidor). v4.5: rediseño de la ficha del personaje (plegable, nivel y XP adentro) y notificaciones en burbuja.
-- Beta v4.3 en curso, de a un paso por entrega. Hecho: ícono de Contactos, + (con Solicitudes adentro) y − (v4.3); Aceptar/Rechazar, Visitar, Chat, Enviar como íconos y pantalla renombrada a Contactos (v4.3.1). Hecho en v4.3.2: celular con Contactos y chat según referencia.png, mascota de cada contacto con aro de conexión, casita para la sala, emojis en la huellita, menú «•••» (Visitar/Eliminar), huella del marco como inicio, ✓ para Aceptar y lupa para Buscar. v4.3.3: ventana vieja de Amigos integrada al celular (lupa = Buscar, + = Solicitudes sólo con pendientes, Eliminar en «•••» con confirmación), marco arriba con pantalla transparente, sin emojis. Limpieza pendiente: borrar assets/ui/phone/accept.svg (sin uso) y las reglas CSS de la ventana vieja de Amigos (#friends-panel, .friends-tabpanel), que ya no tienen HTML.
-- Cada actualización debe entregarse con capturas de pantalla que muestren los cambios solicitados.
+- Base actual: Beta v4.5.4. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
+- Trabajar por etapas, revisando con el usuario cada cambio de diseño. Entregar capturas cuando se cambie la interfaz.
+- Priorizar escritorio. La experiencia móvil y sus funciones limitadas se decidirán en una versión dedicada; no ampliar ese alcance ahora.
+- Mantener el ánimo, las expresiones y el aro de color. Se retira acariciar y sus recompensas de felicidad/XP, no el sistema general de felicidad.
+- Los subrayados y guiones inferiores no se usarán como indicadores de selección. Recordar los pendientes de cada sección al comenzar su rediseño.
 
-- Inventario v4.2.9: ventana simplificada de windowsv2.ai, sólo consumibles, cierre discreto en la esquina superior derecha; no tiene categorías.
+## Beta v4.6 — Jugar
 
-- Priorizar escritorio. No dedicar trabajo a adaptación o revisión móvil por ahora.
-- La experiencia móvil se definirá en una versión específica futura. El usuario contempla un juego principalmente de escritorio y funciones limitadas en celular; esas funciones todavía no están decididas.
-- La barra de acciones de v4.1 queda aprobada con el diseño actual. El usuario se encarga de subir esta versión.
+- [ ] Rediseñar la interfaz de Jugar y la selección de juegos.
+- [ ] Revisar el sistema de juego: acceso, instrucciones, interacción, resultados y recompensas, coordinándolo con la economía de v4.7.
+- [ ] Definir con el usuario qué juegos se mantienen, cambian o incorporan.
 
-Recordar al usuario el pendiente correspondiente al comenzar el rediseño de cada sección. Preferencia acordada: eliminar subrayados y guiones inferiores como recurso visual. Las alternativas siguientes son propuestas, todavía no decisiones aprobadas.
+## Beta v4.7 — Tienda y economía
 
-- [ ] Editor de mascota: reemplazar los guiones de hover y selección en partes y colores. Propuesta: aumento suave en hover y borde completo para selección.
-- [ ] Ropa y Tienda: reemplazar el subrayado naranja de las pestañas y subcategorías activas. Inventario ya no tiene subrayados (v4.2.6).
-- [x] Inventario v4.2.9: marco simplificado integrado y objetos de vivienda reunidos en Decorar casa, accesible desde el encabezado. Cierra la serie v4.2; la siguiente etapa es v4.3.
-- [ ] Formularios: reemplazar la línea inferior de los campos de nombre, usuario, PIN y búsqueda de amigos. Propuesta: borde completo con esquinas redondeadas.
-- [x] Barra de acciones: resplandor para panel abierto aprobado por ahora con la intensidad actual. Sombra inferior descartada. Sin subrayado ni fondo; se conserva el estado accesible.
+- [ ] Rediseñar la Tienda y sus categorías sin subrayados.
+- [ ] Definir precios, formas de obtener y gastar monedas, y progresión.
+- [ ] Revisar compras, artículos propios, saldo insuficiente y confirmaciones.
+- [ ] Reactivar la Tienda cuando se validen su interfaz y economía; hoy está deshabilitada deliberadamente.
 
-## Para cerrar la barra de acciones de Beta v4.1
+## Beta v4.8 — Casas y preparación de nuevos lugares
 
-- v4.2.3: tamaño de los íconos duplicado por pedido del usuario; botones ampliados para contenerlos. Se conservan los dos grupos y su separación.
-- Resplandor aprobado por ahora; mantener los iconos sin sombra inferior.
-- Ya implementado: SVG sin nombres ni fondos, dos grupos (Inventario/Ropa/Tienda y Dormir/Jugar/Limpiar), hover, luna/sol y cooldown con icono atenuado y contador superpuesto.
+- [ ] Rediseñar las casas y la experiencia de Decorar casa.
+- [ ] Consolidar la colocación, guardado y presentación de los objetos de vivienda.
+- [ ] Preparar una estructura de escenarios que distinga casas privadas y espacios públicos.
+- [ ] Definir navegación, entradas/salidas y permisos para esos nuevos escenarios, conservando las visitas a casas.
+
+## Beta v4.9 — Salas públicas y última actualización de la Beta
+
+- [ ] Implementar salas públicas para encuentros, juegos y otras actividades por definir.
+- [ ] Integrar presencia, chat y entrada/salida de jugadores en esos escenarios.
+- [ ] Diseñar e implementar el sistema definitivo de objetivos; el anterior se retiró y no debe reactivarse por accidente.
+- [ ] Revisar progresión, recompensas, nuevos usuarios y mensajes del juego antes de la salida oficial.
+- [ ] Pulir interacción, rendimiento, guardado y reconexión con pruebas de varias cuentas.
+- [ ] Validar permisos de cuentas, mensajes privados y catálogo antes de ampliar el público.
+- [ ] Cerrar los pendientes de la Beta y preparar la salida oficial. v4.9 será la última actualización de la Beta.
+
+## Consolidación técnica gradual
+
+- [x] Separar la política de teclado y selección de texto en `js/game-interactions.js` y `css/game-interactions.css`.
+- [x] Retirar la acción de acariciar, su configuración y cooldown; mantener las recompensas de las demás actividades.
+- [ ] Extraer de `app.js` responsabilidades completas por etapa: Jugar en v4.6, economía/Tienda en v4.7, vivienda/escenarios en v4.8 y salas en v4.9.
+- [ ] Consolidar el CSS de cada componente al rediseñarlo: reemplazar reglas obsoletas y duplicadas en lugar de seguir acumulando sobrescrituras.
+- [ ] Limpiar el código retirado de Objetivos, preservando el contador diario de Pesca y preparando el sistema nuevo de v4.9.
+- [ ] Revisar y retirar estilos/recursos sin uso del antiguo panel de Amigos y versiones anteriores de las ventanas.
+- [ ] Agregar verificaciones de regresión a medida que se separen componentes; conservar las pruebas de vivienda y vestuario.
+
+## Pulido de interacción pendiente
+
+- [x] Enter no vuelve a activar el último botón pulsado durante el juego: se reserva al chat disponible. Los formularios conservan su edición nativa.
+- [x] Evitar selección accidental de texto en el juego. Permitir copiar conversaciones del celular y editar/seleccionar texto en los campos de entrada.
+- [ ] Centralizar Escape: cerrar primero el panel superior sin terminar también una visita.
+- [ ] Mantener el foco del teclado dentro de las ventanas y devolverlo al control que las abrió al cerrar.
+- [ ] Evitar que la ficha de la mascota tape los globos de diálogo, especialmente en escritorios de 1366 × 768.
+
+## Recordatorios de diseño por sección
+
+- [ ] Editor de mascota: reemplazar guiones de hover/selección en partes y colores. Propuesta pendiente: aumento suave y borde completo.
+- [ ] Formularios: reemplazar la línea inferior de nombre, usuario, PIN y búsqueda por un tratamiento a definir.
+- [ ] Encabezado: unificar Editar mascota, Decorar casa y opciones con el lenguaje ilustrado del juego.
+- [x] Barra de acciones: dos grupos, iconos sin nombres/fondos/sombra inferior, hover, pulsación y resplandor activo. Tamaño ampliado desde v4.2.3 aprobado; cooldown con icono atenuado y contador.
+- [x] Inventario: sólo consumibles, cofre ilustrado y cierre discreto; sin categorías. Los objetos de vivienda están en Decorar casa.
+- [x] Vestidor: categorías por iconos, vista previa y Guardar/Cancelar.

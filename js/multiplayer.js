@@ -43,7 +43,7 @@ let lastChatSentAt = 0;
 const DIRECT_CHAT_HISTORY_LIMIT = 100;
 const directChatLastSentAt = new Map();
 const ACTION_TYPES = new Set([
-  "eat", "drink", "bathe", "sleep", "wake", "pet", "talk",
+  "eat", "drink", "bathe", "sleep", "wake", "talk",
   "play", "play_end", "medicine", "poop", "clean",
 ]);
 
