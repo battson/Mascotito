@@ -11,7 +11,7 @@ function setupGameChatKeyboard() {
     event.stopImmediatePropagation();
     if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
     if (document.querySelector(".modal-overlay:not([hidden]), [role='alertdialog']:not([hidden])") || minigame
-        || !document.getElementById("game-selector")?.hidden || housingEditing || debugSnapshot) return;
+        || !document.getElementById("game-selector")?.hidden || !document.getElementById("minigame-panel")?.hidden || housingEditing || debugSnapshot) return;
 
     if (!el.roomChatPanel?.hidden) {
       const conversation = document.getElementById("room-chat-conversation");

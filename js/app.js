@@ -114,7 +114,6 @@ const el = {
   minigameTime: document.getElementById("minigame-time"),
   minigameInstructions: document.getElementById("minigame-instructions"),
   minigameArena: document.getElementById("minigame-arena"),
-  minigameTarget: document.getElementById("minigame-target"),
   minigameClose: document.getElementById("minigame-close"),
   bathFx: document.getElementById("bath-fx"),
   zzzFx: document.getElementById("zzz-fx"),
@@ -1512,7 +1511,7 @@ function setStageEditing(active) {
 
 function openOnboarding(existingState) {
   if (activeVisit) closeVisit({ skipTransition: true });
-  document.getElementById("game-selector").hidden = true;
+  closeGameSelector(false); closeGamePanel();
   if (navLock) return;
   finishMinigame(true);
   closeAllMenus();
@@ -3038,235 +3037,9 @@ function doBañar() {
   showBubble("¡Qué bien me siento!");
 }
 
-// ---------- Jugar / minijuegos ----------
+// ---------- Jugar ----------
+// Beta v4.6: selector, Pesca, Penales y resultado viven en js/games.js.
 
-let minigame = null;
-let minigameInterval = null;
-let minigameSpawnTimer = null;
-
-// v3.6, pedido explícito: "quitar juego de pelota traviesa" — se saca su
-// entrada de este array (de acá sale sola la tarjeta del selector, ver
-// setupGameSelector() más abajo, que arma #game-choices recorriendo
-// MINIGAMES). Pesca y Luciérnagas quedan sin cambios; son genéricas
-// (parametrizadas por game.id) así que no dependían de la de Pelota.
-const MINIGAMES = [
-  { id: "pesca", title: "Pesca", instructions: "Esperá a que pique y tocá ¡Tirar! Hasta 3 pescados por partida y 3 partidas por día, sin espera. Cada inicio cuenta, aunque canceles.", symbol: "🎣", duration: 20, goal: 3, targetLife: 0 },
-  {
-    id: "luciernagas",
-    title: "Caza de luciérnagas",
-    instructions: "Tocá todas las luces que puedas. Cada una desaparece rápido.",
-    symbol: "✦",
-    duration: 12,
-    goal: 8,
-    targetLife: 1150,
-  },
-];
-
-function clearMinigameTimers() {
-  if (minigameInterval) clearInterval(minigameInterval);
-  if (minigameSpawnTimer) clearTimeout(minigameSpawnTimer);
-  minigameInterval = null;
-  minigameSpawnTimer = null;
-}
-
-function positionMinigameTarget() {
-  if (!minigame || !el.minigameArena || !el.minigameTarget || minigame.type.id === "pesca") return;
-  const rect = el.minigameArena.getBoundingClientRect();
-  const size = minigame.type.id === "luciernagas" ? 54 : 68;
-  const x = 10 + Math.random() * Math.max(8, rect.width - size - 20);
-  const y = 10 + Math.random() * Math.max(8, rect.height - size - 20);
-  el.minigameTarget.style.left = x + "px";
-  el.minigameTarget.style.top = y + "px";
-  el.minigameTarget.textContent = minigame.type.symbol;
-  el.minigameTarget.setAttribute("aria-label", "Atrapar " + minigame.type.title);
-  el.minigameTarget.dataset.game = minigame.type.id;
-  el.minigameTarget.classList.remove("target-pop");
-  void el.minigameTarget.offsetWidth;
-  el.minigameTarget.classList.add("target-pop");
-  if (minigame.type.targetLife) {
-    clearTimeout(minigameSpawnTimer);
-    minigameSpawnTimer = setTimeout(() => {
-      if (!minigame) return;
-      positionMinigameTarget();
-    }, minigame.type.targetLife);
-  }
-}
-
-function updateMinigameHUD() {
-  if (!minigame) return;
-  el.minigameScore.textContent = `${minigame.score} ${minigame.type.id === "pesca" ? "🐟" : "pts"}`;
-  el.minigameTime.textContent = `${Math.max(0, minigame.remaining)}s`;
-}
-
-function finishMinigame(cancelled = false) {
-  if (!minigame) return;
-  const finished = minigame;
-  clearMinigameTimers();
-  minigame = null;
-  el.minigamePanel.hidden = true;
-  el.minigameTarget.classList.remove("target-pop");
-  document.getElementById("btn-jugar").focus();
-  if (cancelled) {
-    notifySystem("Minijuego cancelado.", 2200);
-    return;
-  }
-
-  const success = finished.score >= finished.type.goal;
-  emitRealtimeAction("play_end", { game: finished.type.id, result: success ? "win" : "finish" });
-  const fishCaught = finished.type.id === "pesca" ? finished.score : 0;
-  state.inventory.pescado += fishCaught;
-  const happiness = success ? PET_CONFIG.play.felicidad : Math.max(2, Math.round(PET_CONFIG.play.felicidad * .45));
-  const energyCost = success ? PET_CONFIG.play.energiaCosto : Math.max(1, Math.round(PET_CONFIG.play.energiaCosto * .6));
-  const xp = success ? PET_CONFIG.play.vinculo : Math.max(1, Math.round(PET_CONFIG.play.vinculo * .5));
-  const coins = success ? Math.max(5, finished.score * 2) : Math.max(1, finished.score);
-
-  gainFelicidad(happiness);
-  state.stats.energia = clamp(state.stats.energia - energyCost, 0, 100);
-  addBond(xp);
-  state.economy = state.economy || { coins: 0 };
-  state.economy.coins = Math.max(0, (state.economy.coins || 0) + coins);
-  const dailyReward = (success || fishCaught > 0) ? recordDailyGoal("play") : false;
-  trySave(state);
-  refreshUI();
-  updateCooldownButtons();
-  playMouthAnim(el.gameStage, success ? "feliz" : "hablar", 900);
-  refreshFeedMenuState();
-  notifySystem(
-    finished.type.id === "pesca" ? `¡Pesca terminada! +${fishCaught} pescado(s). Stock: ${state.inventory.pescado}${dailyReward ? " · ¡Objetivos completos! +50 monedas +100 XP" : ""}` : dailyReward
-      ? `¡Objetivos completos! +50 monedas +100 XP`
-      : success
-        ? `¡Ganamos! +${coins} monedas`
-        : `¡Buen intento! Sumamos ${coins} monedas.`,
-    3200
-  );
-}
-
-function launchMinigame(type) {
-  clearMinigameTimers();
-  closeAllMenus();
-  startIdle(15000, 16000);
-  document.getElementById("game-selector").hidden = true;
-  minigame = { type, score: 0, remaining: type.duration };
-  emitRealtimeAction("play", { game: type.id });
-  el.minigameArena.dataset.game = type.id;
-  el.minigameArena.dataset.phase = "waiting";
-  delete el.minigameTarget.dataset.phase;
-  el.minigameTitle.textContent = type.title;
-  el.minigameInstructions.textContent = type.instructions;
-  el.minigamePanel.hidden = false;
-  updateMinigameHUD();
-  positionMinigameTarget();
-  if (type.id === "pesca") scheduleFishingCast();
-  el.minigameTarget.focus();
-  minigameInterval = setInterval(() => {
-    if (!minigame) return;
-    minigame.remaining -= 1;
-    updateMinigameHUD();
-    if (minigame.remaining <= 0) finishMinigame(false);
-  }, 1000);
-}
-
-function setupMinigames() {
-  if (!el.minigameTarget) return;
-  el.minigameTarget.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    if (!minigame) return;
-    if (minigame.type.id === "pesca") {
-      if (minigame.phase !== "bite") { el.minigameInstructions.textContent = "Todavía no picó. Esperá la señal ¡Tirar!"; return; }
-      minigame.phase = "caught";
-      const jump=document.createElement("img"); jump.src="assets/items/fish.svg";jump.alt="";jump.className="caught-fish";el.minigameArena.appendChild(jump);setTimeout(()=>jump.remove(),1000);
-      clearTimeout(minigameSpawnTimer);
-    }
-    minigame.score += 1;
-    updateMinigameHUD();
-    popHearts();
-    if (minigame.type.id !== "luciernagas" && minigame.score >= minigame.type.goal) {
-      finishMinigame(false);
-      return;
-    }
-    if (minigame.type.id === "pesca") scheduleFishingCast();
-    else positionMinigameTarget();
-  });
-  if (el.minigameClose) el.minigameClose.addEventListener("click", () => finishMinigame(true));
-}
-
-function scheduleFishingCast() {
-  if (!minigame || minigame.type.id !== "pesca") return;
-  clearTimeout(minigameSpawnTimer);
-  minigame.phase = "waiting";
-  el.minigameArena.dataset.phase="waiting";
-  el.minigameTarget.dataset.game = "pesca";
-  el.minigameTarget.dataset.phase = "waiting";
-  el.minigameTarget.textContent = "🎣 Esperando…";
-  el.minigameTarget.setAttribute("aria-label", "Esperando que pique");
-  el.minigameInstructions.textContent = "Esperá la señal. Tocá ¡Tirar! cuando pique.";
-  minigameSpawnTimer = setTimeout(() => {
-    if (!minigame) return;
-    minigame.phase = "bite";
-    el.minigameArena.dataset.phase="bite";
-    el.minigameInstructions.textContent = "¡Picó! Tocá ¡Tirar! antes de que se escape.";
-    el.minigameTarget.dataset.phase = "bite";
-    el.minigameTarget.textContent = "🐟 ¡Tirar!";
-    el.minigameTarget.setAttribute("aria-label", "¡Tirar!");
-    minigameSpawnTimer = setTimeout(scheduleFishingCast, 1600);
-  }, 900 + Math.random() * 1300);
-}
-
-let selectedMinigame = "pesca";
-function fishingPlaysRemaining() {
-  ensureDailyProgress();
-  return Math.max(0, 3 - (state.daily.fishingPlays || 0));
-}
-function fishingLimitMessage() {
-  const remaining = fishingPlaysRemaining();
-  return remaining ? `Pesca: ${remaining} de 3 partidas disponibles hoy. Sin tiempo de espera.` : "Ya jugaste las 3 partidas de pesca de hoy. Volvé mañana.";
-}
-function openGameSelector(selected = null) {
-  if (minigame || navLock) return;
-  closeAllMenus();
-  selectedMinigame = selected || selectedMinigame;
-  const panel = document.getElementById("game-selector");
-  panel.hidden = false;
-  panel.querySelectorAll(".game-choice").forEach(card => { card.classList.toggle("is-open", card.dataset.game === selected); card.querySelector(".game-title").setAttribute("aria-expanded", String(card.dataset.game === selected)); });
-  document.getElementById("game-selector-note").textContent = fishingLimitMessage();
-  panel.setAttribute("tabindex","-1");
-  panel.focus();
-  if(selected) panel.querySelector(`[data-game="${selected}"]`).scrollIntoView({block:"nearest",inline:"center"});
-}
-function closeGameSelector() {
-  document.getElementById("game-selector").hidden = true;
-  document.getElementById("btn-jugar").focus();
-}
-function setupGameSelector() {
-  const panel = document.getElementById("game-selector");
-  document.getElementById("game-choices").innerHTML = MINIGAMES.map(game => `<article class="game-choice" data-game="${game.id}"><div class="game-art">${game.id === "pesca" ? '<img src="assets/items/fish-item.svg" alt="" />' : '<span>'+game.symbol+'</span>'}</div><div class="game-details" id="details-${game.id}"><p>${game.instructions}</p><button type="button" class="card-play" data-play="${game.id}">▶ Play</button></div><button type="button" class="game-title" aria-expanded="false" aria-controls="details-${game.id}">${game.title}</button></article>`).join("");
-  panel.querySelectorAll(".game-title").forEach(btn => btn.addEventListener("click", () => {
-    const card=btn.closest(".game-choice"); const open=!card.classList.contains("is-open");
-    panel.querySelectorAll(".game-choice").forEach(c=>{c.classList.remove("is-open");c.querySelector(".game-title").setAttribute("aria-expanded","false")});
-    card.classList.toggle("is-open",open); btn.setAttribute("aria-expanded",String(open)); selectedMinigame=card.dataset.game;
-  }));
-  panel.querySelectorAll(".card-play").forEach(btn => btn.addEventListener("click", () => {selectedMinigame=btn.dataset.play;document.getElementById("game-play").click()}));
-  document.getElementById("game-selector-close").addEventListener("click", closeGameSelector);
-  document.getElementById("game-play").addEventListener("click", () => {
-    const note = document.getElementById("game-selector-note");
-    if (minigame) return;
-    if (state.sleep.dormida) { note.textContent = "Despertá a tu mascota para jugar."; return; }
-    if (state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar) { note.textContent = "Necesita descansar: no tiene suficiente energía."; return; }
-    if (selectedMinigame === "pesca") {
-      if (!fishingPlaysRemaining()) { note.textContent = fishingLimitMessage(); return; }
-      state.daily.fishingPlays = (state.daily.fishingPlays || 0) + 1;
-      state.cooldowns.pesca = 0;
-      // Guardar al iniciar evita recuperar una partida al cancelar o recargar.
-      trySave(state);
-    } else {
-      if (isOnCooldown("jugar")) { note.textContent = `Podés jugar de nuevo en ${formatCooldownPhrase(state.cooldowns.jugar-Date.now())}.`; return; }
-      startCooldown("jugar");
-    }
-    registerInteraction(); updateCooldownButtons();
-    launchMinigame(MINIGAMES.find(game => game.id === selectedMinigame));
-  });
-}
-function doJugar() { openGameSelector(); }
 
 // ---------- Dormir / despertar ----------
 
@@ -3344,7 +3117,7 @@ function openDebugMode() {
   if (!state || !el.debugPanel) return;
   if (debugSnapshot || navLock) return;
   finishMinigame(true);
-  document.getElementById("game-selector").hidden = true;
+  closeGameSelector(false); closeGamePanel();
   el.feedMenu.hidden = true;
   debugSnapshot = JSON.parse(JSON.stringify(state));
   el.optDebug.setAttribute("aria-expanded", "true");
@@ -3924,14 +3697,12 @@ function syncHudLayout() {
   }
   computeWalkBounds();
   el.walker.style.transform = `translateX(${walkX + WALK_PAD}px)`;
-  if (minigame) positionMinigameTarget();
 }
 for (const id of ["wellbeing-widget","stage-actions-row","room-chat-toggle"]) new ResizeObserver(syncHudLayout).observe(document.getElementById(id));
 window.addEventListener("resize", syncHudLayout);
 document.addEventListener("keydown", ev => {
   if (ev.defaultPrevented || ev.key !== "Escape") return;
-  if (minigame) finishMinigame(true);
-  else if (!document.getElementById("game-selector").hidden) closeGameSelector();
+  gamesHandleEscape();
 });
 // ---------- Arranque ----------
 
@@ -5341,7 +5112,7 @@ function replayRemoteAction(event, allowQueue = true) {
   }
   const { walker, stage } = target;
   const fx = walker.querySelector(".remote-bath-fx");
-  const gameNames = { pesca: "la pesca", luciernagas: "las luciérnagas" };
+  const gameNames = { pesca: "la pesca", penales: "los penales" };
   switch (event.type) {
     case "eat":
       playMouthAnim(stage, "comer", 900);

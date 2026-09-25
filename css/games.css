@@ -1,0 +1,329 @@
+/* ==========================================================================
+   Beta v4.6 — Jugar (selector, Pesca, Penales y resultado)
+   Mismo lenguaje que la ficha y la barra de chat: crema con borde verde,
+   títulos estilo moneda y botones amarillos.
+   ========================================================================== */
+
+#stage-floor .games-window {
+  --g-line: #6f9340;
+  --g-rim: #e4efc2;
+  --g-cream: #fbf7e6;
+  --g-ink: #4a2c17;
+  --g-soft: #7a5a3a;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 30;
+  box-sizing: border-box;
+  width: min(840px, calc(100% - 48px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 16px 22px 20px;
+  border: 5px solid var(--g-line);
+  border-radius: 30px;
+  background: var(--g-cream);
+  box-shadow: inset 0 0 0 7px var(--g-rim), 0 16px 36px rgba(60, 35, 15, .28);
+  color: var(--g-ink);
+  font-family: "Baloo 2", sans-serif;
+  transform: translate(-50%, -50%);
+  animation: gamesIn .22s ease-out;
+}
+#stage-floor .games-window[hidden] { display: none; }
+#stage-floor .games-window.games-play { width: min(920px, calc(100% - 40px)); }
+@keyframes gamesIn { from { opacity: 0; transform: translate(-50%, -46%) scale(.97); } }
+
+/* Cabecera: título tipo moneda, fichas de puntaje y cerrar. */
+#stage-floor .games-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+#stage-floor .games-title {
+  flex: 1;
+  margin: 0;
+  font: 900 32px/1.1 "Baloo 2", sans-serif;
+  color: #ffe052;
+  -webkit-text-stroke: 3px #78410d;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #512a0c;
+  letter-spacing: .01em;
+}
+#stage-floor .games-close {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+#stage-floor .games-close img { display: block; width: 100%; height: 100%; pointer-events: none; }
+#stage-floor .games-close:hover { transform: scale(1.08); }
+#stage-floor .games-close:active { transform: scale(.92); }
+#stage-floor .games-close:focus-visible { outline: 3px solid #d7a95f; outline-offset: 2px; border-radius: 50%; }
+
+#stage-floor .games-chips { display: flex; gap: 8px; }
+#stage-floor .games-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 64px;
+  justify-content: center;
+  padding: 4px 14px;
+  border: 3px solid #c9dca4;
+  border-radius: 999px;
+  background: #fffdf3;
+  font: 800 17px/1.2 "Baloo 2", sans-serif;
+  color: var(--g-ink);
+}
+#stage-floor .games-chip:empty { display: none; }
+#stage-floor .games-chip img { width: 24px; height: 24px; object-fit: contain; }
+
+/* Botones amarillos (misma paleta que «Enviar»). */
+#stage-floor .games-btn {
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 22px 9px;
+  border: 3px solid #c98f14;
+  border-radius: 16px;
+  background: linear-gradient(#ffe27a, #f7c843);
+  box-shadow: inset 0 -4px 0 #e5ab25, inset 0 3px 0 rgba(255, 255, 255, .55), 0 3px 0 #a8740f;
+  color: #4b331d;
+  font: 800 18px/1.1 "Baloo 2", sans-serif;
+  cursor: pointer;
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+#stage-floor .games-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+#stage-floor .games-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 -2px 0 #e5ab25, 0 1px 0 #a8740f; }
+#stage-floor .games-btn:focus-visible { outline: 3px solid #6f9340; outline-offset: 2px; }
+#stage-floor .games-btn:disabled { filter: grayscale(.85); opacity: .55; cursor: not-allowed; }
+#stage-floor .games-btn-soft {
+  border-color: #8fae5a;
+  background: linear-gradient(#fbfdf1, #e7f0cc);
+  box-shadow: inset 0 -4px 0 #d3e2ad, 0 3px 0 #6f9340;
+}
+
+/* ---------------------------------------------------------------- Selector */
+#stage-floor .games-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+#stage-floor .game-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 3px solid #c9dca4;
+  border-radius: 24px;
+  background: #fffdf3;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+#stage-floor .game-card:hover { transform: translateY(-3px); border-color: #8fae5a; box-shadow: 0 8px 18px rgba(60, 35, 15, .14); }
+#stage-floor .game-card-art {
+  aspect-ratio: 2 / 1;
+  border-bottom: 3px solid #c9dca4;
+  background: #dff1f7;
+}
+#stage-floor .game-card-art svg { display: block; width: 100%; height: 100%; }
+#stage-floor .game-card-body { display: flex; flex: 1; flex-direction: column; padding: 10px 16px 14px; }
+#stage-floor .game-card h3 { margin: 0; font: 800 24px/1.1 "Baloo 2", sans-serif; color: var(--g-ink); }
+#stage-floor .game-card p { flex: 1; margin: 4px 0 10px; font: 600 14px/1.35 "Baloo 2", sans-serif; color: var(--g-soft); }
+#stage-floor .game-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#stage-floor .game-card-status {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #eef5d8;
+  color: #52702c;
+  font: 800 13px/1.3 "Baloo 2", sans-serif;
+}
+#stage-floor .game-card-status.is-blocked { background: #f6e7d6; color: #9a5a23; }
+#stage-floor .games-note { min-height: 1.4em; margin: 12px 0 0; text-align: center; font: 700 15px/1.4 "Baloo 2", sans-serif; color: #9a5a23; }
+#stage-floor .games-note:empty { display: none; }
+
+/* ------------------------------------------------------------------ Partida */
+#stage-floor .games-hint {
+  min-height: 1.5em;
+  margin: 0 0 8px;
+  text-align: center;
+  font: 800 17px/1.4 "Baloo 2", sans-serif;
+  color: var(--g-ink);
+}
+#stage-floor .games-stage { position: relative; }
+#stage-floor .games-arena {
+  position: relative;
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  border: 4px solid var(--g-line);
+  border-radius: 22px;
+  background: #dff1f7;
+  touch-action: manipulation;
+}
+#stage-floor .games-arena[data-game="penales"] { cursor: crosshair; }
+#stage-floor .games-arena .games-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+#stage-floor .games-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(440px, 80%);
+  transform: translateX(-50%);
+}
+#stage-floor .games-action { min-width: 180px; font-size: 22px; padding: 9px 26px 10px; }
+#stage-floor .games-arena[data-game="penales"] .games-controls { left: auto; right: 18px; width: auto; transform: none; }
+#stage-floor .games-action.is-hidden { visibility: hidden; }
+#stage-floor .games-action.is-waiting { filter: grayscale(.6); opacity: .75; }
+#stage-floor .games-action.is-hot { animation: gamesHot .7s ease-in-out infinite alternate; }
+@keyframes gamesHot { to { box-shadow: inset 0 -4px 0 #e5ab25, 0 3px 0 #a8740f, 0 0 0 6px rgba(255, 224, 82, .45); } }
+
+/* Medidor de Pesca: aguja que va y viene sobre una zona verde. */
+#stage-floor .games-meter {
+  position: relative;
+  width: 100%;
+  height: 26px;
+  border: 3px solid #5a3a22;
+  border-radius: 999px;
+  background: #fbf7e6;
+  box-shadow: 0 3px 0 rgba(60, 35, 15, .25);
+}
+#stage-floor .games-meter[hidden] { display: none; }
+#stage-floor .games-meter-zone {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 999px;
+  background: linear-gradient(#9bd96a, #6fb04a);
+}
+#stage-floor .games-meter-needle {
+  position: absolute;
+  top: -8px;
+  width: 8px;
+  height: 36px;
+  margin-left: -4px;
+  border: 2px solid #5a3a22;
+  border-radius: 4px;
+  background: #f2663f;
+}
+
+/* Pesca: boya, ondas, sombras de peces y el salto al sacar uno. */
+#stage-floor .gw-boya { transform-box: fill-box; transform-origin: 50% 70%; animation: gwFlota 2.4s ease-in-out infinite; }
+#stage-floor [data-phase="bite"] .gw-boya { animation: gwPica .32s ease-in-out infinite alternate; }
+#stage-floor [data-phase="reel"] .gw-boya { animation: gwTira .5s ease-in-out infinite alternate; }
+@keyframes gwFlota { 50% { transform: translateY(3px); } }
+@keyframes gwPica { from { transform: translateY(2px); } to { transform: translateY(14px) rotate(-8deg); } }
+@keyframes gwTira { from { transform: translate(-6px, 4px) rotate(-6deg); } to { transform: translate(6px, 8px) rotate(6deg); } }
+#stage-floor .gw-onda { transform-box: fill-box; transform-origin: center; opacity: 0; animation: gwOnda 2.8s ease-out infinite; }
+#stage-floor .gw-onda-2 { animation-delay: 1.4s; }
+#stage-floor [data-phase="bite"] .gw-onda,
+#stage-floor [data-phase="reel"] .gw-onda { animation-duration: .9s; }
+@keyframes gwOnda { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(2.6); } }
+#stage-floor .gw-sombra-a { animation: gwNadaA 7s linear infinite; }
+#stage-floor .gw-sombra-b { animation: gwNadaB 9s linear infinite; }
+@keyframes gwNadaA { from { transform: translate(-60px, 300px); } to { transform: translate(860px, 250px); } }
+@keyframes gwNadaB { from { transform: translate(860px, 150px) scaleX(-1); } to { transform: translate(-60px, 190px) scaleX(-1); } }
+#stage-floor .gw-pez-salta.is-jumping { animation: gwSalta 1s ease-out; }
+@keyframes gwSalta {
+  0% { opacity: 0; transform: translate(0, 60px) rotate(0); }
+  15% { opacity: 1; }
+  55% { opacity: 1; transform: translate(40px, -120px) rotate(-20deg); }
+  100% { opacity: 0; transform: translate(80px, -40px) rotate(25deg); }
+}
+#stage-floor .gw-pez-salta { transform-box: fill-box; transform-origin: center; }
+
+/* Penales: cartel de resultado de cada tiro. */
+#stage-floor .games-banner {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  padding: 6px 26px 8px;
+  border: 4px solid #5a3a22;
+  border-radius: 20px;
+  background: #fffdf3;
+  font: 900 34px/1 "Baloo 2", sans-serif;
+  color: #4a2c17;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(.6);
+}
+#stage-floor .games-banner[data-result="gol"] { background: #ffe052; }
+#stage-floor .games-banner.is-on { animation: gamesBanner 1.35s ease forwards; }
+@keyframes gamesBanner {
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  25%, 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ---------------------------------------------------------------- Resultado */
+#stage-floor .games-result {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: rgba(251, 247, 230, .72);
+  backdrop-filter: blur(2px);
+}
+#stage-floor .games-result[hidden] { display: none; }
+#stage-floor .games-result-card {
+  width: min(420px, 90%);
+  padding: 16px 24px 18px;
+  border: 4px solid var(--g-line);
+  border-radius: 24px;
+  background: #fffdf3;
+  box-shadow: inset 0 0 0 5px var(--g-rim), 0 10px 24px rgba(60, 35, 15, .2);
+  text-align: center;
+  animation: gamesIn2 .25s ease-out;
+}
+@keyframes gamesIn2 { from { opacity: 0; transform: scale(.94); } }
+#stage-floor .games-result-card h3 {
+  margin: 0;
+  font: 900 30px/1.1 "Baloo 2", sans-serif;
+  color: #ffe052;
+  -webkit-text-stroke: 3px #78410d;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #512a0c;
+}
+#stage-floor .games-result-score { margin: 4px 0 10px; font: 800 20px/1.2 "Baloo 2", sans-serif; color: var(--g-ink); }
+#stage-floor .games-rewards { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+#stage-floor .games-rewards li {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: #f3f7e3;
+  font: 700 16px/1.2 "Baloo 2", sans-serif;
+  text-align: left;
+}
+#stage-floor .games-rewards img,
+#stage-floor .games-rewards svg { width: 28px; height: 28px; object-fit: contain; }
+#stage-floor .games-rewards b { font-weight: 900; color: #3f6b1f; }
+#stage-floor .games-rewards b.is-cost { color: #9a5a23; }
+#stage-floor .games-result-note { min-height: 1.3em; margin: 10px 0 0; font: 700 14px/1.35 "Baloo 2", sans-serif; color: var(--g-soft); }
+#stage-floor .games-result-note:empty { display: none; }
+#stage-floor .games-result-actions { display: flex; justify-content: center; gap: 12px; margin-top: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #stage-floor .games-window,
+  #stage-floor .games-result-card,
+  #stage-floor .gw-boya,
+  #stage-floor .gw-onda,
+  #stage-floor .gw-sombra-a,
+  #stage-floor .gw-sombra-b,
+  #stage-floor .games-action.is-hot { animation: none; }
+}
+
+@media (max-width: 760px) {
+  #stage-floor .games-cards { grid-template-columns: 1fr; }
+  #stage-floor .games-title { font-size: 26px; -webkit-text-stroke-width: 2px; }
+  #stage-floor .games-window { padding: 12px 14px 14px; }
+  #stage-floor .games-action { min-width: 140px; font-size: 18px; }
+}

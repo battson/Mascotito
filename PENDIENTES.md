@@ -2,7 +2,7 @@
 
 ## Estado y forma de trabajo
 
-- Base actual: Beta v4.5.4. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
+- Base actual: Beta v4.6. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
 - Trabajar por etapas, revisando con el usuario cada cambio de diseño. Entregar capturas cuando se cambie la interfaz.
 - Priorizar escritorio. La experiencia móvil y sus funciones limitadas se decidirán en una versión dedicada; no ampliar ese alcance ahora.
 - Mantener el ánimo, las expresiones y el aro de color. Se retira acariciar y sus recompensas de felicidad/XP, no el sistema general de felicidad.
@@ -10,9 +10,9 @@
 
 ## Beta v4.6 — Jugar
 
-- [ ] Rediseñar la interfaz de Jugar y la selección de juegos.
-- [ ] Revisar el sistema de juego: acceso, instrucciones, interacción, resultados y recompensas, coordinándolo con la economía de v4.7.
-- [ ] Definir con el usuario qué juegos se mantienen, cambian o incorporan.
+- [x] Rediseñar la interfaz de Jugar y la selección de juegos.
+- [x] Revisar el sistema de juego: acceso, instrucciones, interacción y pantalla de resultado. Las recompensas mantienen el cálculo anterior hasta la economía de v4.7.
+- [x] Definir con el usuario qué juegos se mantienen, cambian o incorporan: Pesca (rehecha) y Penales (nuevo); se retiró Caza de luciérnagas.
 
 ## Beta v4.7 — Tienda y economía
 
@@ -42,7 +42,8 @@
 
 - [x] Separar la política de teclado y selección de texto en `js/game-interactions.js` y `css/game-interactions.css`.
 - [x] Retirar la acción de acariciar, su configuración y cooldown; mantener las recompensas de las demás actividades.
-- [ ] Extraer de `app.js` responsabilidades completas por etapa: Jugar en v4.6, economía/Tienda en v4.7, vivienda/escenarios en v4.8 y salas en v4.9.
+- [x] Jugar extraído a `js/games.js` y `css/games.css` (v4.6).
+- [ ] Extraer de `app.js` responsabilidades completas por etapa: economía/Tienda en v4.7, vivienda/escenarios en v4.8 y salas en v4.9.
 - [ ] Consolidar el CSS de cada componente al rediseñarlo: reemplazar reglas obsoletas y duplicadas en lugar de seguir acumulando sobrescrituras.
 - [ ] Limpiar el código retirado de Objetivos, preservando el contador diario de Pesca y preparando el sistema nuevo de v4.9.
 - [ ] Revisar y retirar estilos/recursos sin uso del antiguo panel de Amigos y versiones anteriores de las ventanas.

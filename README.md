@@ -1,6 +1,16 @@
 # Mascotito Beta
 
-## En preparación — base para v4.6
+## Beta v4.6 — Jugar
+
+- **Ventana de juegos nueva**, con el estilo de la ficha: crema con borde verde, título tipo moneda, tarjetas ilustradas y botones amarillos «Jugar». Cada tarjeta muestra si está disponible (partidas de pesca que quedan hoy o espera de Penales).
+- **Pesca rehecha:** laguna ilustrada. Esperás a que pique, tocás ¡Tirar! y después frenás la aguja en la zona verde para sacar el pescado; la zona se achica con cada pescado. Hasta 3 pescados en 30 s y 3 partidas por día (cada inicio cuenta, aunque se cancele). Los pescados van al inventario.
+- **Penales (nuevo):** cinco tiros. La mira se frena primero a lo ancho y después a lo alto; el arquero se tira a un lado. Puede ser gol, atajada, palo o afuera. Se gana con 3 goles. Comparte la espera de Jugar (25 s).
+- **Se retira Caza de luciérnagas.**
+- **Pantalla de resultado:** puntaje y lo ganado (monedas, pescados, felicidad, experiencia y energía gastada), con «Otra vez» y «Salir». Las recompensas usan el mismo cálculo de antes hasta definir la economía en v4.7.
+- Escape cancela la partida o cierra el resultado/selector. Enter no abre el chat mientras la ventana de juegos está abierta.
+- Código: todo Jugar vive en `js/games.js` y `css/games.css`; se quitaron de `app.js` y `style.css` las reglas y funciones de los minijuegos anteriores.
+
+## Preparación de la v4.6 (teclado, selección de texto y acariciar)
 
 - Roadmap hasta la última Beta (v4.9) en [PENDIENTES.md](PENDIENTES.md).
 - Enter durante el juego dirige al chat disponible y no vuelve a pulsar el último botón enfocado. Los campos de formularios mantienen su funcionamiento nativo.

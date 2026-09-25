@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.5.4</title>
+  <title>Mascotito — Beta v4.6</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/game-interactions.css" />
+  <link rel="stylesheet" href="css/games.css" />
 </head>
 <body>
 
@@ -38,7 +39,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.5.4</span>
+      <span class="badge" id="app-version-badge">Beta v4.6</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -554,21 +555,25 @@
           <button id="toy-ball" class="toy-ball play-only" type="button" hidden aria-label="¡Atrapá el juguete!">🎾</button>
           <!-- Globo de diálogo: frases de "Hablar", pedidos espontáneos
                ("¿Jugamos?"), y el saludo al volver de una ausencia. -->
-          <section id="game-selector" class="game-selector play-only" hidden aria-label="Elegir minijuego">
-            <div class="selector-heading"><div><span class="hud-eyebrow">HORA DE JUGAR</span><h2>Juegos</h2></div></div>
-            <div id="game-choices"></div>
-            <p id="game-selector-note" role="status"></p>
-            <button id="game-play" type="button" hidden>Play</button><button id="game-selector-close" type="button">Cerrar</button>
+          <!-- Beta v4.6: Jugar. El contenido de las ventanas lo arma js/games.js. -->
+          <section id="game-selector" class="games-window play-only" hidden aria-labelledby="game-selector-title">
+            <header class="games-head">
+              <h2 id="game-selector-title" class="games-title">Juegos</h2>
+              <button id="game-selector-close" class="games-close" type="button" aria-label="Cerrar juegos"><img src="assets/ui/actions/cerrar.svg" alt="" draggable="false" /></button>
+            </header>
+            <div id="game-choices" class="games-cards"></div>
+            <p id="game-selector-note" class="games-note" role="status"></p>
           </section>
-          <section id="minigame-panel" class="minigame-panel play-only" hidden aria-label="Minijuego">
-            <div class="minigame-topbar">
-              <div><span class="hud-eyebrow">MINIJUEGO</span><strong id="minigame-title">Jugamos</strong></div>
-              <div class="minigame-meta"><span id="minigame-score">0 pts</span><span id="minigame-time">15s</span></div>
-              <button id="minigame-close" type="button" aria-label="Cerrar minijuego">×</button>
-            </div>
-            <p id="minigame-instructions" class="minigame-instructions"></p>
-            <div id="minigame-arena" class="minigame-arena"><div class="fishing-scene" aria-hidden="true"><div class="fishing-line"></div><div class="fishing-float"></div><span class="water-ring ring-one"></span><span class="water-ring ring-two"></span><img class="swimming-fish" src="assets/items/fish.svg" alt="" /></div>
-              <button id="minigame-target" class="minigame-target" type="button" aria-label="Objetivo del minijuego"></button>
+          <section id="minigame-panel" class="games-window games-play play-only" hidden aria-labelledby="minigame-title">
+            <header class="games-head">
+              <h2 id="minigame-title" class="games-title">Pesca</h2>
+              <div class="games-chips"><span id="minigame-score" class="games-chip"></span><span id="minigame-time" class="games-chip"></span></div>
+              <button id="minigame-close" class="games-close" type="button" aria-label="Salir del juego"><img src="assets/ui/actions/cerrar.svg" alt="" draggable="false" /></button>
+            </header>
+            <p id="minigame-instructions" class="games-hint" aria-live="polite"></p>
+            <div class="games-stage">
+              <div id="minigame-arena" class="games-arena"></div>
+              <div id="minigame-result" class="games-result" hidden></div>
             </div>
           </section>
 
@@ -671,7 +676,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.5.4 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.6 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
@@ -692,6 +697,7 @@
   <script type="module" src="js/multiplayer.js"></script>
   <script src="js/shop-ui.js"></script>
   <script src="js/game-interactions.js"></script>
+  <script src="js/games.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

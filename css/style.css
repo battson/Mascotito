@@ -2668,46 +2668,18 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 }
 
 /* Minigame system */
-.minigame-panel {
-  position:absolute;
-  z-index:30;
-  inset:11% 16% 19%;
-  display:flex;
-  flex-direction:column;
-  background:rgba(15,24,43,.94);
-  color:white;
-  box-shadow:0 20px 50px rgba(10,15,25,.40);
-  backdrop-filter:blur(10px);
-}
-.minigame-topbar {
-  display:grid;
-  grid-template-columns:1fr auto auto;
-  align-items:center;
-  gap:18px;
-  padding:14px 16px 10px;
-  background:rgba(255,255,255,.05);
-}
-.minigame-topbar strong { display:block; margin-top:2px; font:800 1.15rem/1 "Baloo 2",sans-serif; }
-.minigame-meta { display:flex; gap:8px; }
-.minigame-meta span { min-width:62px; padding:7px 9px; background:rgba(255,255,255,.10); text-align:center; font-weight:800; }
-#minigame-close { width:38px; height:38px; border:0; border-radius:0; background:rgba(255,255,255,.10); color:white; font-size:1.35rem; cursor:pointer; }
-#minigame-close:hover { background:rgba(255,255,255,.18); }
-.minigame-instructions { margin:0; padding:8px 16px 10px; color:#e9ddc6; font-size:.86rem; }
-.minigame-arena { position:relative; flex:1; min-height:260px; overflow:hidden; background:linear-gradient(180deg,rgba(44,84,91,.35),rgba(11,24,38,.15)); }
-.minigame-target {
-  position:absolute;
-  width:68px; height:68px;
-  border:0;
-  border-radius:50%;
-  background:#f5b840;
-  color:#5b2a14;
-  font-size:2rem;
-  font-weight:900;
-  cursor:pointer;
-  box-shadow:0 10px 20px rgba(0,0,0,.25);
-}
-.minigame-target[data-game="luciernagas"] { width:54px; height:54px; background:#ffe78b; color:#ba6e16; box-shadow:0 0 28px rgba(255,231,139,.85); }
-.minigame-target.target-pop { animation:minigamePop .18s ease-out; }
+
+
+
+
+
+
+
+
+
+
+
+
 @keyframes minigamePop { from { transform:scale(.65); opacity:.2; } to { transform:scale(1); opacity:1; } }
 
 /* Debug mode is now a real fixed tool window rather than disappearing in the footer. */
@@ -2753,7 +2725,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .header-progress { justify-self:end; gap:6px; }
   .header-level { display:block; width:130px; }
   .header-edit-btn { width:38px; height:38px; }
-  .minigame-panel { inset:13% 8% 20%; }
+  
 }
 @media (max-width:640px) {
   .header-progress { justify-self:center; }
@@ -2761,10 +2733,10 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .header-level { width:105px; }
   .header-level-row span { display:none; }
   .stage-actions-row { border-radius:0 !important; }
-  .minigame-panel { inset:19% 4% 19%; }
-  .minigame-topbar { grid-template-columns:1fr auto; }
-  .minigame-meta { grid-column:1 / 2; grid-row:2; }
-  #minigame-close { grid-column:2; grid-row:1 / 3; }
+  
+  
+  
+  
 }
 
 /* v2.9 — stage, creator and global overlays */
@@ -2786,8 +2758,8 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .debug-row input { flex:1; min-width:80px; accent-color:#d98226; }
 .debug-row button { min-height:44px; }
 .debug-close { background:#244962; color:white; }
-.minigame-panel { z-index:50; inset:12% 16% 18%; }
-.minigame-arena { min-height:140px; }
+
+
 .screen.onboarding,.screen.onboarding.is-editing { width:100%; max-width:1600px; padding:20px; margin:auto; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:12px 24px; }
 #brand-emblem { width:100px; height:100px; grid-column:1; grid-row:1 / 3; margin:0; }
 #onboarding-title,.screen.onboarding.is-editing #onboarding-title { text-align:left; font-size:2rem; margin:0; color:#244962; }
@@ -2839,7 +2811,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
  .daily-list li { font-size:.7rem; }
  .daily-reward { display:block; font-size:.65rem; }
  .walker { width:min(330px,calc(100% - 32px)); bottom:55px; }
- .minigame-panel { inset:18% 3% 15%; }
+ 
  .screen.onboarding,.screen.onboarding.is-editing { padding:12px; gap:8px 12px; }
  #brand-emblem { width:64px; height:64px; }
  #onboarding-title,.screen.onboarding.is-editing #onboarding-title { font-size:1.5rem; }
@@ -2870,29 +2842,29 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .debug-title { margin-top:0; font-size:1rem; }
 .debug-row { gap:7px; font-size:.8rem; }
 .debug-row button { padding:7px; }
-.game-selector { position:absolute; inset:8% 12% 17%; z-index:55; background:#fff8e8; color:#244962; padding:26px; overflow:auto; box-shadow:0 20px 50px #101a3266; }
-.selector-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-.selector-heading h2 { margin:4px 0 20px; }
-#game-selector-close { align-self:flex-start; border:0; background:#244962; color:#fff8e8; width:40px; height:40px; font-size:1.5rem; cursor:pointer; }
-#game-choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-.game-choice { display:flex; flex-direction:column; gap:10px; padding:18px; background:#eee4d2; cursor:pointer; }
-.game-choice:has(input:checked) { background:#244962; color:#fff8e8; box-shadow:inset 0 -4px #d98226; }
-.game-choice input { accent-color:#d98226; align-self:flex-start; }
+
+
+
+
+
+
+
+
 .game-choice-icon { font-size:2rem; }
-.game-choice small { line-height:1.5; }
-#game-play { width:100%; border:0; border-radius:0; background:#d98226; box-shadow:none; min-height:48px; }
-#game-selector-note { min-height:24px; }
-.minigame-arena[data-game="pesca"] { background:repeating-radial-gradient(ellipse at 50% 60%,#326983 0 30px,#397c96 32px 34px,#326983 37px 65px); }
-.minigame-target[data-game="pesca"] { left:50%!important; top:50%!important; transform:translate(-50%,-50%); width:200px; height:90px; border-radius:0; font-size:1.25rem; background:#fff8e8; color:#244962; animation:none; }
-.minigame-target[data-phase="bite"] { background:#f7b143; box-shadow:0 0 35px #ffdc7b; }
+
+
+
+
+
+
 #food-stock { color:#244962; font-weight:700; }
 @media(max-width:700px) {
- .game-selector { inset:10% 3% 15%; padding:16px; }
- #game-choices { grid-template-columns:1fr; gap:8px; }
- .game-choice { display:grid; grid-template-columns:18px 35px 1fr; padding:12px; gap:6px; align-items:center; }
- .game-choice small { grid-column:2 / -1; font-size:.7rem; }
+ 
+ 
+ 
+ 
  .game-choice-icon { font-size:1.4rem; }
- .selector-heading h2 { font-size:1.25rem; }
+ 
  .options-menu { right:6px; max-height:calc(100dvh - 76px); }
 }
 @media(max-width:380px) {
@@ -2902,32 +2874,32 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
  .header-level { width:55px; }
 }
 /* v3.1 — games, fishing, inventory and notifications */
-.game-selector { display:flex; flex-direction:column; gap:16px; inset:8% 10% 16%; }
-.selector-heading h2 { margin:0; font-size:1.7rem; }
-.selector-heading .hud-eyebrow { display:none; }
-#game-choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; flex:1; min-height:340px; }
-.game-choice { position:relative; display:flex; flex-direction:column; padding:0; overflow:hidden; min-height:340px; background:#dcebef; color:#244962; cursor:default; }
-.game-art { flex:1; display:grid; place-items:center; min-height:210px; background:linear-gradient(160deg,#dcebef,#acd3df); }
-.game-art img { width:70%; max-width:190px; }
-.game-art span { font-size:7rem; color:#d98226; }
-.game-title { flex:none; position:relative; z-index:2; width:100%; min-height:62px; padding:16px 10px; border:0; background:#244962; color:#fff8e8; font:700 1rem inherit; cursor:pointer; }
-.game-details { position:absolute; z-index:1; inset:auto 0 62px; padding:20px; background:#fff8e8; transform:translateY(110%); opacity:0; visibility:hidden; transition:transform .24s ease,opacity .24s ease,visibility .24s; }
-.game-choice:has(.game-title:hover) .game-details,.game-choice:has(.game-details:hover) .game-details,.game-choice:focus-within .game-details,.game-choice.is-open .game-details { transform:translateY(0); opacity:1; visibility:visible; }
-.game-details p { font-size:.86rem; line-height:1.5; margin:0 0 16px; }
-.card-play { width:100%; padding:13px; background:#d98226; color:#fff8e8; font-weight:700; border:0; cursor:pointer; }
-#game-selector-close { align-self:center; width:min(240px,100%); height:46px; font-size:1rem; flex-shrink:0; }
-#game-selector-note { margin:0; min-height:0; }
-.fishing-scene { display:none; position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-[data-game="pesca"]>.fishing-scene { display:block; }
-.fishing-line { position:absolute; width:2px; height:45%; left:50%; top:0; background:#f4eed2; transform-origin:top; animation:line-sway 3s ease-in-out infinite; }
-.fishing-float { position:absolute; left:calc(50% - 12px); top:42%; width:24px; height:36px; border-radius:50%; background:linear-gradient(#fff8e8 50%,#df7433 50%); box-shadow:0 5px 8px #163d5966; animation:float-bob 1.8s ease-in-out infinite; }
-.water-ring { position:absolute; left:50%; top:48%; width:60px; height:18px; border:2px solid #c0f0ff; border-radius:50%; animation:ripple-out 2.5s linear infinite; }
-.ring-two { animation-delay:1.25s; }
-.swimming-fish { position:absolute; width:75px; top:63%; opacity:.3; animation:fish-swim 8s ease-in-out infinite; }
-[data-phase="bite"] .fishing-float { animation:float-bob .15s infinite alternate; }
-[data-phase="bite"] .water-ring { animation-duration:.5s; border-color:#ffdc7b; }
-.caught-fish { position:absolute; left:calc(50% - 45px); top:45%; width:90px; pointer-events:none; animation:fish-catch 1s ease-out forwards; }
-.minigame-target[data-game="pesca"] { top:82%!important; height:64px; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @keyframes float-bob { 50% { transform:translateY(9px) rotate(10deg); } }
 @keyframes line-sway { 50% { transform:rotate(2deg); } }
 @keyframes ripple-out { from { transform:translate(-50%,-50%) scale(.3);opacity:.8; } to { transform:translate(-50%,-50%) scale(3);opacity:0; } }
@@ -2977,24 +2949,24 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 @keyframes poop-squat { 50% { transform:scaleY(.88); } }
 @media(max-width:900px) { .notification-card { left:10px; } }
 @media(max-width:700px) {
- .game-selector { inset:5% 3% 15%; padding:16px; }
- #game-choices { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; min-height:340px; flex:1; }
- .game-choice { flex:0 0 85%; scroll-snap-align:center; min-height:340px; }
- .game-art { min-height:230px; }
- .game-details { grid-column:auto; }
- .game-details p { font-size:.85rem; }
- .game-title { font-size:1rem; }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  .game-choice-icon { font-size:6rem; }
 }
 @media(max-width:640px) { .notification-card { width:calc(55% - 15px); max-height:125px; padding:8px; } }
-@media(prefers-reduced-motion:reduce) { .fishing-scene *,.caught-fish,.game-stage.is-pooping { animation:none!important; } .game-details { transition:none; } }
+@media(prefers-reduced-motion:reduce) { .game-stage.is-pooping{ animation:none!important; }  }
 .feed-menu { flex-direction:column; align-items:stretch; flex-wrap:nowrap; background:#fff8e8; }
 /* v3.5: mantiene columna (icono arriba, stock chico debajo, centrado —
    ver el bloque ".feed-item"/#fish-quantity más arriba) en vez de volver
    a la fila icono+texto que tenía esta capa antes. */
 .feed-item { flex-direction:column; width:100%; border:0; border-radius:0; background:#efe3ca; justify-content:center; }
 .feed-item-icon { width:auto; height:auto; }
-.game-title { font-family:inherit; font-size:1rem; font-weight:700; }
+
 
 /* ======================================================================
    v3.5: los objetos interactivos de la Casa (Cama/Sillón/Lámpara,
@@ -5127,8 +5099,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 @media (max-width: 900px) {
   #stage-floor #room-chat-panel.phone-panel { right: 8px; bottom: 90px; height: min(480px, calc(100% - 100px)); }
 }
-@media (prefers-reduced-motion: reduce) {
-  }
+
 
 /* ===== Beta v4.3.3: el marco va en la capa de arriba ===== */
 /* phone.svg ahora tiene la pantalla transparente (hueco). El contenido va
