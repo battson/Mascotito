@@ -15,7 +15,7 @@ const APP_VERSION = "4.6.1";
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
  * balancear la Fase 2 (Cuidado — ALPHA v2 · Tamagotchi) vive acá: cuánto
  * baja cada necesidad, cuánto suma cada acción, ventanas de tiempo,
- * umbrales de enfermedad, tiempos de sueño, vínculo, etc. Nada de esto
+ * tiempos de sueño, vínculo, etc. Nada de esto
  * está desparramado en app.js — si algo se siente muy rápido/lento/
  * generoso/tacaño, este es el archivo a tocar.
  */
@@ -53,9 +53,9 @@ const PET_CONFIG = {
     higiene: 0.0347 * 2, // higiene 100% más rápido → ×2
     energia: 0.0556 * 2.5, // energía 150% más rápido → ×2.5
     // Felicidad no es "una necesidad que se atiende con una acción única"
-    // como las de arriba — sube con cuidados variados (jugar, golosinas,
-    // hablar) y baja sola despacio si hay abandono/aburrimiento/
-    // suciedad/enfermedad. Decae lento a propósito: no queremos que sea
+    // como las de arriba — sube con cuidados variados (jugar, comer,
+    // limpiar) y baja sola despacio si hay abandono/aburrimiento/
+    // suciedad. Decae lento a propósito: no queremos que sea
     // una barra más para perseguir todo el tiempo.
     felicidad: 0.0231, // 100/(72*60), ~3 días de 100 a 0 sin ningún cuidado
   },
@@ -76,11 +76,8 @@ const PET_CONFIG = {
     energiaLlenaUmbral: 97,
   },
 
-  // ---------- Alimentar: 3 tipos, gratis, sin inventario ----------
-  // Cada uno pega distinto (pedido explícito): comida básica llena sobre
-  // todo saciedad y algo de energía; snack es un recuperación moderada +
-  // ánimo; golosina mejora más la felicidad pero alimenta poco, y su
-  // ABUSO (ver golosinaExceso abajo) puede traer malestar.
+  // ---------- Alimentar ----------
+  // Sólo pescado, que sale del inventario (se consigue en Pesca).
   feeding: {
     pescado: { label: "Pescado", emoji: "🐟", saciedad: 30, energia: 6 },
   },
@@ -90,17 +87,6 @@ const PET_CONFIG = {
   // sin límite. beber/bañar usan el mismo criterio contra sus propias
   // necesidades (ver llenaUmbral más abajo, es el mismo valor para todas).
   llenaUmbral: 97,
-
-  // Ventana de tiempo (no un contador que se acumula para siempre) para
-  // detectar abuso de golosinas: si en los últimos windowMs comiste
-  // avisoEn golosinas, se muestra una advertencia; si llegás a
-  // malestarEn, además de la advertencia se dispara un golpe de malestar
-  // (ver health.golosinaExcesoGolpe) y se explica la causa.
-  golosinaExceso: {
-    windowMs: 30 * 60 * 1000, // 30 minutos
-    avisoEn: 3,
-    malestarEn: 5,
-  },
 
   // ---------- Beber / Bañar: siguen siendo una sola acción cada una ----------
   actionGain: {
@@ -125,7 +111,7 @@ const PET_CONFIG = {
     felicidadPorRetiro: 2,
   },
 
-  // ---------- Jugar (actividad de "atrapar el juguete") ----------
+  // ---------- Jugar (recompensas de los minijuegos, ver js/games.js) ----------
   play: {
     energiaCosto: 12,
     felicidad: 14,
@@ -133,43 +119,6 @@ const PET_CONFIG = {
     // Si la energía está por debajo de esto, ni arranca el juego — avisa
     // en vez de dejar jugar igual (pedido explícito, sección 4 y 6).
     energiaMinimaParaJugar: 18,
-    // Cuánto tiempo (ms) queda visible el juguete antes de irse solo si
-    // no lo tocás — repetible, cooldown propio como las demás acciones.
-    juguetesVisibleMs: 2600,
-  },
-
-  // ---------- Diálogo ----------
-  affection: {
-    hablar: { felicidad: 2, vinculo: 3 },
-  },
-
-  // ---------- Salud / enfermedad leve ----------
-  // No hay enfermedades random: "malestarProgress" (0-100, interno, no se
-  // muestra como número crudo) sube sólo mientras una causa sostenida
-  // sigue activa, y baja solo con el tiempo si las causas se resuelven.
-  // Llega a 100 -> "enferma". Con tratamiento (medicina) + descanso +
-  // necesidades atendidas, vuelve a bajar hasta curarse.
-  health: {
-    higieneEnfermaUmbral: 20, // higiene sostenida por debajo de esto suma malestar
-    necesidadEnfermaUmbral: 15, // saciedad/hidratación sostenidas por debajo de esto suman malestar
-    // Puntos de malestar por MINUTO mientras una causa está activa —
-    // calculado para que haga falta más de 2 horas de UNA sola causa
-    // sostenida (no un bajón momentáneo) para enfermarse.
-    malestarPorMinutoPorCausa: 100 / 150,
-    // Golpe puntual (no goteo) cuando se cruza el umbral de abuso de
-    // golosinas (ver golosinaExceso arriba) — se suma una sola vez por
-    // "racha", no una vez por golosina.
-    golosinaExcesoGolpe: 25,
-    // Recuperación natural (sin hacer nada, sin estar enferma) — muy
-    // lenta, así una bajada momentánea no se "cura sola" al toque pero
-    // tampoco queda pegada para siempre si nunca se repite.
-    recuperacionNaturalPorMinuto: 100 / 600, // ~10hs para bajar 100 puntos solo
-    // Umbral por debajo del cual, si estaba enferma, se considera curada.
-    curadaUmbral: 12,
-    // Cuánto malestar saca cada uso de la medicina (con cooldown propio,
-    // ver cooldownsMs.medicina) — no cura instantáneo ni llena otras
-    // barras, y repetirla no acelera la cura más de lo que ya hace un uso.
-    medicinaAlivio: 35,
   },
 
   // ---------- Vínculo ----------
@@ -213,7 +162,7 @@ const PET_CONFIG = {
     // normal de decayPerMinute.felicidad).
     decayMultiplierMax: 3.5,
     // Con el promedio en 0, cualquier ganancia de ánimo (jugar,
-    // hablar, comer, limpiar una mancha, medicina) rinde sólo esta
+    // comer, limpiar una mancha) rinde sólo esta
     // fracción de lo normal — nunca llega a 0, siempre entra algo.
     gainMultiplierMin: 0.25,
   },
@@ -239,8 +188,7 @@ const PET_CONFIG = {
     // Probabilidad por chequeo, en el extremo MENOS urgente de la escala
     // (la necesidad recién empezó a estar floja).
     probabilidadPorChequeo: 0.12,
-    // Probabilidad por chequeo en el extremo MÁS urgente (necesidad en 0,
-    // o mientras está enferma).
+    // Probabilidad por chequeo en el extremo MÁS urgente (necesidad en 0).
     probabilidadPorChequeoUrgente: 0.85,
     // No pedir de nuevo antes de que pase este tiempo desde el último
     // pedido (mostrado o no) — extremo menos urgente: se siente espaciado,
@@ -248,20 +196,15 @@ const PET_CONFIG = {
     minGapMs: 90 * 1000,
     // Extremo más urgente: casi no espera, lo repite seguido.
     minGapMsUrgente: 18 * 1000,
-    // Urgencia fija asignada a "está enferma" (no es un stat de 0-100,
-    // así que no escala solo — un valor fijo, bastante alto).
-    urgenciaEnferma: 85,
     burbujaVisibleMs: 5000,
   },
 
   // ---------- Ausencia / tiempo real ----------
   // Si volvés después de mucho tiempo, estos límites evitan que la
-  // ausencia "explote" el estado: no se acumula suciedad ni malestar sin
-  // techo, y la felicidad no cae del todo sólo por no haber entrado.
+  // ausencia "explote" el estado: la felicidad no cae del todo sólo por no
+  // haber entrado.
   absence: {
     saludoCariñosoDesdeMs: 2 * 60 * 60 * 1000, // 2hs
-    maxManchasNuevasPorRegreso: 2,
-    maxMalestarPorRegreso: 40,
     felicidadPisoPorAusencia: 35,
   },
 
@@ -270,9 +213,6 @@ const PET_CONFIG = {
   // tiempo — evita clics repetidos para sacar beneficio ilimitado
   // (pedido explícito en varias secciones).
   cooldownsMs: {
-    comidaBasica: 18000,
-    snack: 18000,
-    golosina: 18000,
     // v3.2, pedido explícito ("aumentar el cooldown de comer pescado por
     // 7m"): antes no tenía cooldown propio, caía al genérico de 18s
     // (cooldownMs, más abajo) — ahora 18s + 7min = 438000ms.
@@ -280,10 +220,7 @@ const PET_CONFIG = {
     beber: 18000,
     bañar: 20000,
     jugar: 25000,
-    // Pesca usa un cupo diario de tres partidas, sin tiempo de espera.
-    pesca: 0,
-    hablar: 9000,
-    medicina: 60000,
+    // Pesca no tiene espera: usa un cupo diario de tres partidas.
   },
   // Alias retro-compatible: el cooldown "clásico" de las 3 acciones de
   // El Edén (usado también como referencia visual del anillo).

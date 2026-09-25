@@ -714,25 +714,11 @@ const PET_LEGS_INLINE = `
     <path d="M 216.10,307.97 L 211.81,275.28 C 211.15,270.24 214.70,265.63 219.73,264.97 L 221.60,264.73 C 226.63,264.07 231.24,267.61 231.90,272.65 L 236.19,305.33 C 236.85,310.37 233.30,314.98 228.27,315.64 L 226.40,315.88 C 221.37,316.54 216.76,313.00 216.10,307.97 Z" fill="#6fb8e0" stroke="#000000" stroke-opacity="0.06" stroke-width="4"/>
   </g>`;
 
-/* ---------- Fase 2 (Cuidado): frases cortas para Hablar/pedidos/saludo ----------
- * Contenido chico a propósito (sin IA ni chat libre, pedido explícito) —
- * cada acción elige una al azar de la lista que corresponda, así no se
- * siente siempre igual. Nombre de la mascota se interpola en js/app.js
- * donde haga falta (acá quedan genéricas). */
-const PET_TALK_PHRASES = [
-  "¡Hola! Qué bueno que estás acá.",
-  "Me encanta pasar tiempo con vos.",
-  "¿Sabías que hoy me siento con ganas de todo?",
-  "Gracias por cuidarme tan bien.",
-  "¡Sos mi persona favorita!",
-  "Hoy es un lindo día para estar juntos.",
-];
-
 // Pedidos espontáneos (sección 8: "¿Jugamos?"; v2.5:
 // "las necesidades... se transmiten en frases que va diciendo la mascota
 // cada tanto") — cada clave es un motivo posible; maybeShowRequest (js/
 // app.js) elige la categoría según qué necesidad esté más floja en ese
-// momento (o si está enferma/muy feliz), y dentro de esa categoría, una
+// momento (o si está muy feliz), y dentro de esa categoría, una
 // frase al azar — varias por categoría, a propósito, para que no suene
 // repetitivo aunque la mascota lo diga muchas veces seguidas. v2.5:
 // ahora es el ÚNICO canal para enterarse de una necesidad floja (el

@@ -9,6 +9,7 @@
 - **Menú de juegos:** la tarjeta de Pesca muestra el ícono de la caña. Se retira el medidor con aguja de la Pesca anterior.
 - Arte nuevo en `assets/games/fishing/` (lago, caña, ícono, bocha y lata), vectorizado a SVG con `scripts/vectorize-fishing-assets.py`.
 - **Limpieza (tanda 1):** se borró `js/users.js` (no se cargaba), la escena vieja de la casa dentro de `manifest.js` (~64 KB), los íconos SVG sin uso de `icons.js` (queda el dado), el reloj del encabezado, referencias a elementos que ya no existen, 194 reglas y 6 animaciones sin uso de `style.css` y 7 assets sin uso. Verificado sin cambios visuales: los estilos calculados de todas las pantallas dan idénticos antes y después.
+- **Limpieza (tanda 2), sistemas retirados:** se borró el código de Objetivos diarios, enfermedad/salud, comidas viejas (comida básica, snack, golosina), el menú flotante de comida (ahora se come sólo desde el cofre), Hablar, el cartel de estado y el juguete de «Jugar», con su configuración, estilos y textos. Los guardados viejos siguen cargando: los campos retirados (`health`, `golosinaLog`, esperas viejas, objetivos de `daily`) se descartan al normalizar y se conserva el conteo de partidas de Pesca del día.
 
 ## Beta v4.6 — Jugar
 

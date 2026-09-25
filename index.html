@@ -272,11 +272,7 @@
   <!-- Región para anuncios cortos a lectores de pantalla (elegir una
        opción, avisos de guardado, ánimo urgente, cambio de lugar) —
        visualmente oculta, pero role="status" + aria-live hace que se lea
-       sola sin mover el foco. Ver announce() en js/app.js. Nota v2.4: acá
-       es donde sigue viviendo el aviso hablado de "está durmiendo"/
-       "tiene hambre" para lectores de pantalla — lo que se sacó fue el
-       cartel VISUAL (#status-line, pedido explícito "desactivar las
-       notificaciones que aparecen"), no el anuncio accesible. -->
+       sola sin mover el foco. Ver announce() en js/app.js. -->
   <div id="live-status" class="sr-only" role="status" aria-live="polite"></div>
 
   <!-- Aviso de guardado (guardado corrupto recuperado, o localStorage no
@@ -295,16 +291,6 @@
        (ver PET_REQUEST_PHRASES/maybeShowRequest en js/manifest.js y
        js/app.js), no con un texto fijo al lado del nombre. -->
   <main id="game" class="screen game" hidden>
-
-    <!-- v2.4: el cartel de estado (#status-line) que mostraba "está
-         durmiendo"/"tiene mucha hambre"/etc. como notificación visual se
-         desactivó del todo, pedido explícito ("desactivar las
-         notificaciones que aparecen cuando duerme o tiene una necesidad").
-         Queda en el HTML (hidden siempre, ver updateStatusLine en
-         js/app.js) sólo para no romper nada que lo referencie; el anuncio
-         equivalente para lectores de pantalla sigue vivo en #live-status
-         arriba. -->
-    <p id="status-line" class="status-line" role="status" aria-live="polite" hidden></p>
 
     <div class="game-main">
       <div class="stage-col">
@@ -556,12 +542,6 @@
           <!-- v3.8.2: visitantes y otros jugadores presentes en esta sala.
                Se crean dinámicamente con sus posiciones de Realtime Database. -->
           <div id="remote-players-layer" class="remote-players-layer play-only" aria-hidden="true"></div>
-          <!-- Juguete de la actividad "Jugar" (sección 4) — aparece en un
-               punto al azar del escenario, hay que tocarlo antes de que se
-               vaya solo. -->
-          <button id="toy-ball" class="toy-ball play-only" type="button" hidden aria-label="¡Atrapá el juguete!">🎾</button>
-          <!-- Globo de diálogo: frases de "Hablar", pedidos espontáneos
-               ("¿Jugamos?"), y el saludo al volver de una ausencia. -->
           <!-- Beta v4.6: Jugar. El contenido de las ventanas lo arma js/games.js. -->
           <section id="game-selector" class="games-window play-only" hidden aria-labelledby="game-selector-title">
             <header class="games-head">
@@ -626,10 +606,6 @@
             <div class="actions editor-only editor-color-icons" id="creator-color-icons" role="tablist" hidden></div>
           </div>
 
-          <!-- Menú de comida (sección 3): aparece al tocar el botón de
-               Alimentar del dock, en vez de una acción única — 3 opciones
-               gratuitas, sin inventario. -->
-          <div id="feed-menu" class="feed-menu play-only" hidden role="menu" aria-label="Elegí qué darle de comer"></div>
 
           <!-- ======================================================================
                v3.6.2 — pedido explícito: "hacer que #stage-floor sea

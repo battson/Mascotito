@@ -43,8 +43,8 @@
 
 html, body { max-width: 100%; overflow-x: hidden; } /* nunca scroll horizontal, ni siquiera por un redondeo de 1px en algún componente */
 
-/* Blindaje del atributo "hidden": varias reglas de acá abajo (.toy-ball,
- * .wake-btn, .feed-menu, .options-menu, etc.) declaran su propio "display"
+/* Blindaje del atributo "hidden": varias reglas de acá abajo (.wake-btn,
+ * .options-menu, etc.) declaran su propio "display"
  * para cuando SÍ están visibles, y esa declaración de autor le gana en
  * cascada a la hoja de estilos del navegador que pone display:none por
  * [hidden] — o sea que sin esto, un elemento "hidden" en el HTML igual se
@@ -114,17 +114,16 @@ button, .swatch, input[type="text"], input[type="color"] {
    * barra baja) y, nuevo en esta entrega, con la transición decorativa del
    * cambio de lugar y el destello de la puerta — nunca lo que sea la única
    * fuente de una info (los mensajes de texto/etiquetas siguen igual). */
-  .toy-ball,
   .dirt-item,
-  .speech-bubble,
-  .bath-fx.bathing::before,
-  .bath-fx.bathing::after,
-  .heart-pop,
-  .meter-track.meter-low,
-  .wellbeing-track.meter-low,
-  .zzz-fx span,
-  .options-menu,
-  .stage-floor {
+.speech-bubble,
+.bath-fx.bathing::before,
+.bath-fx.bathing::after,
+.heart-pop,
+.meter-track.meter-low,
+.wellbeing-track.meter-low,
+.zzz-fx span,
+.options-menu,
+.stage-floor {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
@@ -651,22 +650,16 @@ body {
    su propia animación verde-azul, también en loop hasta que se cure. */
 .wellbeing-avatar.avatar-border-feliz { border-color: #1fa616; }
 .wellbeing-avatar.avatar-border-enojo { border-color: #a6a216; }
-.wellbeing-avatar.avatar-border-critico,
-.wellbeing-avatar.avatar-border-enferma {
+.wellbeing-avatar.avatar-border-critico {
   /* La transición de color de la regla base compite con la animación
      infinita (misma propiedad) — se apaga acá para que el parpadeo se
      vea limpio en vez de "amortiguado". */
   transition: none;
 }
 .wellbeing-avatar.avatar-border-critico { animation: avatar-border-critico 1.1s ease-in-out infinite; }
-.wellbeing-avatar.avatar-border-enferma { animation: avatar-border-enferma 1.6s ease-in-out infinite; }
 @keyframes avatar-border-critico {
   0%, 100% { border-color: #a6a216; }
   50% { border-color: #d12929; }
-}
-@keyframes avatar-border-enferma {
-  0%, 100% { border-color: #1fa616; }
-  50% { border-color: #4f9bc4; }
 }
 /* Recorte: la mascota se renderiza completa en un cuadrado 2x el círculo y
  * se desplaza para que sólo se vea la zona de la cabeza (misma matemática
@@ -1382,23 +1375,6 @@ body {
   box-shadow: var(--shadow-soft);
 }
 
-/* ---------- Mensaje único de prioridad ----------
- * Un solo renglón, con color/ícono según qué tan urgente sea. */
-.status-line {
-  border-radius: 12px;
-  padding: 9px 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 10px 0 0;
-  width: 100%;
-  max-width: 1440px;
-  box-sizing: border-box;
-}
-.status-line.status-aviso { background: color-mix(in srgb, var(--warn) 22%, var(--panel)); color: color-mix(in srgb, var(--warn) 55%, black); }
-.status-line.status-critico { background: color-mix(in srgb, var(--danger) 16%, var(--panel)); color: color-mix(in srgb, var(--danger) 60%, black); }
-.status-line.status-enferma { background: color-mix(in srgb, #a355c9 16%, var(--panel)); color: #7a3a96; }
-.status-line.status-dormida { background: color-mix(in srgb, #5a7fd6 16%, var(--panel)); color: #3d5aa8; }
-
 /* ---------- Layout principal de la pantalla de juego (sección 6) ----------
  * v2.4: escenario ~70-75% + panel de bienestar en el resto (".side-col").
  * v2.5: pedido explícito — se sacó .side-col del todo (ver más arriba,
@@ -1551,95 +1527,9 @@ body {
  * Popover anclado con tarjetas — icono ilustrado, nombre, descripción
  * corta. Sin inventario ni cantidad: son acciones siempre disponibles
  * (cooldown propio, no un "stock"). */
-.feed-menu {
-  /* v2.3: "ventana tipo cartel de madera" para el menú de comida (pedido
-     explícito), con las opciones como tarjetas claras adentro (mismos
-     efectos/cooldown de siempre, sólo cambia el aspecto).
-     v2.4: el botón de Alimentar que lo abre se mudó adentro del escenario
-     (#stage-floor, ver .stage-actions-row) — este menú lo acompaña ahí,
-     flotando arriba de la barra de acciones (position:absolute) en vez de
-     ocupar flujo normal, que en el escenario (alto fijo, overflow:hidden)
-     lo hubiera dejado mal anclado o recortado en pantallas chicas. */
-  position: absolute;
-  left: 50%;
-  bottom: 92px;
-  transform: translateX(-50%);
-  z-index: 8;
-  /* v2.4 bugfix: con width:auto (shrink-to-fit) un contenedor flex-wrap
-     posicionado en absoluto puede terminar colapsando a una sola columna
-     angosta (el ancho del ítem más chico) en vez de usar el espacio
-     disponible — se vio en mobile: en vez de acomodar 2 tarjetas por
-     fila quedaba 1 sola, larga, tapando a las otras 2 (sólo alcanzables
-     haciendo scroll). Fijar "width" en vez de depender sólo de
-     "max-width" fuerza un ancho previsible en cualquier pantalla. */
-  width: 94%;
-  max-width: 420px;
-  max-height: 66%;
-  overflow-y: auto;
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-  background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--wood-grad-panel) border-box;
-  border: 4px solid transparent;
-  border-radius: var(--radius-btn);
-  padding: 12px;
-  box-shadow: var(--shadow-soft), 0 8px 20px rgba(69, 35, 15, 0.22);
-  animation: menu-in 0.16s ease-out;
-}
-@media (max-width: 480px) {
-  .feed-menu { bottom: 78px; }
-}
-.feed-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: var(--soft-green);
-  border: 2px solid var(--wood-edge);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--ink);
-  min-width: 108px;
-  max-width: 150px;
-  text-align: center;
-}
-.feed-item-icon { color: var(--accent-dark); }
-.feed-item-icon .icon { width: 1.7rem; height: 1.7rem; }
-.feed-item-desc {
-  font-size: 0.68rem;
-  font-weight: 500;
-  color: var(--muted);
-  line-height: 1.25;
-}
-.feed-item:hover:not(:disabled) { transform: translateY(-2px); }
-.feed-item:disabled { opacity: 0.5; cursor: not-allowed; }
-@media (max-width: 480px) {
-  /* v2.4 bugfix: con las 3 tarjetas a max-width:150px no entraban 2 por
-     fila en el ancho angosto del escenario mobile — quedaban en una sola
-     columna, y sin indicio visual de que hubiera más tarjetas abajo
-     (sólo alcanzables haciendo scroll dentro del menú), fácil de no
-     descubrir. Achicándolas un poco entran 2 por fila (la tercera pasa a
-     una segunda fila corta, ya visible sin scroll). Va DESPUÉS de la
-     regla base de ".feed-item" (misma especificidad) para que realmente
-     gane por orden de aparición — antes estaba colocada arriba, antes de
-     la regla base, y la base (con más max-width) terminaba ganando. */
-  .feed-menu { padding: 10px; gap: 8px; max-height: 82%; }
-  .feed-item { min-width: 96px; max-width: 128px; padding: 8px 10px; }
-  .feed-item-icon .icon { width: 1.4rem; height: 1.4rem; }
-}
 /* Advertencia comprensible sobre exceso de golosinas (sección 7) — fija
    dentro del menú de comida, no sólo un mensaje que aparece después de
    haber abusado. */
-.feed-menu-note {
-  flex-basis: 100%;
-  text-align: center;
-  font-size: 0.68rem;
-  color: var(--muted);
-  margin: 2px 4px 0;
-}
 
 /* ---------- Manchas del entorno ---------- */
 .dirt-layer {
@@ -1673,26 +1563,6 @@ body {
 }
 
 /* ---------- Jugar: el juguete a atrapar ---------- */
-.toy-ball {
-  position: absolute;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: none;
-  background: #fff;
-  box-shadow: 0 4px 10px rgba(41, 62, 57, 0.25);
-  font-size: 1.6rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 4;
-  animation: toy-bounce 0.8s ease-in-out infinite;
-}
-@keyframes toy-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
 
 /* ---------- Globo de diálogo ---------- */
 /* v2.6: pedido explícito — el globo aparece con fade in (ya lo hacía,
@@ -1802,12 +1672,6 @@ body {
 .game-stage.sleeping { animation: none; }
 .game-stage.sleeping .pet-layer-cejas #ceja-izq,
 .game-stage.sleeping .pet-layer-cejas #ceja-der { transform: rotate(4deg) translateY(0.5px); }
-
-/* Enferma: postura apagada — leve desaturación + boca/cejas de tristeza
- * (ya forzado por JS con mood-triste). v2.5: el avatar de bienestar
- * recibe el mismo filtro cuando está enferma (pedido explícito). */
-.game-stage.sick,
-.wellbeing-avatar-stage.sick { filter: saturate(0.7) brightness(0.98); }
 
 /* Corazones/destellos al acertar en un minijuego — <span> chicos que agrega/saca JS
  * (popHearts) sobre #walker. */
@@ -2106,27 +1970,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   padding:14px 16px;
   font-size:.8rem;
 }
-
-.daily-card {
-  position:absolute;
-  z-index:7;
-  top:126px;
-  right:18px;
-  width:270px;
-  padding:16px;
-  pointer-events:none;
-}
-/* v3.2, pedido explícito: "que el texto de los objetivos se tachen cuando
-   los vas cumpliendo" — el tachado va sólo en el texto del objetivo, no
-   en el ✓ (.daily-check), que ya se distingue solo con su propio color. */
-.daily-reward { padding-top:11px; border-top:1px solid #e6d4b8; display:flex; justify-content:space-between; gap:10px; font:700 .69rem/1.2 "Segoe UI",sans-serif; color:#866149; }
-.daily-reward strong { color:#9a531d; text-align:right; }
-/* v3.2, pedido explícito: "...y también el de recompensas" — una vez
-   cobrada (state.daily.rewarded, ver updateDailyGoals en js/app.js) el
-   texto de la recompensa también se tacha. */
-.daily-reward.is-claimed span,
-.daily-reward.is-claimed strong { text-decoration: line-through; }
-
 /* v3.5: #time-card (reloj + Mañana/Tarde/Noche) se sacó del todo —
    pedido explícito, "quitar cartel de reloj y que las notificaciones
    ocupen ese lugar" (ver syncHudLayout() en js/app.js, que ahora ancla
@@ -2169,13 +2012,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .cooldown-label { color:#8e4b1d; }
 
 /* Feed menu acompaña el nuevo dock */
-.feed-menu {
-  bottom:104px;
-  border-radius:20px;
-  background:rgba(255,249,235,.98);
-  border:2px solid rgba(166,78,22,.58);
-  box-shadow:0 16px 34px rgba(36,25,16,.25);
-}
 
 /* Globo de diálogo con más presencia */
 .speech-bubble {
@@ -2195,7 +2031,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 /* Responsive: conserva jerarquía y no simplemente encoge todo */
 @media (max-width: 1240px) {
   .wellbeing-widget { width:300px; }
-  .daily-card, .bond-chip { width:240px; }
+  .bond-chip { width:240px; }
   .stage-actions-row { width:min(760px, calc(100% - 250px)); }
 }
 
@@ -2209,9 +2045,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .wellbeing-avatar-stage { width:112px; height:112px; left:-28px; top:-17px; }
   .wellbeing-row { grid-template-columns:17px 52px 1fr 34px; gap:5px; }
   .bond-chip { top:10px; right:10px; width:210px; padding:10px 12px; }
-  .daily-card { top:110px; right:10px; width:210px; padding:12px; }
-  .daily-reward { display:block; }
-  .daily-reward strong { display:block; margin-top:4px; text-align:left; }
   .stage-actions-row { width:calc(100% - 24px); bottom:12px; overflow-x:auto; justify-content:flex-start; }
   .stage-actions-row .actions { justify-content:flex-start; }
   .walker { bottom:94px; }
@@ -2226,8 +2059,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .wellbeing-value { display:none; }
   .wellbeing-name-box { position:absolute; top:18px; left:92px; width:auto; max-width:55%; background:transparent; box-shadow:none; padding:0; }
   .bond-chip { top:170px; left:10px; right:auto; width:188px; }
-  .daily-card { top:170px; right:10px; width:calc(100% - 218px); min-width:160px; }
-  .daily-reward { display:none; }
   .walker { width:250px; bottom:100px; }
   .stage-actions-row { border-radius:20px; padding:8px; }
   .stage-actions-row .action-circle-wrap { width:74px; }
@@ -2418,7 +2249,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 /* v2.9 — stage, creator and global overlays */
 .app-header { grid-template-columns:minmax(150px,1fr) auto minmax(44px,1fr); }
 .header-edit-btn { display:flex; width:auto; gap:7px; padding:8px 10px; white-space:nowrap; font:700 .85rem "Baloo 2",sans-serif; }
-.daily-card { top:18px; }
 /* v3.6: pedido explícito "que camine un poco más abajo... ahora estaría muy
    arriba" — se baja el ancla de #walker (pero sin llegar a superponerse con
    .stage-actions-row, ver el mismo ajuste más abajo en @media(max-width:640px)). */
@@ -2449,7 +2279,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .onboarding .primary-btn { background:#d98226; }
 .swatch { border-radius:0; }
 @media(max-width:900px) {
- .daily-card { top:10px; }
  .walker { width:340px; }
  .creator-stage-wrap { grid-template-columns:minmax(0,1fr) 330px; }
  .brand-name-img { display:none; }
@@ -2465,8 +2294,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
  .wellbeing-avatar { display:none; }
  .wellbeing-bars { display:flex; flex-direction:column; gap:8px; }
  .wellbeing-row { grid-template-columns:16px 43px 1fr; gap:3px; }
- .daily-card { top:10px; width:calc(45% - 15px); min-width:0; padding:10px; }
- .daily-reward { display:block; font-size:.65rem; }
  .walker { width:min(330px,calc(100% - 32px)); bottom:55px; }
  
  .screen.onboarding,.screen.onboarding.is-editing { padding:12px; gap:8px 12px; }
@@ -2489,8 +2316,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .debug-title { margin-top:0; font-size:1rem; }
 .debug-row { gap:7px; font-size:.8rem; }
 .debug-row button { padding:7px; }
-
-#food-stock { color:#244962; font-weight:700; }
 @media(max-width:700px) {
  
  .options-menu { right:6px; max-height:calc(100dvh - 76px); }
@@ -2506,17 +2331,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .debug-save-actions button { flex:1; border:0; padding:12px; cursor:pointer; }
 #debug-save { background:#244962; color:white; }
 .debug-help { margin:6px 0 12px; font-size:.8rem; line-height:1.4; }
-.feed-menu { max-height:300px; width:min(360px,calc(100% - 24px)); border:0; border-radius:0; padding:14px; }
-/* v3.5: pedido explícito — sacar la leyenda "Pescado", achicar el svg y
-   el número de stock, y poner el número DEBAJO del svg, todo centrado
-   (antes: svg + "Pescado ×N" en fila, con el número grande). El markup
-   (ver buildFeedMenu() en js/app.js) ya no trae el texto "Pescado" —
-   sólo el ícono y el <strong id="fish-quantity">, así que alcanza con
-   apilarlos en columna y centrarlos. */
-.feed-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px; }
-.feed-item-icon img { width:56px; height:40px; }
-.feed-item-desc { display:none; }
-#fish-quantity { display:block; font-size:0.85rem; color:#244962; }
 .notification-card { position:absolute; left:18px; width:250px; z-index:10; background:#fff8e8; color:#244962; padding:10px 12px; box-shadow:0 5px 16px #14253a20; max-height:160px; overflow:auto; }
 .notification-card ul { padding:0; margin:0; list-style:none; }
 .notification-card li { font-size:.78rem; line-height:1.4; padding:5px 0; }
@@ -2546,12 +2360,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 @media(max-width:900px) { .notification-card { left:10px; } }
 @media(max-width:640px) { .notification-card { width:calc(55% - 15px); max-height:125px; padding:8px; } }
 @media(prefers-reduced-motion:reduce) { .game-stage.is-pooping{ animation:none!important; }  }
-.feed-menu { flex-direction:column; align-items:stretch; flex-wrap:nowrap; background:#fff8e8; }
 /* v3.5: mantiene columna (icono arriba, stock chico debajo, centrado —
    ver el bloque ".feed-item"/#fish-quantity más arriba) en vez de volver
    a la fila icono+texto que tenía esta capa antes. */
-.feed-item { flex-direction:column; width:100%; border:0; border-radius:0; background:#efe3ca; justify-content:center; }
-.feed-item-icon { width:auto; height:auto; }
 
 /* ======================================================================
    v3.5: los objetos interactivos de la Casa (Cama/Sillón/Lámpara,
@@ -2922,7 +2733,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
    anfitrión no se pueden accionar ni limpiar. */
 #stage-floor.is-visiting #location-deco,
 #stage-floor.is-visiting #dirt-layer { pointer-events: none !important; }
-#stage-floor.is-visiting #daily-card,
 #stage-floor.is-visiting #notification-card,
 #stage-floor.is-visiting #sleep-notice-card,
 #stage-floor.is-visiting #system-notice-card { opacity: .42; }
@@ -3045,9 +2855,8 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   transform: none;
 }
 /* ---------- Pestañas de categoría + Guardar/Cancelar: flotan arriba del
-   selector de partes/colores (mismo criterio que #feed-menu arriba del
-   dock de acciones — la posición real la calcula syncHudLayout() en
-   js/app.js, esto es sólo el valor de arranque antes del primer cálculo)
+   selector de partes/colores (la posición real la calcula syncHudLayout()
+   en js/app.js, esto es sólo el valor de arranque antes del primer cálculo)
    con el mismo lenguaje visual que .stage-actions-row. ---------- */
 .editor-tabs-row {
   position: absolute;
@@ -3245,14 +3054,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .wellbeing-name-box { padding: 7px 9px; }
   .wellbeing-name-box h2 { font-size: .78rem; }
 
-  .daily-card {
-    top: 14px;
-    right: 14px;
-    width: 203px;
-    padding: 12px;
-  }
-  .daily-reward { padding-top: 8px; gap: 7px; font-size: .54rem; }
-
   .notification-card {
     left: 14px;
     width: 188px;
@@ -3283,7 +3084,6 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   .stage-actions-row .action-circle .icon { width: 1.3rem; height: 1.3rem; }
   .action-circle-caption { margin-top: 3px; font-size: .52rem; }
   .cooldown-ring::before { left: 11px; right: 11px; bottom: 3px; height: 2px; }
-  .feed-menu { bottom: 78px; width: min(270px, calc(100% - 18px)); padding: 10px; }
 
   .visit-context {
     top: 10px;
@@ -4729,13 +4529,11 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   color: #ffe052; -webkit-text-stroke: 3px #78410d; paint-order: stroke fill;
   text-shadow: 0 3px 0 #512a0c; overflow-wrap: anywhere;
 }
-#stage-floor .daily-card { top: 76px; }
 .inventory-window .inventory-close-icon { top: 10px; right: 12px; }
 @media (max-width: 600px) {
   #stage-floor .game-coins { top: 12px; right: 14px; gap: 5px; }
   .game-coins img { width: 32px; height: 32px; }
   .game-coins strong { font-size: 25px; -webkit-text-stroke-width: 2px; }
-  #stage-floor .daily-card { top: 56px; }
   .inventory-window .inventory-close-icon { top: 7px; right: 8px; }
 }
 /* v4.4: vestidor con prueba temporal de conjuntos. */

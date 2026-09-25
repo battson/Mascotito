@@ -748,11 +748,9 @@ function finishMinigame(cancelled = false) {
   addBond(xp);
   state.economy = state.economy || { coins: 0 };
   state.economy.coins = Math.max(0, (state.economy.coins || 0) + coins);
-  if (success || fishCaught > 0) recordDailyGoal("play");
   trySave(state);
   refreshUI();
   updateCooldownButtons();
-  refreshFeedMenuState();
   playMouthAnim(el.gameStage, success ? "feliz" : "hablar", 900);
 
   const title = g.id === "pesca"

@@ -83,10 +83,9 @@ function defaultStats() {
 }
 
 function defaultCooldowns() {
-  // v3.2: "pesca" es el cooldown propio del minijuego de Pesca (antes
-  // compartía "jugar" con Pelota/Luciérnagas) — ver cooldownsMs.pesca en
-  // js/config.js.
-  return { pescado: 0, comidaBasica: 0, snack: 0, golosina: 0, beber: 0, bañar: 0, jugar: 0, pesca: 0, hablar: 0, medicina: 0 };
+  // Beta v4.6.1: sólo quedan las acciones que existen (Pesca usa un cupo
+  // diario en state.daily, no un tiempo de espera).
+  return { pescado: 0, beber: 0, bañar: 0, jugar: 0 };
 }
 
 const WARDROBE_SLOTS = ["superior", "inferior", "calzado", "accesorios"];
@@ -148,21 +147,15 @@ function normalizeCooldowns(rawCooldowns) {
   const c = rawCooldowns && typeof rawCooldowns === "object" ? rawCooldowns : {};
   const numOr = (value, fallback) => (typeof value === "number" && !Number.isNaN(value) ? value : fallback);
   const fallback = defaultCooldowns();
-  // v1 tenía un solo cooldown de "hambre" para Alimentar; ahora hay 3
-  // comidas separadas. Un guardado viejo con ese cooldown activo lo
-  // hereda para las 3 (mejor eso que dejarlas todas gratis de golpe).
+  // v1 tenía un solo cooldown de "hambre" para Alimentar: un guardado viejo
+  // con ese cooldown activo lo hereda para el pescado. Las esperas de
+  // acciones retiradas (comidas viejas, hablar, medicina) se descartan.
   const legacyHambre = numOr(c.hambre, 0);
   return {
     pescado: numOr(c.pescado, legacyHambre),
-    comidaBasica: numOr(c.comidaBasica, legacyHambre),
-    snack: numOr(c.snack, legacyHambre),
-    golosina: numOr(c.golosina, legacyHambre),
     beber: numOr(c.beber, numOr(c.sed, fallback.beber)),
     bañar: numOr(c.bañar, numOr(c.limpieza, fallback.bañar)),
     jugar: numOr(c.jugar, fallback.jugar),
-    pesca: numOr(c.pesca, fallback.pesca),
-    hablar: numOr(c.hablar, fallback.hablar),
-    medicina: numOr(c.medicina, fallback.medicina),
   };
 }
 
@@ -171,17 +164,6 @@ function normalizeSleep(raw) {
   return {
     dormida: !!s.dormida,
     since: typeof s.since === "number" ? s.since : null,
-  };
-}
-
-function normalizeHealth(raw) {
-  const h = raw && typeof raw === "object" ? raw : {};
-  const numOr = (value, fallback) => (typeof value === "number" && !Number.isNaN(value) ? value : fallback);
-  const causasValidas = ["golosinas", "higiene", "necesidades"];
-  return {
-    malestar: clamp(numOr(h.malestar, 0), 0, 100),
-    enferma: !!h.enferma,
-    causa: causasValidas.includes(h.causa) ? h.causa : null,
   };
 }
 
@@ -226,10 +208,6 @@ function normalizeDirt(raw, location) {
   return result;
 }
 
-function normalizeGolosinaLog(raw) {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((t) => typeof t === "number").slice(-20);
-}
 
 function localDateKey(date = new Date()) {
   const y = date.getFullYear();
@@ -238,8 +216,10 @@ function localDateKey(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
+// Progreso del día: hoy sólo cuenta las partidas de Pesca (el sistema de
+// Objetivos que también vivía acá se retiró en v4.5.1).
 function defaultDailyProgress() {
-  return { date: localDateKey(), feed: false, play: false, talk: false, rewarded: false, fishingPlays: 0 };
+  return { date: localDateKey(), fishingPlays: 0 };
 }
 
 function normalizeDailyProgress(raw) {
@@ -247,10 +227,6 @@ function normalizeDailyProgress(raw) {
   if (!raw || typeof raw !== "object" || raw.date !== today) return defaultDailyProgress();
   return {
     date: today,
-    feed: !!raw.feed,
-    play: !!raw.play,
-    talk: !!raw.talk,
-    rewarded: !!raw.rewarded,
     fishingPlays: Number.isFinite(raw.fishingPlays) ? Math.max(0, Math.min(3, Math.floor(raw.fishingPlays))) : 0,
   };
 }
@@ -287,10 +263,8 @@ function normalizeState(raw) {
     look: normalizeLook(raw.look),
     location: location,
     sleep: normalizeSleep(raw.sleep),
-    // Beta v1.0: enfermedad queda desactivada hasta su futuro rediseño.
-    // Se conserva el campo para poder migrar guardados viejos sin perder
-    // compatibilidad, pero ninguna mascota entra enferma en esta versión.
-    health: { malestar: 0, enferma: false, causa: null },
+    // Beta v4.6.1: se quitó el sistema de enfermedad (inactivo desde v1.0);
+    // el campo `health` de guardados viejos simplemente se ignora.
     bond: normalizeBond(raw.bond),
     economy: normalizeEconomy(raw.economy),
     unlockedColors: Object.fromEntries(PET_PARTS_MANIFEST.bodyColor.filter((item) => item.locked && raw.unlockedColors?.[item.id] === true).map((item) => [item.id, true])),
@@ -306,7 +280,6 @@ function normalizeState(raw) {
     housing: normalizeHousing(raw.housing, !raw.housing),
     daily: normalizeDailyProgress(raw.daily),
     dirt: normalizeDirt(raw.dirt, location),
-    golosinaLog: normalizeGolosinaLog(raw.golosinaLog),
     lastRequestAt: numOr(raw.lastRequestAt, 0),
   };
 }
@@ -323,7 +296,6 @@ function createNewState(name, look, housingGiftStatus = "none") {
     look: look || defaultLook(),
     location: defaultLocation(),
     sleep: { dormida: false, since: null },
-    health: { malestar: 0, enferma: false, causa: null },
     bond: { xp: 0 },
     economy: { coins: 0 },
     unlockedColors: {},
@@ -335,7 +307,6 @@ function createNewState(name, look, housingGiftStatus = "none") {
     petPosition: { xPct: 50, yPct: 75 },
     daily: defaultDailyProgress(),
     dirt: { casa: [], jardin: [] },
-    golosinaLog: [],
     lastRequestAt: now,
   };
 }
@@ -409,22 +380,10 @@ function clearState() {
   }
 }
 
-/** ¿Cuántas de las causas de malestar (higiene/necesidades) están activas
- * ahora mismo, dado un `stats`? Se usa tanto en el tick en vivo como en
- * el cálculo de tiempo offline, así que queda en una sola función. */
-function activeSicknessCauses(stats) {
-  const causas = [];
-  if (stats.higiene < PET_CONFIG.health.higieneEnfermaUmbral) causas.push("higiene");
-  if (stats.saciedad < PET_CONFIG.health.necesidadEnfermaUmbral || stats.hidratacion < PET_CONFIG.health.necesidadEnfermaUmbral) {
-    causas.push("necesidades");
-  }
-  return causas;
-}
-
 /**
  * Aplica el paso del tiempo real (minutos transcurridos desde
  * lastUpdate) a TODO el estado: necesidades (con ritmo reducido si está
- * durmiendo), salud/malestar (según causas activas), felicidad con piso
+ * durmiendo), felicidad con piso
  * de ausencia, manchas nuevas con tope, y devuelve info de lo que pasó
  * (para poder mostrar un saludo o un aviso al volver).
  */
@@ -459,10 +418,6 @@ function applyDecay(state, now) {
     state.stats.energia = clamp(state.stats.energia - cfg.decayPerMinute.energia * elapsedMinutes, 0, 100);
   }
 
-  // ---- Salud: malestar sube por causas activas, baja solo si no hay
-  // ninguna. Para una ausencia larga, el aporte total queda topado
-  // (pedido explícito: "aplicá límites configurables al deterioro por
-  // ausencias largas") en vez de sumar sin fin minuto a minuto.
   // Each consumed meal is digested once. New waste only affects elapsed time after its creation.
   const dirtHere = state.dirt[state.location];
   let exposure = dirtHere.length * elapsedMinutes;
@@ -474,22 +429,11 @@ function applyDecay(state, now) {
   }
   state.stats.higiene = clamp(state.stats.higiene - exposure * .7, 0, 100);
   state.stats.felicidad = clamp(state.stats.felicidad - exposure * .5, 0, 100);
-  // Beta v1.0: el sistema de enfermedad queda deliberadamente inactivo.
-  // Higiene, necesidades y heces siguen afectando el bienestar, pero no
-  // acumulan malestar ni generan una enfermedad imposible de tratar.
-  state.health = { malestar: 0, enferma: false, causa: null };
 
   state.lastUpdate = now;
   return { elapsedMs, wasAway, extraño: wasAway && elapsedMs >= cfg.absence.saludoCariñosoDesdeMs };
 }
 
-/**
- * Estado de ánimo "de base" (el mismo mecanismo visual que ya existía:
- * maneja --eye-scale y las expresiones de cejas/boca por CSS) — calculado
- * sobre las 4 necesidades físicas. Los estados especiales (dormida,
- * enferma) se resuelven aparte en getPriorityStatus (js/app.js), que es
- * quien decide qué mostrar cuando hay varias cosas urgentes a la vez.
- */
 /**
  * v3.2, pedido explícito: "que el ánimo baje mucho más rápido cuando las
  * barras de las demás necesidades están bajas y cueste subir el ánimo si

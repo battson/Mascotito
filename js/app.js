@@ -74,7 +74,6 @@ const el = {
   stageTransitionBack: document.getElementById("stage-transition-back"),
   walker: document.getElementById("walker"),
   petName: document.getElementById("pet-name"),
-  statusLine: document.getElementById("status-line"),
   hudStatusDot: document.querySelector(".hud-status-dot"),
   wellbeingAvatar: document.getElementById("wellbeing-avatar"),
   wellbeingBars: document.getElementById("wellbeing-bars"),
@@ -90,18 +89,10 @@ const el = {
   headerXpText: document.getElementById("header-xp-text"),
   headerLevelFill: document.getElementById("header-level-fill"),
   btnEditPet: document.getElementById("btn-edit-pet"),
-  dailyCard: document.getElementById("daily-card"),
-  dailyCount: document.getElementById("daily-count"),
-  dailyFeed: document.getElementById("daily-feed"),
-  dailyPlay: document.getElementById("daily-play"),
-  dailyTalk: document.getElementById("daily-talk"),
-  dailyReward: document.querySelector(".daily-reward"),
   navHome: document.getElementById("nav-home"),
   navGarden: document.getElementById("nav-garden"),
   actionsDock: document.getElementById("actions-dock"),
-  feedMenu: document.getElementById("feed-menu"),
   dirtLayer: document.getElementById("dirt-layer"),
-  toyBall: document.getElementById("toy-ball"),
   speechBubble: document.getElementById("speech-bubble"),
   bathFx: document.getElementById("bath-fx"),
   liveStatus: document.getElementById("live-status"),
@@ -744,8 +735,8 @@ function startIdle(minMs, maxMs) {
 
 /** ¿Puede caminar sola / responder al click-to-walk ahora mismo? No,
  * mientras duerme, ni mientras está en medio de un cambio de lugar
- * (navLock — ver goToLocation). Tampoco corre si está muy cansada o
- * enferma — sigue pudiendo caminar despacio, pero no acelerar. */
+ * (navLock — ver goToLocation). Tampoco corre si está muy cansada —
+ * sigue pudiendo caminar despacio, pero no acelerar. */
 function canWalk() {
   return !!state && !state.sleep.dormida && !navLock;
 }
@@ -860,7 +851,7 @@ let runHoldTimer = null;
 function setupClickToWalk() {
   el.stageFloor.addEventListener("pointerdown", (event) => {
     // Los elementos de la escena no deben activar movimiento de fondo.
-    if (event.target.closest(".dirt-item") || event.target.closest("#toy-ball") || event.target.closest("#game-stage")) return;
+    if (event.target.closest(".dirt-item") || event.target.closest("#game-stage")) return;
     registerInteraction();
     if (walkMax <= 0 || !canWalk()) return;
     setPointerWalkTarget(event.clientX);
@@ -1064,10 +1055,6 @@ async function goToLocation(targetId) {
   if (state.sleep.dormida) {
     notifySystem(`${state.name} está durmiendo — no puede salir hasta que despierte.`);
     announce(`${state.name} está durmiendo, no puede cambiar de lugar ahora.`);
-    return;
-  }
-  if (!el.toyBall.hidden) {
-    notifySystem(`Esperá a que termine con el juguete.`);
     return;
   }
 
@@ -1489,7 +1476,7 @@ function setStageEditing(active) {
     if (node) node.hidden = !active;
   });
   if (!active && el.editorWelcome) el.editorWelcome.hidden = true;
-  // Recalcula la posición de #creator-tabs-row/#feed-menu apenas cambia
+  // Recalcula la posición de #creator-tabs-row apenas cambia
   // qué se ve dentro de #stage-actions-row — no siempre dispara al
   // ResizeObserver que ya observa ese elemento (ver más abajo) si el alto
   // del dock no cambia de un frame al otro.
@@ -1636,7 +1623,6 @@ function updateMeters() {
  *   de cara (mood-feliz/normal/triste) que usa la mascota grande — se
  *   aplican las clases sobre #wellbeing-avatar-stage, que ya recibe su
  *   propio renderPetLayers() en updateMeters().
- * - Enfermedad: mismo filtro visual ".sick" que la mascota del juego.
  *
  * v2.6: pedido explícito — el color del borde ya no es un valor fijo por
  * tramo, va DE LA MANO con el mismo estado de ánimo de siempre: verde en
@@ -1646,8 +1632,7 @@ function updateMeters() {
  * temblar más las frases espontáneas), una animación que va alternando
  * amarillo-rojo-amarillo-rojo sin parar hasta que la felicidad suba de
  * nuevo a amarillo o verde (ver @keyframes avatar-border-critico en
- * css/style.css). Enferma pisa todo lo anterior con su propia animación
- * verde-azul, también en loop hasta que se cure. Las clases (no un color
+ * css/style.css). Las clases (no un color
  * fijo por JS) son las que permiten que sea una animación CSS en vez de
  * un valor estático. */
 function updateWellbeingAvatar() {
@@ -1655,14 +1640,13 @@ function updateWellbeingAvatar() {
   const fel = state.stats.felicidad;
   const tier = fel > FELICIDAD_BORDE.feliz ? "feliz" : fel >= FELICIDAD_BORDE.enojo ? "enojo" : "critico";
 
-  el.wellbeingAvatar.classList.remove("avatar-border-feliz", "avatar-border-enojo", "avatar-border-critico", "avatar-border-enferma");
+  el.wellbeingAvatar.classList.remove("avatar-border-feliz", "avatar-border-enojo", "avatar-border-critico");
   el.wellbeingAvatar.classList.add("avatar-border-" + tier);
 
   const stage = el.wellbeingAvatarStage;
   stage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
   const mood = moodFromStats(state.stats);
   stage.classList.add("mood-" + mood);
-  stage.classList.remove("sick");
 }
 
 function updateBondChip() {
@@ -1685,66 +1669,19 @@ function ensureDailyProgress() {
   if (!state.economy) state.economy = { coins: 0 };
 }
 
-function updateDailyGoals() {
+// Beta v4.5.1: se quitó el sistema de Objetivos (v4.6.1: también su
+// código). state.daily queda sólo para las partidas diarias de Pesca.
+function updateCoinCount() {
   if (!state) return;
   ensureDailyProgress();
-  // Beta v4.5.1: se quitó el sistema de Objetivos. Sólo queda el contador
-  // de monedas (state.daily se conserva por las partidas diarias de Pesca).
   if (el.coinCount) el.coinCount.textContent = String(state.economy.coins || 0);
-  return;
-  const goals = [
-    ["feed", el.dailyFeed],
-    ["play", el.dailyPlay],
-    ["talk", el.dailyTalk],
-  ];
-  let done = 0;
-  goals.forEach(([key, node]) => {
-    const complete = !!state.daily[key];
-    if (complete) done += 1;
-    if (node) node.classList.toggle("is-done", complete);
-  });
-  if (el.dailyCount) el.dailyCount.textContent = `${done} / 3`;
-  // v3.5: pedido explícito — "el cartel de objetivos que se cierre cuando
-  // ya se completaron todos". ensureDailyProgress() ya resetea
-  // state.daily (y por lo tanto `done`) al cambiar de día, así que el
-  // cartel vuelve a aparecer solo al otro día sin que haga falta ningún
-  // botón para reabrirlo.
-  if (el.dailyCard) el.dailyCard.hidden = done >= 3;
-  if (el.coinCount) el.coinCount.textContent = String(state.economy.coins || 0);
-  // v3.2, pedido explícito: "que el texto de los objetivos se tachen...
-  // y también el de recompensas" — cada objetivo ya se tachaba a medias
-  // (li.is-done existía, pero con text-decoration:none, ver css/
-  // style.css); acá se agrega el tachado de la recompensa una vez que ya
-  // se cobró (state.daily.rewarded), con su propia clase para no
-  // confundirla con "objetivo individual cumplido".
-  if (el.dailyReward) el.dailyReward.classList.toggle("is-claimed", !!state.daily.rewarded);
-}
-
-function recordDailyGoal(key) {
-  // Beta v4.5.1: sistema de Objetivos quitado — no registra ni premia nada.
-  return false;
-  if (!state) return false;
-  ensureDailyProgress();
-  if (state.daily[key]) return false;
-  state.daily[key] = true;
-  const complete = state.daily.feed && state.daily.play && state.daily.talk;
-  let rewardedNow = false;
-  if (complete && !state.daily.rewarded) {
-    state.daily.rewarded = true;
-    state.economy.coins = (state.economy.coins || 0) + 50;
-    addBond(100);
-    rewardedNow = true;
-  }
-  trySave(state);
-  updateDailyGoals();
-  return rewardedNow;
 }
 
 function addBond(amount) {
   state.bond.xp = Math.max(0, state.bond.xp + amount);
 }
 
-// ---------- Estado de ánimo / expresión / mensaje único de prioridad ----------
+// ---------- Estado de ánimo / expresión ----------
 
 /* v2.1: la escala vertical de los ojos dependía del "ánimo" general
  * (promedio de las 5 necesidades) — eso incluía un scaleY(0.72) para el
@@ -1752,78 +1689,13 @@ function addBond(amount) {
  * cuidada), así que en la práctica los ojos casi siempre se veían más
  * achicados que en el creador (que nunca aplica --eye-scale, siempre
  * proporción 1). Corregido: ahora la escala sale directo de las causas
- * puntuales que sí ameritan una expresión intencional (cansancio real,
- * malestar) en vez de salir del ánimo general — despierta/sana/con
+ * puntuales que sí ameritan una expresión intencional (cansancio real)
+ * en vez de salir del ánimo general — despierta/con
  * energía siempre es 1, igual que el creador, como pediste. */
 function computeEyeScale(stats) {
   if (stats.energia < PET_CONFIG.energiaMuyCansadaUmbral) return 0.68; // muy cansada: ojos de sueño
   if (stats.energia < PET_CONFIG.energiaCansadaUmbral) return 0.85; // cansada: apenas entrecerrados
   return 1; // despierta, sana, con energía: proporción original del creador
-}
-
-const SICK_CAUSE_LABEL = {
-  higiene: "la higiene muy baja por mucho tiempo",
-  necesidades: "hambre o sed desatendidas por mucho tiempo",
-  golosinas: "un exceso reciente de golosinas",
-};
-
-/** Un solo estado de prioridad a la vez: enferma > dormida > necesidad
- * crítica > felicidad crítica > muy cansada > necesidad baja > sucia >
- * todo bien (sin mensaje). La suciedad ahora se mira SÓLO en el lugar
- * actual (state.dirt[state.location], v2.1). */
-function getPriorityStatus() {
-  const s = state;
-  const name = s.name;
-  if (s.sleep.dormida) {
-    return { text: `${name} está durmiendo — tocá "Despertar" cuando quieras que se levante.`, cls: "status-dormida" };
-  }
-  const needs = [
-    ["saciedad", s.stats.saciedad, "tiene mucha hambre"],
-    ["hidratacion", s.stats.hidratacion, "tiene mucha sed"],
-    ["higiene", s.stats.higiene, "está muy sucia"],
-    ["energia", s.stats.energia, "está agotada"],
-  ];
-  const lowest = needs.reduce((a, b) => (b[1] < a[1] ? b : a));
-  if (lowest[1] < PET_CONFIG.mood.critico) {
-    return { text: `${name} ${lowest[2]}.`, cls: "status-critico" };
-  }
-  if (s.stats.felicidad < PET_CONFIG.mood.critico) {
-    return { text: `${name} está muy triste, necesita jugar y compañía.`, cls: "status-critico" };
-  }
-  if (s.stats.energia < PET_CONFIG.energiaMuyCansadaUmbral) {
-    return { text: `${name} está muy cansada, quizás sea hora de dormir.`, cls: "status-aviso" };
-  }
-  if (lowest[1] < PET_CONFIG.mood.normal) {
-    return { text: `${name} ${lowest[2]}.`, cls: "status-aviso" };
-  }
-  if (s.dirt[s.location].length > 0) {
-    return { text: `Hay algo para limpiar acá.`, cls: "status-aviso" };
-  }
-  if (s.stats.felicidad < PET_CONFIG.mood.normal) {
-    return { text: `${name} está un poco aburrida.`, cls: "status-aviso" };
-  }
-  return null;
-}
-
-// v2.4: pedido explícito — "desactivar las notificaciones que aparecen
-// cuando duerme o tiene una necesidad". Eso era este cartel visual
-// (#status-line, calculado por getPriorityStatus): un solo mensaje de
-// prioridad como "está durmiendo" o "tiene mucha hambre" que aparecía
-// arriba del escenario. Se desactiva quedando siempre oculto — se deja la
-// función en pie (en vez de sacarla del todo) por si en algún momento se
-// pide reactivarla, así no hay que rearmar la lógica de prioridad.
-function updateStatusLine() {
-  el.statusLine.hidden = true;
-  return;
-  // eslint-disable-next-line no-unreachable
-  const status = getPriorityStatus();
-  if (!status) {
-    el.statusLine.hidden = true;
-    return;
-  }
-  el.statusLine.hidden = false;
-  el.statusLine.textContent = status.text;
-  el.statusLine.className = "status-line " + status.cls;
 }
 
 // v2.5: getMoodCaption() (el "estado breve" de #mood-caption) se sacó —
@@ -1839,7 +1711,6 @@ function updateMood() {
   const mood = moodFromStats(state.stats);
   stage.classList.add("mood-" + mood);
   stage.classList.toggle("sleeping", state.sleep.dormida);
-  stage.classList.remove("sick");
   // Respaldo para navegadores sin :has().
   el.walker.classList.toggle("is-sleeping", state.sleep.dormida);
   stage.style.setProperty("--eye-scale", state.sleep.dormida ? 0.04 : computeEyeScale(state.stats));
@@ -1969,13 +1840,11 @@ function refreshUI() {
   updateMeters();
   updateWellbeingAvatar();
   updateBondChip();
-  updateDailyGoals();
-  refreshFeedMenuState();
+  updateCoinCount();
   renderNotifications();
   if (el.navHome) el.navHome.classList.toggle("is-active", state.location === "casa");
   if (el.navGarden) el.navGarden.classList.toggle("is-active", state.location === "jardin");
   updateMood();
-  updateStatusLine();
   updateFlies();
   renderDirt();
   updateSleepToggle();
@@ -2135,9 +2004,8 @@ function statUrgency(value, umbral) {
 }
 
 /** Elige, entre todas las necesidades/estados que ameriten decir algo en
- * este momento, el más urgente (un solo mensaje a la vez, mismo criterio
- * que ya usaba getPriorityStatus para el cartel visual — sólo que ahora
- * ESTA es la única forma de enterarse, ver nota en PET_REQUEST_PHRASES).
+ * este momento, el más urgente (un solo mensaje a la vez: es la única
+ * forma de enterarse, ver nota en PET_REQUEST_PHRASES).
  * Devuelve { categoria, urgencia } o null si no hay nada que decir. */
 function pickRequestCategory() {
   const s = state.stats;
@@ -2168,8 +2036,8 @@ function pickRequestCategory() {
 }
 
 /** Pedido espontáneo — v2.5: ahora es el único canal para enterarse de
- * una necesidad floja (el cartel visual #status-line se desactivó en
- * v2.4), así que ya no se calla sólo porque haya "algo más urgente": al
+ * una necesidad floja (el cartel visual de estado se retiró), así que
+ * ya no se calla sólo porque haya "algo más urgente": al
  * contrario, cuanto más urgente, más seguido lo repite (probabilidad y
  * espacio mínimo entre pedidos interpolan entre los pares mild/urgente de
  * PET_CONFIG.requests según la urgencia elegida). Sigue en silencio
@@ -2244,10 +2112,10 @@ function updateCooldownButtons() {
     const { btnEl, ringEl, labelEl, isFull } = actionRegistry[key];
     const until = (state.cooldowns && state.cooldowns[key]) || 0;
     const remainingMs = until - Date.now();
-    ringEl?.classList.toggle("is-cooling-down", remainingMs > 0 && key !== "hablar" && key !== "jugar");
+    ringEl?.classList.toggle("is-cooling-down", remainingMs > 0 && key !== "jugar");
     // Los paneles siguen disponibles durante el sueño; el jabón queda bloqueado.
     const blockedByState = state.sleep.dormida && key === "bañar";
-    if (key === "hablar" || key === "jugar") { btnEl.disabled = key === "jugar" && state.sleep.dormida; if (labelEl) labelEl.textContent = ""; return; }
+    if (key === "jugar") { btnEl.disabled = state.sleep.dormida; if (labelEl) labelEl.textContent = ""; return; }
     if (remainingMs > 0) {
       btnEl.disabled = true;
       const total = PET_CONFIG.cooldownsMs[key] || PET_CONFIG.cooldownMs;
@@ -2263,12 +2131,10 @@ function updateCooldownButtons() {
     }
   });
   updateActionsAvailability();
-  if (!el.feedMenu.hidden) refreshFeedMenuState();
   if (el.inventoryOverlay && !el.inventoryOverlay.hidden) refreshInventory();
 }
 
-/** Cosas que no dependen de cooldown: mostrar/ocultar el botón de
- * Medicina (sólo si está enferma) y el tooltip de Jugar. */
+/** Cosas que no dependen de cooldown (por ejemplo, el tooltip de Jugar). */
 function updateActionsAvailability() {
   const decorate = document.getElementById("housing-edit-open");
   if (decorate) decorate.hidden = !state || !!activeVisit || el.game.hidden;
@@ -2888,74 +2754,15 @@ function updateSleepToggle() {
   if (reg.captionEl) reg.captionEl.textContent = label;
 }
 
-// ---------- Alimentar: menú con 3 opciones ----------
-
-const FOOD_DESCRIPTIONS = {
-  pescado: "Recupera 30 de hambre y 6 de energía. Consumís 1 pescado.",
-  snack: "Recuperación moderada + un poco de ánimo.",
-  golosina: "La que más le gusta, pero en exceso puede caerle mal.",
-};
-
-function buildFeedMenu() {
-  el.feedMenu.innerHTML = "";
-  Object.keys(PET_CONFIG.feeding).forEach((key) => {
-    const food = PET_CONFIG.feeding[key];
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "feed-item";
-    item.id = "feed-item-" + key;
-    item.setAttribute("role", "menuitem");
-    // v3.5: pedido explícito — "sacar la leyenda 'Pescado' y que el
-    // número de stock sea mucho más chico, el svg un poco más chico y el
-    // número de stock esté debajo del svg, todo centrado" (ver
-    // .feed-item/#fish-quantity en css/style.css para el layout en
-    // columna centrada que arma esto).
-    item.innerHTML = `<span class="feed-item-icon"><img src="assets/items/fish-item.svg" alt="${food.label}" /></span><strong id="fish-quantity">×0</strong><span class="feed-item-desc">${FOOD_DESCRIPTIONS[key] || ""}</span>`;
-    item.addEventListener("click", () => doComer(key));
-    el.feedMenu.appendChild(item);
-  });
-  const note = document.createElement("p");
-  note.className = "feed-menu-note";
-  note.id = "food-stock";
-  note.textContent = "";
-  el.feedMenu.appendChild(note);
-  // v3.2, pedido explícito: se saca el botón "Conseguí más pescado"
-  // (#feed-go-fishing) — cuando no queda stock, la sugerencia de ir a
-  // pescar pasa a ser sólo texto DENTRO de #food-stock (ver
-  // refreshFeedMenuState), no clickeable.
-}
-
-function toggleFeedMenu() {
-  const wasHidden = el.feedMenu.hidden;
-  closeAllMenus();
-  el.feedMenu.hidden = !wasHidden;
-  if (!el.feedMenu.hidden) refreshFeedMenuState();
-}
-
-function refreshFeedMenuState() {
-  if (!state) return;
-  document.getElementById("fish-quantity").textContent = `×${state.inventory.pescado}`;
-  // v3.2, pedido explícito: "No quedan pescados" -> "No te queda más
-  // comida", y agrega (sólo texto, sin el botón de antes) la sugerencia
-  // de ir a pescar cuando no hay stock.
-  document.getElementById("food-stock").textContent = state.inventory.pescado === 0 ? `No te queda más comida. Jugá con ${state.name} para conseguir más comida.` : state.stats.saciedad >= PET_CONFIG.llenaUmbral ? `${state.name} no tiene hambre.` : state.sleep.dormida ? `${state.name} está durmiendo.` : isOnCooldown("pescado") ? `Podés volver a alimentar en ${formatCooldownPhrase(state.cooldowns.pescado-Date.now())}.` : "Elegí el pescado para alimentar.";
-  Object.keys(PET_CONFIG.feeding).forEach((key) => {
-    const item = document.getElementById("feed-item-" + key);
-    if (!item) return;
-    item.disabled = !state.inventory[key] || isOnCooldown(key) || state.stats.saciedad >= PET_CONFIG.llenaUmbral || state.sleep.dormida;
-  });
-}
-
-function pruneGolosinaLog(now) {
-  const windowMs = PET_CONFIG.golosinaExceso.windowMs;
-  state.golosinaLog = state.golosinaLog.filter((t) => now - t < windowMs);
-}
+// ---------- Alimentar ----------
+// Se come desde el cofre del inventario (ver refreshInventory). El menú
+// flotante de comidas de antes se retiró en v4.6.1.
 
 function doComer(key) {
   if (state.sleep.dormida || isOnCooldown(key)) return;
   const food = PET_CONFIG.feeding[key];
   if (!food) return;
-  if (!state.inventory[key]) { notifySystem(`No te queda más comida. Jugá con ${state.name} para conseguir más comida.`); refreshFeedMenuState(); return; }
+  if (!state.inventory[key]) { notifySystem(`No te queda más comida. Jugá con ${state.name} para conseguir más comida.`); return; }
   if (state.stats.saciedad >= PET_CONFIG.llenaUmbral) {
     notifySystem(`${state.name} ya no tiene hambre.`);
     return;
@@ -2971,22 +2778,10 @@ function doComer(key) {
   addBond(2);
   startCooldown(key);
   emitRealtimeAction("eat", { item: key });
-
-  if (key === "golosina") {
-    const now = Date.now();
-    state.golosinaLog.push(now);
-    pruneGolosinaLog(now);
-    showBubble("¡Ñam! Me encantó.");
-  } else {
-    showBubble(key === "comidaBasica" ? "¡Qué rico!" : "Mmm, gracias.");
-  }
-
-  const dailyReward = recordDailyGoal("feed");
+  showBubble("Mmm, gracias.");
   trySave(state);
   refreshUI();
   updateCooldownButtons();
-  refreshFeedMenuState();
-  if (dailyReward) notifySystem("¡Objetivos del día completos! +50 monedas +100 XP", 3800);
 }
 
 // ---------- Beber / Limpiar (bañar) ----------
@@ -3003,12 +2798,10 @@ function doBeber() {
   addBond(2);
   startCooldown("beber");
   emitRealtimeAction("drink");
-  const dailyReward = recordDailyGoal("talk");
   trySave(state);
   refreshUI();
   updateCooldownButtons();
   showBubble("¡Glup, glup! Gracias.");
-  if (dailyReward) notifySystem("¡Objetivos del día completos! +50 monedas +100 XP", 3800);
 }
 
 function doBañar() {
@@ -3051,7 +2844,6 @@ function toggleSueño() {
     startIdle(200, 400);
     resetPupils(el.gameStage);
     stopMouthAnim(el.gameStage);
-    el.feedMenu.hidden = true;
     el.speechBubble.hidden = true;
     clearTimeout(bubbleHideTimer);
     clearTimeout(bubbleRemoveTimer);
@@ -3066,7 +2858,7 @@ function toggleSueño() {
   updateCooldownButtons();
 }
 
-// ---------- Reacciones de minijuegos y diálogo ----------
+// ---------- Reacciones de minijuegos ----------
 const PET_REACTIONS = ["💕", "✨", "💫"];
 function popHearts() {
   const n = 3;
@@ -3081,29 +2873,6 @@ function popHearts() {
   }
 }
 
-let lastTalkPhrase = "";
-function doHablar() {
-  if (state.sleep.dormida) { notifySystem(`${state.name} está durmiendo. Podrás hablar cuando despierte.`); return; }
-  const rewardReady = !isOnCooldown("hablar");
-  registerInteraction();
-  if (rewardReady) {
-  gainFelicidad(PET_CONFIG.affection.hablar.felicidad);
-  addBond(PET_CONFIG.affection.hablar.vinculo);
-  startCooldown("hablar");
-  }
-  const dailyReward = rewardReady ? recordDailyGoal("talk") : false;
-  trySave(state);
-  refreshUI();
-  updateCooldownButtons();
-  const phrases = PET_TALK_PHRASES.filter(p => typeof p === "string" && p.trim() && p !== lastTalkPhrase);
-  const frase = phrases[Math.floor(Math.random() * phrases.length)] || "¡Me encanta estar con vos!";
-  lastTalkPhrase = frase;
-  if (dailyReward) notifySystem("¡Objetivos del día completos! +50 monedas +100 XP");
-  showBubble(frase, 3200);
-  playMouthAnim(el.gameStage, "hablar", dailyReward ? 3800 : 3200);
-  emitRealtimeAction("talk", { text: frase });
-}
-
 // ---------- Menú de Opciones (Editar / Modo prueba / Reiniciar) ----------
 
 let debugSnapshot = null;
@@ -3112,7 +2881,6 @@ function openDebugMode() {
   if (debugSnapshot || navLock) return;
   finishMinigame(true);
   closeGameSelector(false); closeGamePanel();
-  el.feedMenu.hidden = true;
   debugSnapshot = JSON.parse(JSON.stringify(state));
   el.optDebug.setAttribute("aria-expanded", "true");
   el.debugPanel.hidden = false;
@@ -3132,14 +2900,12 @@ function closeDebugMode() {
     trySave(state);
     refreshUI();
     updateCooldownButtons();
-    refreshFeedMenuState();
   }
   el.optDebug.focus();
   announce("Modo prueba cerrado.");
 }
 
 function closeAllMenus() {
-  if (el.feedMenu) el.feedMenu.hidden = true;
   closeOptionsMenu();
 }
 
@@ -3393,7 +3159,6 @@ function setupOptionsMenu() {
     if (ev.key !== "Escape") return;
     if (!el.debugPanel.hidden) { closeDebugMode(); ev.preventDefault(); return; }
     if (!el.optionsMenu.hidden) { closeOptionsMenu(true); return; }
-    if (!el.feedMenu.hidden) { el.feedMenu.hidden = true; document.getElementById("btn-comer")?.focus(); return; }
   });
 }
 
@@ -3435,7 +3200,6 @@ function buildDebugPanel() {
       refreshDebugValues();
       refreshUI();
       updateCooldownButtons();
-      refreshFeedMenuState();
     });
   });
 
@@ -3492,14 +3256,6 @@ if (el.btnAleatorio) el.btnAleatorio.addEventListener("click", randomizeLook);
 // de dejarlo pegado hasta el próximo intento de guardar.
 if (el.nameInput) el.nameInput.addEventListener("input", clearNameError);
 
-// Cerrar el menú de comida si se clickea afuera (el de Opciones tiene su
-// propio listener en setupOptionsMenu).
-document.addEventListener("click", (ev) => {
-  if (el.feedMenu && !el.feedMenu.hidden && !ev.target.closest("#feed-menu") && !ev.target.closest("#btn-comer")) {
-    el.feedMenu.hidden = true;
-  }
-});
-
 // Only game/system notices enter this channel; pet speech stays in showBubble.
 let systemNotice = "", systemNoticeTimer = null;
 function notifySystem(text) {
@@ -3515,7 +3271,7 @@ if (systemNoticeCloseBtn) systemNoticeCloseBtn.addEventListener("click", () => {
 /* v3.2, pedido explícito: separar en 3 ventanas lo que antes vivía junto
  * acá adentro (alertas de bienestar + el aviso puntual del sistema, todo
  * mezclado en #notification-card):
- * 1) Alertas de bienestar (necesidades <20% + enferma) — sin cambios de
+ * 1) Alertas de bienestar (necesidades <20%) — sin cambios de
  *    comportamiento, sólo quedaron solas en #notification-card.
  * 2) #sleep-notice-card — ESTÁTICA: visible sólo mientras
  *    state.sleep.dormida, sin botón de cerrar ni temporizador propio (no
@@ -3672,11 +3428,8 @@ function syncHudLayout() {
   if (!sleepCard.hidden) nextTop += sleepCard.offsetHeight + 12;
   sysCard.style.top = nextTop + "px";
   const dock=document.getElementById("stage-actions-row");
-  el.feedMenu.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+12)+"px";
   // v3.6.2: #creator-tabs-row (pestañas Color/Cabeza/Orejas/... + Guardar/
-  // Cancelar del editor) flota justo arriba del selector de partes/colores
-  // — mismo cálculo que ya usa #feed-menu para flotar arriba de este mismo
-  // dock, reutilizado tal cual (ver comentario ahí arriba).
+  // Cancelar del editor) flota justo arriba del selector de partes/colores.
   if (el.creatorTabsRow) el.creatorTabsRow.style.bottom=(el.stageFloor.clientHeight-dock.offsetTop+12)+"px";
   // Beta v1.1: compositor, dock y botón de amigos comparten la misma
   // línea inferior. En pantallas angostas el CSS lo sube para evitar
@@ -3717,7 +3470,6 @@ function setupStageModals() {
   buildPrimaryMeters();
   setupFicha();
   buildActionsDock();
-  buildFeedMenu();
   buildDebugPanel();
   setupOptionsMenu();
   setupNavigation();
@@ -5226,7 +4978,7 @@ function offlineHostFrame() {
     el.visitPetStageHost.style.setProperty("--eye-scale", 0.04);
   } else {
     const petState = activeVisit.data?.petState;
-    el.visitPetStageHost.style.setProperty("--eye-scale", computeEyeScale(petState?.stats || {}, petState?.health || {}));
+    el.visitPetStageHost.style.setProperty("--eye-scale", computeEyeScale(petState?.stats || {}));
   }
   activeVisit.npcAction = animation;
   el.visitHostPresence.title = animation === "walking" ? "Anfitrión ausente · NPC caminando" : animation === "sleeping" ? "Anfitrión ausente · NPC durmiendo" : "Anfitrión ausente · NPC descansando";
@@ -5309,11 +5061,10 @@ async function loadRemoteProfile(username, node) {
   const label = node.querySelector(".remote-player-name");
   if (!stage) return;
   renderPetLayers(stage, petState.look || defaultLook(), petState.wardrobe);
-  const mood = petState.health?.enferma ? "triste" : moodFromStats(petState.stats || {});
+  const mood = moodFromStats(petState.stats || {});
   stage.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
   stage.classList.add("mood-" + mood);
-  stage.classList.toggle("sick", !!petState.health?.enferma);
-  stage.style.setProperty("--eye-scale", computeEyeScale(petState.stats || {}, petState.health || {}));
+  stage.style.setProperty("--eye-scale", computeEyeScale(petState.stats || {}));
   if (label) label.textContent = petState.name || result.data.username || username;
 }
 
@@ -5408,7 +5159,6 @@ function renderVisit(displayName, data) {
   el.visitPetStageHost.classList.remove("mood-feliz", "mood-normal", "mood-triste", "mood-critico");
   el.visitPetStageHost.classList.add("mood-" + mood);
   el.visitPetStageHost.classList.toggle("sleeping", asleep);
-  el.visitPetStageHost.classList.remove("sick");
   el.visitPetStageHost.style.setProperty(
     "--eye-scale",
     asleep ? 0.04 : computeEyeScale(petState.stats || {})
