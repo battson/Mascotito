@@ -8,6 +8,7 @@
 - **Latas:** se guardan en el cofre del inventario junto al pescado y la botella (aparecen cuando hay al menos una). Por ahora no se usan; más adelante serán chatarra para vender.
 - **Menú de juegos:** la tarjeta de Pesca muestra el ícono de la caña. Se retira el medidor con aguja de la Pesca anterior.
 - Arte nuevo en `assets/games/fishing/` (lago, caña, ícono, bocha y lata), vectorizado a SVG con `scripts/vectorize-fishing-assets.py`.
+- **Limpieza (tanda 1):** se borró `js/users.js` (no se cargaba), la escena vieja de la casa dentro de `manifest.js` (~64 KB), los íconos SVG sin uso de `icons.js` (queda el dado), el reloj del encabezado, referencias a elementos que ya no existen, 194 reglas y 6 animaciones sin uso de `style.css` y 7 assets sin uso. Verificado sin cambios visuales: los estilos calculados de todas las pantallas dan idénticos antes y después.
 
 ## Beta v4.6 — Jugar
 
@@ -144,7 +145,6 @@
 - **«•••» del encabezado** (sólo en chats privados): Visitar y Eliminar amigo, con confirmación.
 - **Huella del marco:** botón de inicio. Desde un chat vuelve a Contactos; en Contactos cierra el celular. También se cierra con Esc o con el globo de Contactos.
 - **Aceptar** una solicitud ahora es el **✓ verde** (`check.svg`) y **Buscar** es la **lupa** (`search.svg`), al lado del campo de usuario.
-- `accept.svg` (el + verde de la v4.3.1) ya no se usa y se puede borrar.
 
 ## Beta v4.3.1 — Contactos: íconos de acciones
 

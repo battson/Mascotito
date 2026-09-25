@@ -56,9 +56,7 @@ const el = {
   // setStageEditing() más abajo y el comentario grande en index.html).
   game: document.getElementById("game"),
   appHeader: document.getElementById("app-header"),
-  brandEmblem: document.getElementById("brand-emblem"),
   editorWelcome: document.getElementById("editor-welcome"),
-  editorNameCard: document.getElementById("editor-name-card"),
   nameInput: document.getElementById("name-input"),
   nameError: document.getElementById("name-error"),
   onboardingTitle: document.getElementById("onboarding-title"),
@@ -68,7 +66,6 @@ const el = {
   creatorTabs: document.getElementById("creator-tabs"),
   creatorPartIcons: document.getElementById("creator-part-icons"),
   creatorColorIcons: document.getElementById("creator-color-icons"),
-  previewStagePos: document.getElementById("preview-stage-pos"),
   previewStage: document.getElementById("preview-stage"),
   gameStage: document.getElementById("game-stage"),
   stageFloor: document.getElementById("stage-floor"),
@@ -79,8 +76,6 @@ const el = {
   petName: document.getElementById("pet-name"),
   statusLine: document.getElementById("status-line"),
   hudStatusDot: document.querySelector(".hud-status-dot"),
-  wellbeingWidget: document.getElementById("wellbeing-widget"),
-  wellbeingHud: document.getElementById("wellbeing-hud"),
   wellbeingAvatar: document.getElementById("wellbeing-avatar"),
   wellbeingBars: document.getElementById("wellbeing-bars"),
   wellbeingAvatarStage: document.getElementById("wellbeing-avatar-stage"),
@@ -108,15 +103,7 @@ const el = {
   dirtLayer: document.getElementById("dirt-layer"),
   toyBall: document.getElementById("toy-ball"),
   speechBubble: document.getElementById("speech-bubble"),
-  minigamePanel: document.getElementById("minigame-panel"),
-  minigameTitle: document.getElementById("minigame-title"),
-  minigameScore: document.getElementById("minigame-score"),
-  minigameTime: document.getElementById("minigame-time"),
-  minigameInstructions: document.getElementById("minigame-instructions"),
-  minigameArena: document.getElementById("minigame-arena"),
-  minigameClose: document.getElementById("minigame-close"),
   bathFx: document.getElementById("bath-fx"),
-  zzzFx: document.getElementById("zzz-fx"),
   liveStatus: document.getElementById("live-status"),
   storageNotice: document.getElementById("storage-notice"),
   flies: document.getElementById("flies"),
@@ -129,7 +116,6 @@ const el = {
   locationDeco: document.getElementById("location-deco"),
   navBtn: document.getElementById("btn-nav"),
   navBtnLabel: document.getElementById("nav-btn-label"),
-  headerClock: document.getElementById("header-clock"),
   footerText: document.getElementById("footer-text"),
   // v3.3: cuenta en la nube + amigos.
   loginScreen: document.getElementById("login-screen"),
@@ -1910,12 +1896,10 @@ function isNightNow(date) {
 
 function updateClock() {
   const now = new Date();
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  if (el.headerClock) el.headerClock.innerHTML = `${iconSvg("reloj")}<span>${hh}:${mm}</span>`;
   // v3.5: pedido explícito — se sacó el cartel de reloj (#time-card, con
   // hora + Mañana/Tarde/Noche); sólo queda el cálculo de día/noche para
-  // la escena (.is-night sobre #stage-floor sigue vivo).
+  // la escena (.is-night sobre #stage-floor sigue vivo). El reloj del
+  // encabezado (#header-clock) también ya no existe.
   if (el.stageFloor) el.stageFloor.classList.toggle("is-night", isNightNow(now));
 }
 
