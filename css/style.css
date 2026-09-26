@@ -99,24 +99,8 @@ button, .swatch, input[type="text"], input[type="color"] {
   .game-stage,
   .brazo,
   .game-stage.mood-critico,
-  .fly-orbit,
-  .fly-art,
-  .fly-art svg,
-  .fly-wing-back,
-  .fly-wing-front,
-  .game-stage.sleeping,
-  .walker.is-bathing .game-stage,
   .cloud {
     animation: none !important;
-  }
-  /* Sin la animación de órbita, las moscas quedarían todas amontonadas
-     en el centro — se las deja quietas pero repartidas, usando el mismo
-     radio (--fly-r) que ya tenía cada una para la vuelta. */
-  .fly-orbit {
-    transform: translateX(var(--fly-r, 28cqw)) scaleY(1.613);
-  }
-  .fly:nth-child(even) .fly-orbit {
-    transform: translateX(calc(-1 * var(--fly-r, 28cqw))) scaleY(1.613);
   }
   /* Mismo criterio con los adornos de cuidado (rebote del juguete,
    * aparición de manchas/burbujas/corazones, el pulso de aviso en una
@@ -125,22 +109,23 @@ button, .swatch, input[type="text"], input[type="color"] {
    * fuente de una info (los mensajes de texto/etiquetas siguen igual). */
   .dirt-item,
 .speech-bubble,
-.bath-fx i,
 .heart-pop,
 .meter-track.meter-low,
 .wellbeing-track.meter-low,
-.zzz-fx span,
 .options-menu,
 .stage-floor {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
-  .zzz-fx span {
-    opacity: 0.85 !important;
-  }
-  .zzz-fx span:nth-child(2) { transform: translate(22cqw, -26cqh); }
-  .zzz-fx span:nth-child(3) { transform: translate(46cqw, -56cqh); }
-  .bath-fx.bathing i.bath-foam { opacity: 1; transform: none; }
+  /* v4.6.2 hotfix: moscas, burbujas del baño y dormir NO se apagan con
+   * movimiento reducido (en Windows, «Efectos de animación» desactivado lo
+   * activa solo, y así parecía que no funcionaban). Son la única señal de
+   * que está sucia / se está bañando / duerme, así que siguen animadas,
+   * sólo un poco más lentas y suaves. */
+  .fly-orbit, .fly-art { animation-duration: calc(var(--fly-t, 2.8s) * 1.6) !important; }
+  .game-stage.sleeping { animation: sleep-breathe 5.5s ease-in-out infinite !important; }
+  .walker.is-bathing .game-stage,
+  .walker.is-bathing .remote-player-stage { animation: bath-wiggle 0.5s ease-in-out 3 !important; }
 }
 
 body {
