@@ -9,7 +9,7 @@
  * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
  */
 const APP_CHANNEL = "Beta";
-const APP_VERSION = "4.6.1";
+const APP_VERSION = "4.6.2";
 
 /**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
@@ -231,6 +231,15 @@ const PET_CONFIG = {
   // que son otra cosa, ver clean.* arriba).
   moscas: {
     higieneUmbral: 35,
+    // Beta v4.6.2: cantidad de moscas según la higiene (pedido explícito):
+    // 4 si está en 0 % (y hasta 15 %), 3 entre 15-35 %, 2 entre 35-50 %,
+    // 1 entre 50-65 % y ninguna desde 65 %. "hasta" es exclusivo.
+    tramos: [
+      { hasta: 15, moscas: 4 },
+      { hasta: 35, moscas: 3 },
+      { hasta: 50, moscas: 2 },
+      { hasta: 65, moscas: 1 },
+    ],
   },
 
   // ---------- Navegación Casa/Jardín (sección 4, v2.1) ----------

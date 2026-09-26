@@ -30,6 +30,8 @@ let movementTimer = null;
 let pendingMovement = null;
 let lastMovementSent = null;
 let movementSequence = 0;
+// v4.6.2: «de viaje» en un minijuego — sin posición en la sala.
+let away = false;
 const MOVEMENT_SEND_INTERVAL_MS = 100;
 const ACTION_TTL_MS = 60000;
 const ACTION_MAX_AGE_MS = 8000;
@@ -242,7 +244,7 @@ function normalizeMovement(raw) {
 
 async function sendMovementNow() {
   movementTimer = null;
-  if (!pendingMovement || !db || !dbFns || !session || !connected) return false;
+  if (!pendingMovement || !db || !dbFns || !session || !connected || away) return false;
   const movement = pendingMovement;
   pendingMovement = null;
   const unchanged = lastMovementSent
@@ -262,8 +264,26 @@ async function sendMovementNow() {
   return true;
 }
 
+/** v4.6.2: sale (o vuelve) de la sala actual sin dejar de estar conectado:
+ *  borra la posición propia y frena el envío de movimiento. La presencia
+ *  (en línea / en qué casa) no cambia. */
+async function setAway(value) {
+  away = !!value;
+  clearTimeout(movementTimer);
+  movementTimer = null;
+  pendingMovement = null;
+  lastMovementSent = null;
+  if (away && session && db && dbFns && connected) {
+    const ref = movementRef(session.currentRoom, session.username);
+    await dbFns.remove(ref).catch(() => {});
+    // Por si justo había un envío en vuelo: se borra otra vez al rato.
+    setTimeout(() => { if (away) dbFns.remove(ref).catch(() => {}); }, MOVEMENT_SEND_INTERVAL_MS * 4);
+  }
+  return true;
+}
+
 function publishMovement(raw) {
-  if (!session || !connected) return false;
+  if (!session || !connected || away) return false;
   const next = normalizeMovement(raw);
   const unchanged = !pendingMovement && lastMovementSent
     && Math.abs(lastMovementSent.xPct - next.xPct) < 0.12
@@ -646,6 +666,7 @@ window.Multiplayer = {
   subscribeDirectInbox,
   subscribeDirectChat,
   publishMovement,
+  setAway,
   emitAction,
   sendChatMessage,
   sendDirectMessage,

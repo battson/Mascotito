@@ -752,6 +752,7 @@ function pickNewWalkTarget() {
 function publishLocalMovement(animationOverride) {
   const Multiplayer = window.Multiplayer;
   if (activeVisit && !activeVisit.entranceReady) return;
+  if (gameTrip) return; // v4.6.2: de viaje en un minijuego, fuera de la sala
   if (!Multiplayer || !Multiplayer.enabled || !Multiplayer.connected || !state || el.game.hidden) return;
   const expectedRoom = activeVisit?.usernameLower || currentUsername;
   if (!expectedRoom || Multiplayer.currentRoom !== expectedRoom) return;
@@ -1042,7 +1043,7 @@ let navLock = false;
  * sigue su curso normal (el tick de necesidades no se detiene). */
 async function goToLocation(targetId) {
   if (!state || navLock || el.game.hidden || activeVisit) return;
-  if (targetId === state.location || minigame) return;
+  if (targetId === state.location || minigame || gameTrip) return;
   if (debugSnapshot) {
     const transition = beginStageTransition("Preparando el escenario...");
     state.location = targetId;
@@ -1780,10 +1781,68 @@ function setupClock() {
 }
 
 let wasDirtyPersonal = false;
+
+// Beta v4.6.2: mosca ilustrada (misma que assets/ui/fx/fly.svg), en línea
+// para poder animar las alas desde style.css.
+const FLY_SVG = '<svg viewBox="0 0 120 100" aria-hidden="true" focusable="false">'
+  + '<g class="fly-wing-back"><ellipse cx="38" cy="33" rx="19.5" ry="28.5" transform="rotate(-11 38 33)" fill="#f8f6ef" stroke="#17171d" stroke-width="4.2"/>'
+  + '<path d="M34 54 C37 41 41 29 46 17" fill="none" stroke="#dcd9cf" stroke-width="3.2" stroke-linecap="round"/>'
+  + '<path d="M38 55 C42 48 46 44 51 41" fill="none" stroke="#e6e3da" stroke-width="2.6" stroke-linecap="round"/></g>'
+  + '<ellipse cx="57" cy="66" rx="25.5" ry="20.5" fill="#2e2e37" stroke="#17171d" stroke-width="4.2"/>'
+  + '<ellipse cx="55" cy="58" rx="16" ry="6" fill="#4a4a55" opacity=".85"/>'
+  + '<circle cx="26.5" cy="75" r="19.5" fill="#3a3a44" stroke="#17171d" stroke-width="4.2"/>'
+  + '<ellipse cx="22" cy="66.5" rx="6.5" ry="3.6" transform="rotate(-24 22 66.5)" fill="#6d6d79"/>'
+  + '<g class="fly-wing-front"><ellipse cx="85" cy="47" rx="35" ry="19" transform="rotate(-27 85 47)" fill="#f8f6ef" fill-opacity=".9" stroke="#17171d" stroke-width="4.2"/>'
+  + '<path d="M64 60 C76 51 88 43 103 37" fill="none" stroke="#dcd9cf" stroke-width="3.2" stroke-linecap="round"/>'
+  + '<path d="M67 63 C78 60 89 57 99 55" fill="none" stroke="#e6e3da" stroke-width="2.6" stroke-linecap="round"/></g></svg>';
+
+/** Cuántas moscas según la higiene (pedido de v4.6.2). */
+function fliesForHygiene(h) {
+  const tramos = PET_CONFIG.moscas.tramos;
+  for (const t of tramos) if (h < t.hasta) return t.moscas;
+  return 0;
+}
+
+// Espuma (sobre cabeza y cuerpo) y burbujas que suben, en % de la mascota.
+const BATH_FOAM = [
+  [38, 24, 15, 0], [55, 20, 18, .08], [67, 29, 13, .16], [31, 36, 12, .22], [47, 33, 11, .3],
+  [60, 40, 12, .38], [36, 55, 13, .46], [52, 58, 16, .54], [64, 54, 11, .6], [44, 70, 10, .68],
+];
+const BATH_RISE = [[40, 62, 6, .2, -3], [58, 66, 5, .5, 4], [48, 48, 7, .8, -5], [66, 44, 5, 1, 6], [34, 44, 5, 1.15, -2]];
+function bathFxMarkup() {
+  return BATH_FOAM.map(([x, y, sz, d]) => `<i class="bath-foam" style="--x:${x}%;--y:${y}%;--s:${sz}cqw;--d:${d}s"></i>`).join("")
+    + BATH_RISE.map(([x, y, sz, d, dx]) => `<i class="bath-rise" style="--x:${x}%;--y:${y}%;--s:${sz}cqw;--d:${d}s;--dx:${dx}cqw"></i>`).join("");
+}
+
+function setupPetFx() {
+  el.flies?.querySelectorAll(".fly").forEach((fly) => {
+    if (!fly.firstElementChild) fly.innerHTML = `<span class="fly-orbit"><span class="fly-art">${FLY_SVG}</span></span>`;
+  });
+  if (el.bathFx && !el.bathFx.firstElementChild) el.bathFx.innerHTML = bathFxMarkup();
+}
+
+/** Burbujas + sacudida. Sirve para la mascota propia y las remotas. */
+function playBathFx(walker, fx) {
+  if (!fx) return;
+  if (!fx.firstElementChild) fx.innerHTML = bathFxMarkup();
+  fx.classList.remove("bathing");
+  walker?.classList.remove("is-bathing");
+  void fx.offsetWidth;
+  fx.classList.add("bathing");
+  walker?.classList.add("is-bathing");
+  clearTimeout(fx._bathTimer);
+  fx._bathTimer = setTimeout(() => {
+    fx.classList.remove("bathing");
+    walker?.classList.remove("is-bathing");
+  }, 2600);
+}
+
 function updateFlies() {
   if (!el.flies) return;
+  const count = fliesForHygiene(state.stats.higiene);
+  el.flies.querySelectorAll(".fly").forEach((fly, i) => { fly.hidden = i >= count; });
+  el.flies.classList.toggle("visible", count > 0);
   const dirty = state.stats.higiene < PET_CONFIG.moscas.higieneUmbral;
-  el.flies.classList.toggle("visible", dirty);
   if (dirty && !wasDirtyPersonal) announce(`${state.name} está sucia.`);
   wasDirtyPersonal = dirty;
 }
@@ -2501,7 +2560,7 @@ function renderHousingEditorItems() {
 }
 
 function startHousingEdit() {
-  if (!state?.housing || activeVisit || el.game.hidden) return;
+  if (!state?.housing || activeVisit || el.game.hidden || gameTrip) return;
   closeInventory();
   closeAllMenus();
   housingEditing = true;
@@ -2818,9 +2877,8 @@ function doBañar() {
   trySave(state);
   refreshUI();
   updateCooldownButtons();
-  // Secuencia breve de agua/burbujas.
-  el.bathFx.classList.add("bathing");
-  setTimeout(() => el.bathFx.classList.remove("bathing"), 1300);
+  // Espuma, burbujas y sacudida (v4.6.2).
+  playBathFx(el.walker, el.bathFx);
   showBubble("¡Qué bien me siento!");
 }
 
@@ -3235,10 +3293,43 @@ function buildDebugPanel() {
   locRow.innerHTML = `<span>Lugar</span> <button type="button" id="debug-go-casa">Ir a Casa</button>`;
   p.appendChild(locRow);
   locRow.querySelector("#debug-go-casa").addEventListener("click", () => goToLocation("casa"));
+
+  // v4.6.2: minijuegos para probar sin trabas (el panel sólo lo ve la
+  // cuenta admin). «Reiniciar» se guarda al toque, aunque después se cierre
+  // el modo prueba sin guardar; «Sin límite» queda en este navegador.
+  const gamesRow = document.createElement("div");
+  gamesRow.className = "debug-row debug-games-row";
+  gamesRow.innerHTML = `
+    <span>Minijuegos</span>
+    <button type="button" id="debug-games-reset">Reiniciar contador</button>
+    <label class="debug-check"><input type="checkbox" id="debug-games-unlimited" /> Sin límite</label>
+    <small class="debug-games-status" aria-live="polite"></small>`;
+  p.appendChild(gamesRow);
+  gamesRow.querySelector("#debug-games-reset").addEventListener("click", () => {
+    resetMinigameCounters(state);
+    if (debugSnapshot) resetMinigameCounters(debugSnapshot);
+    trySave(state);
+    updateCooldownButtons();
+    refreshDebugValues();
+    announce("Contador de minijuegos reiniciado.");
+  });
+  gamesRow.querySelector("#debug-games-unlimited").addEventListener("change", (ev) => {
+    setGamesUnlimited(ev.target.checked);
+    refreshDebugValues();
+  });
 }
 
 function refreshDebugValues() {
   if (!state) return;
+  const unlimited = el.debugPanel.querySelector("#debug-games-unlimited");
+  if (unlimited) unlimited.checked = gamesUnlimited();
+  const gamesStatus = el.debugPanel.querySelector(".debug-games-status");
+  if (gamesStatus) {
+    ensureDailyProgress();
+    const plays = state.daily?.fishingPlays || 0;
+    const wait = isOnCooldown("jugar") ? ` · Penales en ${formatCooldownPhrase(state.cooldowns.jugar - Date.now())}` : " · Penales listo";
+    gamesStatus.textContent = `Pesca hoy: ${plays}/${GAME_LIMITS.pescaPorDia}${wait}`;
+  }
   el.debugPanel.querySelectorAll("input[data-need]").forEach((input) => {
     const key = input.dataset.need;
     input.value = Math.round(state.stats[key]);
@@ -3480,6 +3571,7 @@ function setupStageModals() {
   setupPreviewStageHover();
   setupWalking();
   setupGameChatKeyboard();
+  setupPetFx();
   setupMinigames();
   setupGameSelector();
   setupVisibilityRecalc();
@@ -3529,6 +3621,15 @@ async function waitForMultiplayer(timeoutMs) {
 
 let realtimePresencePromise = Promise.resolve(false);
 let realtimeRoomSwitchPromise = Promise.resolve(false);
+
+/** v4.6.2: mientras la mascota está «de viaje» en un minijuego deja de
+ *  estar en la sala (se borra su posición y no se publica movimiento), así
+ *  desaparece también para los demás jugadores. Al volver reaparece. */
+function setRealtimeAway(away) {
+  const Multiplayer = window.Multiplayer;
+  if (!Multiplayer || !Multiplayer.enabled || typeof Multiplayer.setAway !== "function") return;
+  Multiplayer.setAway(away).then(() => { if (!away) publishLocalMovement(); }).catch(() => {});
+}
 
 function switchRealtimeRoom(room) {
   const Multiplayer = window.Multiplayer;
@@ -4873,10 +4974,7 @@ function replayRemoteAction(event, allowQueue = true) {
       showRemoteBubble(walker, event.data?.text || "¡Hola!", 3200);
       break;
     case "bathe":
-      fx?.classList.remove("bathing");
-      void fx?.offsetWidth;
-      fx?.classList.add("bathing");
-      scheduleRemoteEffect(walker, "bathe", () => fx?.classList.remove("bathing"), 1300);
+      playBathFx(walker, fx);
       showRemoteBubble(walker, "¡Qué fresquito!");
       break;
     case "sleep":

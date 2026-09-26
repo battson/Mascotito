@@ -99,15 +99,24 @@ button, .swatch, input[type="text"], input[type="color"] {
   .game-stage,
   .brazo,
   .game-stage.mood-critico,
-  .fly,
+  .fly-orbit,
+  .fly-art,
+  .fly-art svg,
+  .fly-wing-back,
+  .fly-wing-front,
+  .game-stage.sleeping,
+  .walker.is-bathing .game-stage,
   .cloud {
     animation: none !important;
   }
   /* Sin la animación de órbita, las moscas quedarían todas amontonadas
      en el centro — se las deja quietas pero repartidas, usando el mismo
-     radio (--fly-r) que ya tenía cada una para la vuelta circular. */
-  .fly {
-    transform: translateX(var(--fly-r, 44px));
+     radio (--fly-r) que ya tenía cada una para la vuelta. */
+  .fly-orbit {
+    transform: translateX(var(--fly-r, 28cqw)) scaleY(1.613);
+  }
+  .fly:nth-child(even) .fly-orbit {
+    transform: translateX(calc(-1 * var(--fly-r, 28cqw))) scaleY(1.613);
   }
   /* Mismo criterio con los adornos de cuidado (rebote del juguete,
    * aparición de manchas/burbujas/corazones, el pulso de aviso en una
@@ -116,8 +125,7 @@ button, .swatch, input[type="text"], input[type="color"] {
    * fuente de una info (los mensajes de texto/etiquetas siguen igual). */
   .dirt-item,
 .speech-bubble,
-.bath-fx.bathing::before,
-.bath-fx.bathing::after,
+.bath-fx i,
 .heart-pop,
 .meter-track.meter-low,
 .wellbeing-track.meter-low,
@@ -130,6 +138,9 @@ button, .swatch, input[type="text"], input[type="color"] {
   .zzz-fx span {
     opacity: 0.85 !important;
   }
+  .zzz-fx span:nth-child(2) { transform: translate(22cqw, -26cqh); }
+  .zzz-fx span:nth-child(3) { transform: translate(46cqw, -56cqh); }
+  .bath-fx.bathing i.bath-foam { opacity: 1; transform: none; }
 }
 
 body {
@@ -989,34 +1000,82 @@ body {
   }
 }
 
-/* ---------- Moscas cuando está sucia ---------- */
+/* ---------- Moscas cuando está sucia ----------
+ * Beta v4.6.2: mosca ilustrada (assets/ui/fx/fly.svg, en línea desde JS)
+ * y cantidad según la higiene: 4 (<15 %), 3 (15-35 %), 2 (35-50 %),
+ * 1 (50-65 %). Dan vueltas alrededor de la cabeza en una órbita ovalada,
+ * se dan vuelta según hacia dónde vuelan y aletean sin parar.
+ * Estructura: .fly (óvalo) > .fly-orbit (vuelta) > .fly-art (mira hacia
+ * donde va, sube y baja) > svg (alas). Tamaños en cqw del propio #flies. */
 .flies {
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.4s ease;
+  container-type: size;
 }
 .flies.visible { opacity: 1; }
 .fly {
   position: absolute;
-  top: 38%;
+  top: var(--fly-top, 34%);
   left: 50%;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  border-radius: 50%;
-  background: #3a3a3a;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
-  animation: fly-orbit 2.6s linear infinite;
+  width: 0;
+  height: 0;
+  transform: scaleY(0.62);
 }
-.fly:nth-child(1) { animation-duration: 2.6s; animation-delay: 0s; --fly-r: 42px; }
-.fly:nth-child(2) { animation-duration: 3.1s; animation-delay: -1.1s; animation-direction: reverse; --fly-r: 52px; }
-.fly:nth-child(3) { animation-duration: 2.3s; animation-delay: -0.6s; --fly-r: 34px; top: 44%; }
-.fly:nth-child(4) { animation-duration: 3.4s; animation-delay: -2s; animation-direction: reverse; --fly-r: 48px; top: 34%; }
+.fly[hidden] { display: none; }
+.fly-orbit {
+  position: absolute;
+  animation: fly-orbit var(--fly-t, 2.8s) linear infinite var(--fly-dir, normal);
+  animation-delay: var(--fly-delay, 0s);
+}
+.fly-art {
+  position: absolute;
+  width: 7.5cqw;
+  height: 6.25cqw;
+  margin: -3.1cqw 0 0 -3.75cqw;
+  animation: fly-face var(--fly-t, 2.8s) step-end infinite var(--fly-dir, normal);
+  animation-delay: var(--fly-delay, 0s);
+}
+.fly-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: fly-hover 0.9s ease-in-out infinite alternate;
+}
+.fly-wing-back,
+.fly-wing-front { transform-box: view-box; animation: fly-flap 0.11s ease-in-out infinite alternate; }
+.fly-wing-back { transform-origin: 44px 58px; }
+.fly-wing-front { transform-origin: 60px 62px; animation-delay: -0.05s; }
+.fly:nth-child(1) { --fly-r: 27cqw; --fly-t: 2.9s; --fly-top: 33%; }
+.fly:nth-child(2) { --fly-r: 33cqw; --fly-t: 3.4s; --fly-top: 38%; --fly-dir: reverse; --fly-delay: -1.3s; --fly-face: -1; }
+.fly:nth-child(3) { --fly-r: 22cqw; --fly-t: 2.5s; --fly-top: 29%; --fly-delay: -0.8s; }
+.fly:nth-child(4) { --fly-r: 30cqw; --fly-t: 3.8s; --fly-top: 42%; --fly-dir: reverse; --fly-delay: -2.4s; --fly-face: -1; }
+.fly:nth-child(2) .fly-art svg { animation-delay: -0.4s; }
+.fly:nth-child(3) .fly-art svg { animation-delay: -0.7s; }
+.fly:nth-child(4) .fly-art svg { animation-delay: -0.2s; }
+/* rotate + translate + rotate inverso = sólo traslada (la mosca no gira);
+   el scaleY del .fly la vuelve óvalo y el de .fly-orbit lo compensa. */
 @keyframes fly-orbit {
-  0%   { transform: rotate(0deg) translateX(var(--fly-r, 44px)) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(var(--fly-r, 44px)) rotate(-360deg); }
+  0%   { transform: rotate(0deg) translateX(var(--fly-r, 28cqw)) rotate(0deg) scaleY(1.613); }
+  100% { transform: rotate(360deg) translateX(var(--fly-r, 28cqw)) rotate(-360deg) scaleY(1.613); }
+}
+/* Media vuelta de abajo va hacia la izquierda (mira como el dibujo);
+   la de arriba va hacia la derecha (espejada). --fly-face corrige las que
+   giran al revés. */
+@keyframes fly-face {
+  0%   { transform: scaleX(var(--fly-face, 1)); }
+  50%  { transform: scaleX(calc(-1 * var(--fly-face, 1))); }
+}
+@keyframes fly-hover {
+  from { transform: translateY(-1.5cqw) rotate(-6deg); }
+  to   { transform: translateY(1.5cqw) rotate(5deg); }
+}
+@keyframes fly-flap {
+  from { transform: rotate(0deg) scale(1); }
+  to   { transform: rotate(-9deg) scale(0.9, 0.82); }
 }
 
 /* ---------- Onboarding / personalización ---------- */
@@ -1602,44 +1661,79 @@ body {
   to { transform: translateX(-50%) translateY(-28px); opacity: 0; }
 }
 
-/* ---------- Baño: secuencia breve de burbujas ---------- */
+/* ---------- Baño ----------
+ * Beta v4.6.2: espuma sobre la cabeza y el cuerpo que aparece de a poco,
+ * burbujas que suben y la mascota que se sacude. Antes eran dos puntitos
+ * de 10-14 px al pie del personaje (pensados para la mascota de 200 px):
+ * con la mascota grande casi no se veían. Tamaños en cqw del propio
+ * .bath-fx, así escala con cualquier mascota (también las remotas). Las
+ * burbujas las arma bathFxMarkup() en js/app.js. */
 .bath-fx {
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0;
+  container-type: size;
 }
 .bath-fx.bathing { opacity: 1; }
-.bath-fx.bathing::before,
-.bath-fx.bathing::after {
-  content: "";
+.bath-fx i {
   position: absolute;
-  bottom: 10%;
-  width: 14px;
-  height: 14px;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
   border-radius: 50%;
-  background: rgba(173, 216, 240, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  animation: bubble-rise 1.1s ease-in infinite;
+  background: radial-gradient(circle at 34% 30%, #ffffff 0 22%, #f7fbfe 23% 55%, #e2f1fb 78%, #c4e2f4 100%);
+  box-shadow: inset 0 0 0 0.35cqw rgba(120, 180, 220, 0.5), 0 0.4cqw 0.8cqw rgba(60, 110, 150, 0.18);
+  opacity: 0;
+  transform: scale(0);
 }
-.bath-fx.bathing::before { left: 38%; animation-delay: 0s; }
-.bath-fx.bathing::after { left: 58%; width: 10px; height: 10px; animation-delay: 0.3s; }
-@keyframes bubble-rise {
-  0% { transform: translateY(0) scale(0.6); opacity: 0.9; }
-  80% { opacity: 0.7; }
-  100% { transform: translateY(-70px) scale(1.1); opacity: 0; }
+.bath-fx i.bath-rise {
+  background: radial-gradient(circle at 32% 30%, #ffffff 0 16%, rgba(220, 242, 255, 0.35) 30%, rgba(160, 210, 240, 0.55) 100%);
+  box-shadow: inset 0 0 0 0.35cqw rgba(255, 255, 255, 0.85);
+}
+.bath-fx.bathing i.bath-foam { animation: bath-foam 1.9s ease-out var(--d) both; }
+.bath-fx.bathing i.bath-rise { animation: bath-rise 1.3s ease-in var(--d) both; }
+@keyframes bath-foam {
+  0% { opacity: 0; transform: scale(0); }
+  14% { opacity: 1; transform: scale(1.12); }
+  22% { transform: scale(0.94); }
+  30%, 72% { opacity: 1; transform: scale(1); }
+  82% { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+@keyframes bath-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx, 0), -34cqh) scale(1.1); }
+}
+/* La mascota se sacude mientras se enjabona. */
+.walker.is-bathing .game-stage,
+.walker.is-bathing .remote-player-stage { animation: bath-wiggle 0.32s ease-in-out 5; }
+@keyframes bath-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg) translateX(-1%); }
+  75% { transform: rotate(3deg) translateX(1%); }
 }
 
-/* ---------- Dormir: postura + "Zzz" flotando ---------- */
+/* ---------- Dormir: postura + "Zzz" flotando ----------
+ * Beta v4.6.2: las Z salen de arriba de la cabeza (antes flotaban lejos,
+ * a la derecha, en letra chica gris) y son más grandes, azules con borde
+ * blanco como el ícono de la ficha. Suben en diagonal meciéndose. */
 .zzz-fx {
   position: absolute;
-  top: 6%;
-  right: 10%;
+  left: 60%;
+  top: 4%;
+  width: 34%;
+  height: 32%;
   display: none;
   pointer-events: none;
-  font-family: "Baloo 2", inherit;
-  font-weight: 700;
-  color: var(--muted);
+  container-type: size;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  color: #5d74d6;
 }
 #walker:has(.game-stage.sleeping) .zzz-fx,
 #walker.is-sleeping .zzz-fx,
@@ -1649,16 +1743,23 @@ body {
 }
 .zzz-fx span {
   position: absolute;
-  animation: zzz-float 2.4s ease-in infinite;
+  left: 4%;
+  bottom: 6%;
+  -webkit-text-stroke: 4cqw #ffffff;
+  paint-order: stroke fill;
+  text-shadow: 0 2cqw 0 rgba(40, 50, 110, 0.18);
+  animation: zzz-float 3.3s ease-in-out infinite;
   opacity: 0;
 }
-.zzz-fx span:nth-child(1) { font-size: 0.8rem; animation-delay: 0s; left: 0; }
-.zzz-fx span:nth-child(2) { font-size: 1.05rem; animation-delay: 0.5s; left: 8px; }
-.zzz-fx span:nth-child(3) { font-size: 1.3rem; animation-delay: 1s; left: 16px; }
+.zzz-fx span:nth-child(1) { font-size: 24cqw; animation-delay: 0s; }
+.zzz-fx span:nth-child(2) { font-size: 32cqw; animation-delay: 1.1s; }
+.zzz-fx span:nth-child(3) { font-size: 40cqw; animation-delay: 2.2s; }
 @keyframes zzz-float {
-  0% { transform: translateY(0); opacity: 0; }
-  20% { opacity: 0.9; }
-  100% { transform: translateY(-26px); opacity: 0; }
+  0% { transform: translate(0, 0) rotate(-8deg) scale(0.6); opacity: 0; }
+  18% { opacity: 1; }
+  45% { transform: translate(24cqw, -30cqh) rotate(8deg) scale(0.85); }
+  75% { opacity: 1; }
+  100% { transform: translate(48cqw, -64cqh) rotate(-6deg) scale(1); opacity: 0; }
 }
 /* v2.4: el botón de Despertar dejó de ser un botón aparte (".wake-btn") —
    pedido explícito: "el botón de despertar debería ser el mismo que
@@ -1669,7 +1770,15 @@ body {
 
 /* Postura dormida: ojos casi cerrados (--eye-scale lo maneja JS), y la
  * respiración/temblor decorativos se frenan. */
-.game-stage.sleeping { animation: none; }
+/* Beta v4.6.2: durmiendo ya no queda congelada: respira lento y profundo,
+ * con la cabeza apenas caída hacia un costado y los brazos quietos. */
+.game-stage.sleeping { animation: sleep-breathe 4.4s ease-in-out infinite; }
+.game-stage.sleeping .brazo { animation: none; transform: rotate(4deg); }
+.game-stage.sleeping #brazo-der { transform: rotate(-4deg); }
+@keyframes sleep-breathe {
+  0%, 100% { transform: rotate(-2.5deg) scale(1, 1); }
+  45% { transform: rotate(-2deg) scale(1.012, 1.04); }
+}
 .game-stage.sleeping .pet-layer-cejas #ceja-izq,
 .game-stage.sleeping .pet-layer-cejas #ceja-der { transform: rotate(4deg) translateY(0.5px); }
 
@@ -5040,3 +5149,8 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #room-quick-chat .room-quick-chat-send:focus-visible { background: none; transform: translateY(-1px); filter: brightness(1.05); }
 #room-quick-chat .room-quick-chat-send:active:not(:disabled) { transform: translateY(1px) scale(.96); }
 #room-quick-chat .room-quick-chat-send:disabled { opacity: .55; cursor: not-allowed; }
+
+/* v4.6.2: fila de minijuegos del modo prueba. */
+.debug-games-row .debug-check { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; }
+.debug-games-row .debug-check input { flex: none; min-width: 0; width: 18px; height: 18px; }
+.debug-games-status { flex-basis: 100%; color: #7a5a3a; font-size: .8rem; }

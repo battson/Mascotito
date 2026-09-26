@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Beta v4.6 — Jugar (Pesca rehecha en v4.6.1)
-   Selector de juegos, Pesca, Penales y pantalla de resultado.
+   Beta v4.6 — Jugar (Pesca rehecha en v4.6.1, viajes y Penales en v4.6.2)
+   Selector de juegos, viaje al juego, Pesca, Penales y pantalla de resultado.
    Todo lo de Jugar vive acá (antes estaba dentro de app.js). Usa funciones
    globales de app.js (state, el, gainFelicidad, addBond, trySave, …) sólo
    dentro de funciones, así que este archivo puede cargarse antes.
@@ -10,13 +10,18 @@
 // y game-interactions.js (Enter no abre el chat mientras se juega).
 let minigame = null;
 
+// v4.6.2: «viaje» a un juego. Mientras dura, el juego ocupa todo el
+// escenario, la mascota desaparece de la casa (también para los demás
+// jugadores de la sala) y al salir se vuelve con pantalla de carga.
+let gameTrip = null;
+
 const GAME_LIMITS = { pescaPorDia: 3 };
 
 const GAMES = {
   pesca: {
     id: "pesca",
     title: "Pesca",
-    blurb: "Lanzá la bocha, esperá a que pique y tocá Pescar justo a tiempo. A veces sale una lata…",
+    travel: "Viajando a pescar...",
     casts: 3,
     goal: 2,
     fishChance: .8,
@@ -24,7 +29,7 @@ const GAMES = {
   penales: {
     id: "penales",
     title: "Penales",
-    blurb: "Cinco tiros. Frená la mira a lo ancho y después a lo alto, y patealo lejos del arquero.",
+    travel: "Viajando a la cancha...",
     shots: 5,
     goal: 3,
   },
@@ -35,7 +40,7 @@ const GAME_ICON = {
   fish: "assets/ui/inventory/cofre/pescado.svg",
   can: "assets/games/fishing/can.svg",
   energy: "assets/ui/ficha/energia.svg",
-  ball: "assets/ui/actions/04-pelota.svg",
+  ball: "assets/games/penalty/ball.svg",
 };
 
 // Beta v4.6.1: arte de Pesca (vectorizado con scripts/vectorize-fishing-assets.py).
@@ -45,6 +50,19 @@ const FISHING_ART = {
   icon: "assets/games/fishing/rod-icon.svg",
   bobber: "assets/games/fishing/bobber.svg",
 };
+// Beta v4.6.2: arte de Penales (scripts/vectorize-games-v462.py).
+const PENALTY_ART = {
+  field: "assets/games/penalty/field.svg",
+  ball: "assets/games/penalty/ball.svg",
+  gloveL: "assets/games/penalty/glove-left.svg",
+  gloveR: "assets/games/penalty/glove-right.svg",
+};
+const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball };
+const GAME_PRELOAD = {
+  pesca: [FISHING_ART.lake, FISHING_ART.rod, FISHING_ART.bobber],
+  penales: [PENALTY_ART.field, PENALTY_ART.ball, PENALTY_ART.gloveL, PENALTY_ART.gloveR],
+};
+
 const SVG_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.8 8.2 3 4.5 6.6 4.5c2.2 0 3.6 1.3 5.4 3.3 1.8-2 3.2-3.3 5.4-3.3 3.6 0 5.8 3.7 4.2 7.3C19.5 16.4 12 21 12 21z" fill="#f06a8a" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 const SVG_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z" fill="#ffd34d" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 
@@ -53,10 +71,6 @@ const $g = (id) => document.getElementById(id);
 // ---------------------------------------------------------------- Escenas
 
 let gamesSceneId = 0;
-// Tarjeta del selector: sólo la caña sobre fondo liso.
-function fishingCardArt() {
-  return `<div class="game-card-icon"><img src="${FISHING_ART.icon}" alt="" draggable="false" /></div>`;
-}
 
 // Geometría de la escena de Pesca, en unidades del lago (1672 × 941).
 const FISHING_SCENE = {
@@ -122,56 +136,55 @@ function fishingSceneHtml() {
 </div>`;
 }
 
-function penaltySceneSvg() {
-  const u = ++gamesSceneId;
-  let net = "";
-  for (let x = 210; x < 600; x += 26) net += `<line x1="${x}" y1="80" x2="${x}" y2="280"/>`;
-  for (let y = 100; y < 280; y += 24) net += `<line x1="200" y1="${y}" x2="600" y2="${y}"/>`;
-  let stripes = "";
-  for (let i = 0; i < 8; i += 2) stripes += `<rect x="${i * 100}" y="232" width="100" height="168" fill="#8fcf5c"/>`;
-  return `<svg class="games-scene" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-  <defs>
-    <linearGradient id="gp-cielo-${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe8f7"/><stop offset="1" stop-color="#e8f7fb"/></linearGradient>
-  </defs>
-  <rect width="800" height="400" fill="url(#gp-cielo-${u})"/>
-  <g fill="#ffffff" stroke="#5a3a22" stroke-width="3" opacity=".95">
-    <path d="M86 70a22 22 0 0 1 40-12 18 18 0 0 1 30 14h-70z"/>
-    <path d="M640 52a20 20 0 0 1 36-10 16 16 0 0 1 28 12h-64z"/>
-  </g>
-  <path d="M0 150C60 132 110 146 170 136S290 120 360 134 520 124 600 136 740 128 800 140V232H0Z" fill="#6fb04a" stroke="#5a3a22" stroke-width="4"/>
-  <rect y="232" width="800" height="168" fill="#9ed96a"/>
-  ${stripes}
-  <line x1="0" y1="232" x2="800" y2="232" stroke="#5a3a22" stroke-width="4"/>
-  <path d="M120 400L230 300H570L680 400" fill="none" stroke="#ffffff" stroke-width="5" opacity=".9"/>
-  <ellipse cx="400" cy="372" rx="10" ry="4" fill="#ffffff"/>
-  <g stroke="#ffffff" stroke-width="2" opacity=".75">${net}</g>
-  <rect x="200" y="80" width="400" height="200" fill="#ffffff" opacity=".12"/>
-  <path d="M190 284V70H610V284" fill="none" stroke="#5a3a22" stroke-width="18" stroke-linejoin="round"/>
-  <path d="M190 284V70H610V284" fill="none" stroke="#ffffff" stroke-width="10" stroke-linejoin="round"/>
-  <g class="gp-arquero" style="transform: translate(400px, 282px)">
-    <ellipse cx="0" cy="2" rx="46" ry="8" fill="#3e7a2c" opacity=".35"/>
-    <rect x="-24" y="-44" width="16" height="44" rx="7" fill="#2f4f7a" stroke="#5a3a22" stroke-width="3.5"/>
-    <rect x="8" y="-44" width="16" height="44" rx="7" fill="#2f4f7a" stroke="#5a3a22" stroke-width="3.5"/>
-    <path d="M-40 -60C-70 -78 -84 -104 -86 -120" fill="none" stroke="#5a3a22" stroke-width="18" stroke-linecap="round"/>
-    <path d="M-40 -60C-70 -78 -84 -104 -86 -120" fill="none" stroke="#ffb13b" stroke-width="11" stroke-linecap="round"/>
-    <path d="M40 -60C70 -78 84 -104 86 -120" fill="none" stroke="#5a3a22" stroke-width="18" stroke-linecap="round"/>
-    <path d="M40 -60C70 -78 84 -104 86 -120" fill="none" stroke="#ffb13b" stroke-width="11" stroke-linecap="round"/>
-    <rect x="-42" y="-112" width="84" height="76" rx="30" fill="#ffb13b" stroke="#5a3a22" stroke-width="4"/>
-    <text x="0" y="-62" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="30" fill="#ffffff" stroke="#5a3a22" stroke-width="1.5">1</text>
-    <circle cx="-88" cy="-126" r="15" fill="#ffffff" stroke="#5a3a22" stroke-width="4"/>
-    <circle cx="88" cy="-126" r="15" fill="#ffffff" stroke="#5a3a22" stroke-width="4"/>
-    <circle cx="0" cy="-138" r="32" fill="#f3d9b8" stroke="#5a3a22" stroke-width="4"/>
-    <path d="M-30 -150C-24 -178 24 -178 30 -150C14 -160 -14 -160 -30 -150Z" fill="#6b4526" stroke="#5a3a22" stroke-width="3"/>
-    <circle cx="-11" cy="-138" r="4.5" fill="#3b2412"/><circle cx="11" cy="-138" r="4.5" fill="#3b2412"/>
-    <path d="M-9 -122Q0 -116 9 -122" fill="none" stroke="#3b2412" stroke-width="3" stroke-linecap="round"/>
-  </g>
-  <g class="gp-mira" opacity="0">
-    <line class="gp-mira-x" x1="0" y1="62" x2="0" y2="292" stroke="#f2663f" stroke-width="4" stroke-dasharray="10 8"/>
-    <line class="gp-mira-y" x1="160" y1="0" x2="640" y2="0" stroke="#f2663f" stroke-width="4" stroke-dasharray="10 8" opacity="0"/>
-    <circle class="gp-mira-punto" cx="0" cy="0" r="16" fill="none" stroke="#f2663f" stroke-width="5" opacity="0"/>
-  </g>
-  <image class="gp-pelota" href="${GAME_ICON.ball}" x="-26" y="-26" width="52" height="52" style="transform: translate(400px, 350px)"/>
-</svg>`;
+// Penales (v4.6.2): cancha ilustrada, pelota y arquero hecho sólo de
+// guantes. Todo en unidades de la cancha (1254 × 706), igual que la Pesca
+// usa las del lago. El SVG se apoya abajo y recorta cielo si sobra alto.
+const PENALTY_SCENE = {
+  w: 1254,
+  h: 706,
+  // Arco (bordes internos de los palos y del travesaño; piso en y = 412).
+  goal: { left: 296, right: 957, top: 168, bottom: 410 },
+  posts: [
+    { x0: 273, x1: 296, y0: 145, y1: 414 },
+    { x0: 957, x1: 980, y0: 145, y1: 414 },
+    { x0: 273, x1: 980, y0: 145, y1: 168 },
+  ],
+  spot: { x: 627, y: 604 },
+  ballSize: 78,      // diámetro de la pelota en el punto penal
+  ballFar: .44,      // escala al llegar al arco (perspectiva)
+  keeperHome: { x: 627, y: 300 },
+  gloveH: 104,
+  gloveGap: 62,      // distancia del centro del arquero a cada guante
+};
+
+function penaltySceneHtml() {
+  const S = PENALTY_SCENE;
+  const gh = S.gloveH, gwL = gh * 227 / 360, gwR = gh * 211 / 360;
+  const b = S.ballSize;
+  return `<div class="penalty-scene">
+  <svg class="pk-svg" viewBox="0 0 ${S.w} ${S.h}" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <image href="${PENALTY_ART.field}" x="0" y="0" width="${S.w}" height="${S.h}" preserveAspectRatio="none"/>
+    <ellipse class="pk-ball-shadow" cx="0" cy="0" rx="${b * .5}" ry="${b * .14}" transform="translate(${S.spot.x} ${S.spot.y + b * .46})"/>
+    <g class="pk-keeper" transform="translate(${S.keeperHome.x} ${S.keeperHome.y})">
+      <g class="pk-keeper-tilt">
+        <g class="pk-glove pk-glove-l" transform="translate(${-S.gloveGap} 0)"><image href="${PENALTY_ART.gloveL}" x="${-gwL / 2}" y="${-gh / 2}" width="${gwL}" height="${gh}"/></g>
+        <g class="pk-glove pk-glove-r" transform="translate(${S.gloveGap} 0)"><image href="${PENALTY_ART.gloveR}" x="${-gwR / 2}" y="${-gh / 2}" width="${gwR}" height="${gh}"/></g>
+      </g>
+    </g>
+    <g class="pk-aim" transform="translate(-999 -999)">
+      <circle r="30" class="pk-aim-ring"/>
+      <circle r="12" class="pk-aim-ring pk-aim-inner"/>
+      <path d="M-44 0H-20M20 0H44M0 -44V-20M0 20V44" class="pk-aim-cross"/>
+    </g>
+    <g class="pk-ball" transform="translate(${S.spot.x} ${S.spot.y})">
+      <g class="pk-ball-spin"><image href="${PENALTY_ART.ball}" x="${-b / 2}" y="${-b / 2}" width="${b}" height="${b}"/></g>
+    </g>
+  </svg>
+  <div class="pk-power" hidden>
+    <span class="pk-power-label">Potencia</span>
+    <div class="pk-power-track"><span class="pk-power-sweet"></span><span class="pk-power-needle"></span></div>
+  </div>
+</div>`;
 }
 
 // --------------------------------------------------------------- Helpers
@@ -197,6 +210,34 @@ function gamesClearAll() {
 }
 function gamesHint(text) { const h = $g("minigame-instructions"); if (h) h.textContent = text; }
 function gamesQ(sel) { return $g("minigame-arena")?.querySelector(sel); }
+function gamesWait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+function gamesPreload(sources) {
+  return Promise.all(sources.map((src) => new Promise((resolve) => {
+    const image = new Image();
+    image.onload = image.onerror = resolve;
+    image.src = src;
+    if (image.complete) resolve();
+  })));
+}
+
+// v4.6.2 — Modo prueba (sólo la cuenta admin): minijuegos sin límite de
+// partidas diarias ni espera. Queda en este navegador, fuera del guardado,
+// así no viaja a la nube ni le cambia nada a nadie más.
+const GAMES_UNLIMITED_KEY = "mascotito.adminMinijuegosSinLimite";
+function gamesUnlimited() {
+  if (typeof isAdmin !== "function" || !isAdmin()) return false;
+  try { return localStorage.getItem(GAMES_UNLIMITED_KEY) === "1"; } catch (e) { return false; }
+}
+function setGamesUnlimited(on) {
+  try { if (on) localStorage.setItem(GAMES_UNLIMITED_KEY, "1"); else localStorage.removeItem(GAMES_UNLIMITED_KEY); } catch (e) { /* sin almacenamiento: queda apagado */ }
+}
+/** Reinicia las partidas de pesca de hoy y la espera de Penales. */
+function resetMinigameCounters(target = state) {
+  if (!target) return;
+  target.daily = target.daily || {};
+  target.daily.fishingPlays = 0;
+  if (target.cooldowns) target.cooldowns.jugar = 0;
+}
 
 function fishingPlaysRemaining() {
   ensureDailyProgress();
@@ -206,6 +247,7 @@ function fishingPlaysRemaining() {
 /** ¿Se puede empezar este juego ahora? Devuelve el motivo si no. */
 function gameBlockReason(id) {
   if (state.sleep.dormida) return "Despertá a tu mascota para jugar.";
+  if (gamesUnlimited()) return "";
   if (state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar) return "Está muy cansada: necesita descansar antes de jugar.";
   if (id === "pesca" && !fishingPlaysRemaining()) return "Ya usaste las 3 partidas de pesca de hoy. Volvé mañana.";
   if (id === "penales" && isOnCooldown("jugar")) return `Podés patear de nuevo en ${formatCooldownPhrase(state.cooldowns.jugar - Date.now())}.`;
@@ -213,15 +255,21 @@ function gameBlockReason(id) {
 }
 
 function gameStatusText(id) {
+  if (gamesUnlimited()) return "Sin límite (modo prueba)";
   if (id === "pesca") {
     const left = fishingPlaysRemaining();
-    return left ? `Hoy: ${left} de ${GAME_LIMITS.pescaPorDia} partidas` : "Sin partidas hasta mañana";
+    return left ? `Te quedan ${left} de ${GAME_LIMITS.pescaPorDia} partidas hoy` : "Sin partidas hasta mañana";
   }
   if (isOnCooldown("jugar")) return `Otra vez en ${formatCooldownPhrase(state.cooldowns.jugar - Date.now())}`;
   return "Disponible";
 }
 
 // --------------------------------------------------------------- Selector
+// v4.6.2: ventana de feria sin título con dos paneles; cada panel muestra
+// sólo el ícono y el nombre del juego y se toca entero para jugar. El
+// estado (partidas que quedan o espera) va en el título emergente y en el
+// nombre accesible; si no se puede jugar, el panel se apaga y al tocarlo
+// explica por qué abajo.
 
 let gameSelectorTick = null;
 
@@ -229,38 +277,32 @@ function renderGameCards() {
   const box = $g("game-choices");
   if (!box) return;
   box.innerHTML = Object.values(GAMES).map((g) => `
-    <article class="game-card" data-game="${g.id}">
-      <div class="game-card-art" data-art="${g.id}">${g.id === "pesca" ? fishingCardArt() : penaltySceneSvg()}</div>
-      <div class="game-card-body">
-        <h3>${g.title}</h3>
-        <p>${g.blurb}</p>
-        <div class="game-card-foot">
-          <span class="game-card-status" data-status="${g.id}"></span>
-          <button type="button" class="games-btn" data-play="${g.id}">Jugar</button>
-        </div>
-      </div>
-    </article>`).join("");
+    <button type="button" class="game-panel" data-play="${g.id}">
+      <img class="game-panel-icon" src="${GAME_PANEL_ICON[g.id]}" alt="" draggable="false" />
+      <span class="game-panel-name">${g.title}</span>
+    </button>`).join("");
   box.querySelectorAll("[data-play]").forEach((btn) => btn.addEventListener("click", () => launchGame(btn.dataset.play)));
 }
 
 function updateGameCards() {
   const panel = $g("game-selector");
   if (!panel || panel.hidden || !state) return;
-  panel.querySelectorAll("[data-status]").forEach((chip) => {
-    const id = chip.dataset.status;
-    chip.textContent = gameStatusText(id);
-    const blocked = !!gameBlockReason(id);
-    chip.classList.toggle("is-blocked", blocked);
-    const btn = panel.querySelector(`[data-play="${id}"]`);
-    if (btn) { btn.disabled = blocked; btn.title = gameBlockReason(id); }
+  panel.querySelectorAll("[data-play]").forEach((btn) => {
+    const id = btn.dataset.play;
+    const why = gameBlockReason(id);
+    const status = why || gameStatusText(id);
+    btn.classList.toggle("is-blocked", !!why);
+    btn.setAttribute("aria-disabled", String(!!why));
+    btn.title = status;
+    btn.setAttribute("aria-label", `${GAMES[id].title}. ${status}`);
   });
   const note = $g("game-selector-note");
-  const general = state.sleep.dormida || state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar ? gameBlockReason("pesca") : "";
+  const general = state.sleep.dormida || (!gamesUnlimited() && state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar) ? gameBlockReason("pesca") : "";
   if (note && !note.dataset.sticky) note.textContent = general;
 }
 
 function openGameSelector() {
-  if (minigame || navLock) return;
+  if (minigame || gameTrip || navLock) return;
   closeAllMenus();
   closeGamePanel();
   const panel = $g("game-selector");
@@ -269,7 +311,7 @@ function openGameSelector() {
   updateGameCards();
   clearInterval(gameSelectorTick);
   gameSelectorTick = setInterval(updateGameCards, 1000);
-  panel.querySelector(".games-btn:not(:disabled)")?.focus();
+  panel.querySelector(".game-panel:not(.is-blocked)")?.focus();
 }
 
 function closeGameSelector(returnFocus = true) {
@@ -281,6 +323,41 @@ function closeGameSelector(returnFocus = true) {
 }
 
 function doJugar() { openGameSelector(); }
+
+// ------------------------------------------------------------- Viaje
+// Ir: pantalla de carga «Viajando a …» → el juego ocupa todo el escenario.
+// Volver: pantalla de carga «Volviendo a casa...» → la casa como estaba.
+
+function setTripVisuals(on) {
+  el.stageFloor?.classList.toggle("is-minigame", on);
+  // La mascota deja la casa: también para quienes estén en la sala.
+  if (typeof setRealtimeAway === "function") setRealtimeAway(on);
+}
+
+async function travelToGame(id) {
+  const game = GAMES[id];
+  if (activeVisit) closeVisit({ skipTransition: true });
+  gameTrip = { id };
+  const seq = beginStageTransition(game.travel);
+  setTripVisuals(true);
+  startMinigame(id);
+  await Promise.race([gamesPreload(GAME_PRELOAD[id] || []), gamesWait(4000)]);
+  await endStageTransition(seq);
+  if (minigame && gameTrip?.id === id) gamesQ(minigame.type.id === "pesca" ? ".games-action" : ".penalty-scene")?.focus();
+}
+
+/** Sale del juego (si hay partida, se cancela) y vuelve a casa. */
+async function returnHome() {
+  if (!gameTrip && $g("minigame-panel")?.hidden) return;
+  const seq = beginStageTransition("Volviendo a casa...");
+  await nextStagePaint();
+  if (minigame) finishMinigame(true, { quiet: true });
+  closeGamePanel();
+  if (typeof refreshUI === "function" && state) { refreshUI(); updateCooldownButtons(); }
+  if (typeof computeWalkBounds === "function") computeWalkBounds();
+  await endStageTransition(seq, state?.location === "casa" ? state.housing : null);
+  document.getElementById("btn-jugar")?.focus();
+}
 
 // ------------------------------------------------------------ Partida
 
@@ -294,19 +371,30 @@ function launchGame(id) {
     else notifySystem(reason);
     return;
   }
-  if (id === "pesca") {
-    // Cada inicio cuenta (aunque se cancele); se guarda enseguida.
-    state.daily.fishingPlays = (state.daily.fishingPlays || 0) + 1;
-    trySave(state);
-  } else {
-    startCooldown("jugar");
+  if (!gamesUnlimited()) {
+    if (id === "pesca") {
+      // Cada inicio cuenta (aunque se cancele); se guarda enseguida.
+      state.daily.fishingPlays = (state.daily.fishingPlays || 0) + 1;
+      trySave(state);
+    } else {
+      startCooldown("jugar");
+    }
   }
   registerInteraction();
   updateCooldownButtons();
   closeGameSelector(false);
   closeAllMenus();
-  startIdle(15000, 16000);
+  if (gameTrip?.id === id) {
+    // «Otra vez» desde el resultado: ya estamos ahí, sin viajar de nuevo.
+    startMinigame(id);
+    gamesQ(id === "pesca" ? ".games-action" : ".penalty-scene")?.focus();
+  } else {
+    travelToGame(id);
+  }
+}
 
+function startMinigame(id) {
+  const game = GAMES[id];
   minigame = { type: game, score: 0, timers: new Set(), raf: 0, clock: 0, phase: "" };
   emitRealtimeAction("play", { game: id });
 
@@ -320,25 +408,22 @@ function launchGame(id) {
   arena.dataset.game = id;
   delete arena.dataset.phase;
   delete arena.dataset.catch;
-  arena.innerHTML = (id === "pesca" ? fishingSceneHtml() : penaltySceneSvg()) + `
+  delete arena.dataset.result;
+  arena.innerHTML = id === "pesca"
+    ? fishingSceneHtml() + `
     <div class="games-controls">
       <button type="button" class="games-btn games-action"></button>
-    </div>`;
+    </div>`
+    : penaltySceneHtml();
   panel.hidden = false;
   const action = arena.querySelector(".games-action");
-  action.addEventListener("click", (ev) => { ev.stopPropagation(); gameAction(); });
-  arena.addEventListener("pointerdown", (ev) => {
-    // En Penales también se puede patear tocando la cancha.
-    if (minigame?.type.id === "penales" && !ev.target.closest(".games-action")) { ev.preventDefault(); gameAction(); }
-  });
-
+  action?.addEventListener("click", (ev) => { ev.stopPropagation(); gameAction(); });
   if (id === "pesca") startFishing(); else startPenalties();
-  action.focus();
 }
 
 function gameAction() {
   if (!minigame) return;
-  if (minigame.type.id === "pesca") fishingAction(); else penaltyAction();
+  if (minigame.type.id === "pesca") fishingAction();
 }
 
 function updateGameChips() {
@@ -578,131 +663,283 @@ function fishingRipples(kind) {
 }
 
 // -------------------------------------------------------------- Penales
+// v4.6.2, rediseño: 1) se hace click donde se quiere patear (la mira sigue
+// al mouse); 2) se frena la barra de potencia. Con el punto elegido y la
+// potencia se calcula adónde va la pelota: en la zona verde va casi
+// adonde apuntaste; floja cae más abajo, sale lenta y se desvía un poco;
+// muy fuerte se levanta (puede irse por arriba) y se abre más. El arquero
+// son sólo los guantes, con una IA «fácil»: reacciona tarde, se mueve
+// lento, adivina el lado pocas veces y tiene poco alcance.
 
-const GOAL = { left: 190, right: 610, top: 70, bottom: 284 };
+const PK_AI = {
+  reactionMs: 230,        // tarda en reaccionar después de la patada
+  speed: .5,              // unidades de cancha por ms
+  readChance: .38,        // chance de leer bien el tiro
+  stayChance: .22,        // chance de quedarse en el medio
+  reachX: 96,             // alcance (elipse alrededor del centro de los guantes)
+  reachY: 78,
+};
+const PK_POWER = { sweet0: .55, sweet1: .8, periodMs: 1150 };
+
+function pkBall(x, y, scale, spin = 0) {
+  const b = gamesQ(".pk-ball");
+  if (b) b.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})`);
+  gamesQ(".pk-ball-spin")?.setAttribute("transform", `rotate(${spin.toFixed(1)})`);
+}
+function pkShadow(x, y, scale, opacity = .32) {
+  const s = gamesQ(".pk-ball-shadow");
+  if (!s) return;
+  s.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})`);
+  s.style.opacity = String(opacity);
+}
+function pkKeeper(x, y, tilt = 0, spread = 1) {
+  const k = gamesQ(".pk-keeper");
+  if (!k) return;
+  k.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  gamesQ(".pk-keeper-tilt")?.setAttribute("transform", `rotate(${tilt.toFixed(1)})`);
+  const gap = PENALTY_SCENE.gloveGap * spread;
+  gamesQ(".pk-glove-l")?.setAttribute("transform", `translate(${(-gap).toFixed(1)} 0) rotate(${(-8 * spread + 8).toFixed(1)})`);
+  gamesQ(".pk-glove-r")?.setAttribute("transform", `translate(${gap.toFixed(1)} 0) rotate(${(8 * spread - 8).toFixed(1)})`);
+}
+function pkAim(x, y, show = true) {
+  const a = gamesQ(".pk-aim");
+  if (!a) return;
+  a.setAttribute("transform", show ? `translate(${x.toFixed(1)} ${y.toFixed(1)})` : "translate(-999 -999)");
+}
+
+/** Pasa coordenadas de pantalla a unidades de la cancha. */
+function pkPoint(ev) {
+  const svg = gamesQ(".pk-svg");
+  const m = svg?.getScreenCTM();
+  if (!m) return null;
+  const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(m.inverse());
+  return pkClampAim(p.x, p.y);
+}
+function pkClampAim(x, y) {
+  return { x: clamp(x, 170, 1084), y: clamp(y, 80, 470) };
+}
 
 function startPenalties() {
-  minigame.shot = 0;
-  minigame.results = [];
+  const m = minigame;
+  m.shot = 0;
+  m.results = [];
+  m.aim = { x: PENALTY_SCENE.spot.x, y: 290 };
+  const scene = gamesQ(".penalty-scene");
+  scene.tabIndex = 0;
+  scene.setAttribute("aria-label", "Cancha de penales: mové la mira y hacé click para patear");
+  scene.addEventListener("pointermove", (ev) => {
+    if (minigame !== m || m.phase !== "aim") return;
+    const p = pkPoint(ev);
+    if (p) { m.aim = p; pkAim(p.x, p.y); }
+  });
+  scene.addEventListener("pointerdown", (ev) => {
+    if (minigame !== m || ev.button > 0) return;
+    ev.preventDefault();
+    if (m.phase === "aim") {
+      const p = pkPoint(ev);
+      if (p) m.aim = p;
+      penaltyLockAim();
+    } else if (m.phase === "power") penaltyShoot();
+  });
+  // Teclado: flechas mueven la mira y Espacio confirma (Enter queda
+  // reservado al chat, ver game-interactions.js).
+  scene.addEventListener("keydown", (ev) => {
+    if (minigame !== m) return;
+    const step = ev.shiftKey ? 50 : 22;
+    const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    if (m.phase === "aim" && moves[ev.key]) {
+      ev.preventDefault();
+      m.aim = pkClampAim(m.aim.x + moves[ev.key][0], m.aim.y + moves[ev.key][1]);
+      pkAim(m.aim.x, m.aim.y);
+    } else if (ev.key === " " || ev.code === "Space") {
+      ev.preventDefault();
+      if (m.phase === "aim") penaltyLockAim();
+      else if (m.phase === "power") penaltyShoot();
+    }
+  });
+  pkFit();
   updateGameChips();
   penaltyAim();
 }
 
-function setKeeper(tx, ty, rot, ms = 0) {
-  const k = gamesQ(".gp-arquero");
-  if (!k) return;
-  k.style.transition = ms ? `transform ${ms}ms cubic-bezier(.2,.8,.3,1)` : "none";
-  k.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
+/** Escenario ancho: la cancha llena todo (recorta cielo). Escenario alto
+ *  (celular): entra entera, centrada, sin cortar los palos. */
+function pkFit() {
+  const svg = gamesQ(".pk-svg"), arena = $g("minigame-arena");
+  if (!svg || !arena) return;
+  const wide = arena.clientWidth / Math.max(1, arena.clientHeight) >= PENALTY_SCENE.w / PENALTY_SCENE.h;
+  svg.setAttribute("preserveAspectRatio", wide ? "xMidYMax slice" : "xMidYMid meet");
 }
-function setBall(x, y, scale, ms = 0) {
-  const b = gamesQ(".gp-pelota");
-  if (!b) return;
-  b.style.transition = ms ? `transform ${ms}ms cubic-bezier(.25,.7,.35,1)` : "none";
-  b.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-}
+window.addEventListener("resize", () => { if (minigame?.type.id === "penales") pkFit(); });
 
 function penaltyAim() {
   const m = minigame;
   if (!m) return;
   if (m.shot >= m.type.shots) { finishMinigame(false); return; }
+  const S = PENALTY_SCENE;
+  m.phase = "aim";
+  $g("minigame-arena").dataset.phase = "aim";
+  delete $g("minigame-arena").dataset.result;
   updateGameChips();
-  setKeeper(400, 282, 0);
-  setBall(400, 350, 1);
-  const mira = gamesQ(".gp-mira");
-  const lx = gamesQ(".gp-mira-x"), ly = gamesQ(".gp-mira-y"), dot = gamesQ(".gp-mira-punto");
-  mira.setAttribute("opacity", "1");
-  gamesQ(".games-action")?.classList.remove("is-hidden");
-  lx.setAttribute("opacity", "1"); ly.setAttribute("opacity", "0"); dot.setAttribute("opacity", "0");
-  m.phase = "aimX";
-  setAction("¡Frenar!", { hot: true });
-  gamesHint("Frená la mira a lo ancho.");
-  const period = Math.max(800, 1250 - m.shot * 90);
+  hidePenaltyBanner();
+  gamesQ(".pk-ball")?.style.removeProperty("opacity");
+  pkBall(S.spot.x, S.spot.y, 1);
+  pkShadow(S.spot.x, S.spot.y + S.ballSize * .46, 1);
+  pkAim(m.aim.x, m.aim.y);
+  const power = gamesQ(".pk-power");
+  if (power) power.hidden = true;
+  gamesHint(m.shot ? "Elegí otro rincón: hacé click donde querés patear." : "Hacé click en el arco, donde querés patear.");
+  // Arquero en espera: se balancea de lado a lado, atento.
   const t0 = performance.now();
   gamesFrame((t) => {
-    const p = ((t - t0) % (period * 2)) / period;
-    const k = p <= 1 ? p : 2 - p;
-    if (m.phase === "aimX") {
-      m.aimX = 150 + k * 500;
-      lx.setAttribute("x1", m.aimX); lx.setAttribute("x2", m.aimX);
-    } else if (m.phase === "aimY") {
-      m.aimY = 44 + k * 244;
-      ly.setAttribute("y1", m.aimY); ly.setAttribute("y2", m.aimY);
-      dot.setAttribute("cx", m.aimX); dot.setAttribute("cy", m.aimY);
-    } else return false;
+    if (m.phase !== "aim" && m.phase !== "power") return false;
+    const k = (t - t0) / 1000;
+    pkKeeper(S.keeperHome.x + Math.sin(k * 2.1) * 26, S.keeperHome.y + Math.sin(k * 4.2) * 5, Math.sin(k * 2.1) * 3, 1);
+    if (m.phase === "power") {
+      const p = ((t - m.powerT0) % (PK_POWER.periodMs * 2)) / PK_POWER.periodMs;
+      m.power = p <= 1 ? p : 2 - p;
+      const needle = gamesQ(".pk-power-needle");
+      if (needle) needle.style.left = `${(m.power * 100).toFixed(1)}%`;
+    }
   });
 }
 
-function penaltyAction() {
+function penaltyLockAim() {
   const m = minigame;
-  if (m.phase === "aimX") {
-    m.phase = "aimY";
-    gamesQ(".gp-mira-y").setAttribute("opacity", "1");
-    gamesQ(".gp-mira-punto").setAttribute("opacity", "1");
-    setAction("¡Patear!", { hot: true });
-    gamesHint("Ahora frená la mira a lo alto… ¡y pateá!");
-    return;
+  m.phase = "power";
+  m.powerT0 = performance.now();
+  m.power = 0;
+  $g("minigame-arena").dataset.phase = "power";
+  pkAim(m.aim.x, m.aim.y);
+  const power = gamesQ(".pk-power");
+  if (power) power.hidden = false;
+  gamesHint("¡Ahora la potencia! Frená la barra en lo verde.");
+}
+
+/** Adónde va la pelota según el punto elegido y la potencia. */
+function penaltyTarget(aim, power) {
+  const { sweet0, sweet1 } = PK_POWER;
+  let dy = 0, spread = 10;
+  if (power < sweet0) {
+    const f = (sweet0 - power) / sweet0;          // 0..1: cuánto le faltó
+    dy = f * 150;
+    spread = 14 + f * 40;
+  } else if (power > sweet1) {
+    const f = (power - sweet1) / (1 - sweet1);    // 0..1: cuánto se pasó
+    dy = -f * 150;
+    spread = 18 + f * 90;
   }
-  if (m.phase === "aimY") penaltyShoot();
+  const r = Math.random() * spread, a = Math.random() * Math.PI * 2;
+  let x = aim.x + Math.cos(a) * r;
+  let y = aim.y + dy + Math.sin(a) * r * .7;
+  const low = y > PENALTY_SCENE.goal.bottom - 6;
+  if (low) y = PENALTY_SCENE.goal.bottom - 6;     // va a ras del piso
+  return { x, y, low };
+}
+
+/** IA fácil: posición de los guantes t ms después de la patada. */
+function keeperPlan(target) {
+  const S = PENALTY_SCENE, G = S.goal;
+  const r = Math.random();
+  let dive;
+  if (r < PK_AI.stayChance) dive = { x: S.keeperHome.x + (Math.random() - .5) * 60, y: S.keeperHome.y + (Math.random() - .5) * 40 };
+  else if (r < PK_AI.stayChance + PK_AI.readChance) dive = { x: target.x + (Math.random() - .5) * 90, y: target.y + (Math.random() - .5) * 70 };
+  else dive = { x: G.left + 40 + Math.random() * (G.right - G.left - 80), y: G.top + 40 + Math.random() * (G.bottom - G.top - 70) };
+  dive.x = clamp(dive.x, G.left + 30, G.right - 30);
+  dive.y = clamp(dive.y, G.top + 36, G.bottom - 30);
+  const from = { x: S.keeperHome.x, y: S.keeperHome.y };
+  const dist = Math.hypot(dive.x - from.x, dive.y - from.y);
+  return {
+    from, dive,
+    at(t) {
+      const tt = Math.max(0, t - PK_AI.reactionMs);
+      const p = dist ? Math.min(1, (tt * PK_AI.speed) / dist) : 1;
+      const e = 1 - (1 - p) ** 2;
+      return { x: from.x + (dive.x - from.x) * e, y: from.y + (dive.y - from.y) * e, p: e };
+    },
+  };
 }
 
 function penaltyShoot() {
   const m = minigame;
+  const S = PENALTY_SCENE, G = S.goal;
   m.phase = "shot";
   gamesStopFrame();
-  const x = m.aimX, y = m.aimY;
-  gamesQ(".gp-mira-x").setAttribute("opacity", "0");
-  gamesQ(".gp-mira-y").setAttribute("opacity", "0");
-  setAction("¡Patear!", { disabled: true });
-  gamesQ(".games-action")?.classList.add("is-hidden");
+  $g("minigame-arena").dataset.phase = "shot";
+  const power = gamesQ(".pk-power");
+  if (power) power.hidden = true;
+  pkAim(0, 0, false);
+  const p = m.power ?? .6;
+  const target = penaltyTarget(m.aim, p);
+  const dur = 980 - p * 520;                     // floja: lenta; fuerte: rápida
+  const plan = keeperPlan(target);
+  const keeperAtArrival = plan.at(dur);
+  const ballR = S.ballSize * S.ballFar / 2;
 
-  // El arquero elige un lado (más seguido las esquinas) y un alto.
-  const r = Math.random();
-  const col = r < .38 ? 0 : r < .62 ? 1 : 2;
-  const row = Math.random() < .5 ? 0 : 1;
-  const reach = [
-    [GOAL.left - 6, 336], [314, 486], [464, GOAL.right + 6],
-  ][col];
-  const reachY = row === 0 ? [GOAL.top - 6, 196] : [160, GOAL.bottom + 6];
-  const dive = [
-    { tx: 282, ty: row ? 276 : 250, rot: row ? -60 : -38 },
-    { tx: 400, ty: row ? 284 : 240, rot: 0 },
-    { tx: 518, ty: row ? 276 : 250, rot: row ? 60 : 38 },
-  ][col];
-
-  const post = (Math.abs(x - GOAL.left) < 10 || Math.abs(x - GOAL.right) < 10) && y > GOAL.top - 10 && y < GOAL.bottom
-    || (Math.abs(y - GOAL.top) < 10 && x > GOAL.left - 10 && x < GOAL.right + 10);
-  const out = !post && (x < GOAL.left || x > GOAL.right || y < GOAL.top);
-  const saved = !post && !out && x >= reach[0] && x <= reach[1] && y >= reachY[0] && y <= reachY[1];
-
-  setBall(x, y, .62, 520);
-  gamesTimer(() => setKeeper(dive.tx, dive.ty, dive.rot, 360), 90);
-
+  const hitsPost = S.posts.some((r) => target.x > r.x0 - ballR && target.x < r.x1 + ballR && target.y > r.y0 - ballR && target.y < r.y1 + ballR)
+    && !(target.x > G.left + ballR && target.x < G.right - ballR && target.y > G.top + ballR);
+  const out = !hitsPost && (target.x < G.left || target.x > G.right || target.y < G.top);
+  const kdx = (target.x - keeperAtArrival.x) / PK_AI.reachX, kdy = (target.y - keeperAtArrival.y) / PK_AI.reachY;
+  const saved = !hitsPost && !out && kdx * kdx + kdy * kdy <= 1;
   let result, text;
-  if (post) { result = "palo"; text = "¡Palo!"; }
+  if (hitsPost) { result = "palo"; text = "¡Palo!"; }
   else if (out) { result = "afuera"; text = "¡Afuera!"; }
   else if (saved) { result = "atajada"; text = "¡Atajó el arquero!"; }
   else { result = "gol"; text = "¡GOOOL!"; }
+  gamesHint(p >= PK_POWER.sweet0 && p <= PK_POWER.sweet1 ? "¡Buena potencia!" : p < PK_POWER.sweet0 ? "Salió flojita…" : "¡Le pegaste muy fuerte!");
+
+  const t0 = performance.now();
+  const lift = target.low ? 0 : 40 + p * 50;      // arco de la pelota en el aire
+  const dir = Math.sign(plan.dive.x - plan.from.x) || 1;
+  gamesFrame((t) => {
+    const dt = t - t0;
+    const k = Math.min(1, dt / dur);
+    const e = 1 - (1 - k) ** 1.6;
+    const x = S.spot.x + (target.x - S.spot.x) * e;
+    const y = S.spot.y + (target.y - S.spot.y) * e - lift * 4 * e * (1 - e);
+    const sc = 1 + (S.ballFar - 1) * e;
+    pkBall(x, y, sc, dt * .9 * (target.x < S.spot.x ? -1 : 1));
+    const groundY = S.spot.y + S.ballSize * .46 + (G.bottom + 6 - S.spot.y - S.ballSize * .46) * e;
+    pkShadow(x, groundY, sc, .32 - .12 * e);
+    const kp = plan.at(dt);
+    pkKeeper(kp.x, kp.y, dir * 28 * kp.p, 1 - .35 * kp.p);
+    if (k >= 1) return false;
+  });
 
   gamesTimer(() => {
-    if (!minigame) return;
+    if (minigame !== m) return;
     m.results.push(result);
     if (result === "gol") { m.score += 1; popHearts(); }
-    if (result === "atajada") setBall(dive.tx + (col === 1 ? 0 : col === 0 ? -30 : 30), 330, .8, 380);
-    if (result === "palo" || result === "afuera") setBall(x < 400 ? x - 60 : x + 60, Math.max(20, y - 40), .5, 380);
     const arena = $g("minigame-arena");
-    gamesQ(".gp-mira")?.setAttribute("opacity", "0");
     arena.dataset.result = result;
-    gamesHint(text);
     showPenaltyBanner(text, result);
+    gamesHint(text);
     updateGameChips();
+    penaltyAfterShot(result, target, keeperAtArrival);
     m.shot += 1;
-    gamesTimer(() => {
-      if (!minigame) return;
-      delete arena.dataset.result;
-      hidePenaltyBanner();
-      penaltyAim();
-    }, 1400);
-  }, 560);
+    gamesTimer(() => { if (minigame === m) penaltyAim(); }, 1600);
+  }, dur + 30);
+}
+
+/** Lo que pasa con la pelota después de llegar al arco. */
+function penaltyAfterShot(result, target, keeper) {
+  const S = PENALTY_SCENE;
+  const from = { ...target };
+  let to, endScale = S.ballFar, drop = false;
+  if (result === "gol") { to = { x: target.x + (target.x - S.spot.x) * .06, y: Math.min(target.y + 12, S.goal.bottom - 4) }; endScale = S.ballFar * .92; }
+  else if (result === "atajada") { const side = target.x < keeper.x ? -1 : 1; to = { x: target.x + side * 140, y: S.goal.bottom + 70 }; endScale = .58; drop = true; }
+  else if (result === "palo") { const side = target.x < S.spot.x ? -1 : 1; to = { x: target.x + side * 170, y: target.y + 150 }; endScale = .55; drop = true; }
+  else { to = { x: target.x + (target.x - S.spot.x) * .25, y: target.y - 60 }; endScale = S.ballFar * .8; }
+  const t0 = performance.now(), dur = 520;
+  gamesFrame((t) => {
+    const k = Math.min(1, (t - t0) / dur);
+    const e = drop ? k * k : 1 - (1 - k) ** 2;
+    const x = from.x + (to.x - from.x) * e;
+    const y = from.y + (to.y - from.y) * e - (drop ? 60 * 4 * k * (1 - k) : 0);
+    pkBall(x, y, S.ballFar + (endScale - S.ballFar) * k, (t - t0) * .7);
+    if (result === "afuera") gamesQ(".pk-ball")?.style.setProperty("opacity", String(1 - k));
+    if (k >= 1) { gamesQ(".pk-ball")?.style.removeProperty("opacity"); return false; }
+  });
 }
 
 function showPenaltyBanner(text, result, icon = "") {
@@ -716,18 +953,18 @@ function showPenaltyBanner(text, result, icon = "") {
 }
 function hidePenaltyBanner() { $g("minigame-arena")?.querySelector(".games-banner")?.classList.remove("is-on"); }
 
+
 // ------------------------------------------------------------ Resultado
 
-function finishMinigame(cancelled = false) {
+function finishMinigame(cancelled = false, { quiet = false } = {}) {
   if (!minigame) return;
   const finished = minigame;
   gamesClearAll();
   minigame = null;
 
   if (cancelled) {
-    closeGamePanel();
     emitRealtimeAction("play_end", { game: finished.type.id, result: "cancel" });
-    notifySystem("Partida cancelada.", 2200);
+    if (!quiet) { closeGamePanel(); notifySystem("Partida cancelada.", 2200); }
     return;
   }
 
@@ -751,7 +988,6 @@ function finishMinigame(cancelled = false) {
   trySave(state);
   refreshUI();
   updateCooldownButtons();
-  playMouthAnim(el.gameStage, success ? "feliz" : "hablar", 900);
 
   const title = g.id === "pesca"
     ? (success ? "¡Buena pesca!" : fishCaught ? "¡Algo sacamos!" : cansCaught ? "Sólo salieron latas" : "Hoy no picaron")
@@ -768,24 +1004,24 @@ function finishMinigame(cancelled = false) {
     `<li><img src="${GAME_ICON.energy}" alt="" /><span>Energía</span><b class="is-cost">−${energyCost}</b></li>`,
   ].join("");
   const again = gameBlockReason(g.id);
+  const left = gamesUnlimited() ? "Modo prueba: sin límite de partidas." : g.id === "pesca" ? `Te quedan ${fishingPlaysRemaining()} de ${GAME_LIMITS.pescaPorDia} partidas de pesca hoy.` : "";
   const res = $g("minigame-result");
   res.innerHTML = `
     <div class="games-result-card" role="status">
       <h3>${title}</h3>
       <p class="games-result-score">${scoreLine}</p>
       <ul class="games-rewards">${rows}</ul>
-      <p class="games-result-note">${again || (g.id === "pesca" ? `Te quedan ${fishingPlaysRemaining()} de ${GAME_LIMITS.pescaPorDia} partidas de pesca hoy.` : "")}</p>
+      <p class="games-result-note">${again || left}</p>
       <div class="games-result-actions">
         <button type="button" class="games-btn" data-again ${again ? "disabled" : ""}>Otra vez</button>
-        <button type="button" class="games-btn games-btn-soft" data-exit>Salir</button>
+        <button type="button" class="games-btn games-btn-soft" data-exit>Volver a casa</button>
       </div>
     </div>`;
   res.hidden = false;
-  $g("minigame-title").textContent = g.title;
   gamesHint("");
   const againBtn = res.querySelector("[data-again]");
   againBtn.addEventListener("click", () => launchGame(g.id));
-  res.querySelector("[data-exit]").addEventListener("click", () => { closeGamePanel(); document.getElementById("btn-jugar")?.focus(); });
+  res.querySelector("[data-exit]").addEventListener("click", () => returnHome());
   (again ? res.querySelector("[data-exit]") : againBtn).focus();
   // Si hay que esperar para Penales, el botón se habilita solo.
   if (again && g.id === "penales" && isOnCooldown("jugar")) {
@@ -798,6 +1034,8 @@ function finishMinigame(cancelled = false) {
   }
 }
 
+/** Cierra la pantalla del juego. Si estábamos «de viaje», la mascota
+ *  vuelve a la casa (sin pantalla de carga: para eso está returnHome). */
 function closeGamePanel() {
   const panel = $g("minigame-panel");
   if (!panel) return;
@@ -805,22 +1043,23 @@ function closeGamePanel() {
   $g("minigame-result").hidden = true;
   const arena = $g("minigame-arena");
   if (arena) arena.innerHTML = "";
+  gamesHint("");
+  if (gameTrip) {
+    gameTrip = null;
+    setTripVisuals(false);
+  }
 }
 
-/** Escape: cancela la partida, cierra el resultado o el selector. */
+/** Escape: cierra el selector o sale del juego y vuelve a casa. */
 function gamesHandleEscape() {
-  if (minigame) { finishMinigame(true); return true; }
-  const panel = $g("minigame-panel");
-  if (panel && !panel.hidden) { closeGamePanel(); document.getElementById("btn-jugar")?.focus(); return true; }
+  if (gameTrip || minigame || !$g("minigame-panel")?.hidden) { returnHome(); return true; }
   if (!$g("game-selector")?.hidden) { closeGameSelector(); return true; }
   return false;
 }
 
 // Compatibilidad con llamadas anteriores de app.js.
 function setupMinigames() {
-  $g("minigame-close")?.addEventListener("click", () => {
-    if (minigame) finishMinigame(true); else { closeGamePanel(); document.getElementById("btn-jugar")?.focus(); }
-  });
+  $g("minigame-close")?.addEventListener("click", () => returnHome());
 }
 function setupGameSelector() {
   renderGameCards();
