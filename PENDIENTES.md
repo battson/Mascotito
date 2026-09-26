@@ -2,7 +2,7 @@
 
 ## Estado y forma de trabajo
 
-- Base actual: Beta v4.6.2. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
+- Base actual: Beta v4.6.3. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
 - Trabajar por etapas, revisando con el usuario cada cambio de diseño. Entregar capturas cuando se cambie la interfaz.
 - Priorizar escritorio. La experiencia móvil y sus funciones limitadas se decidirán en una versión dedicada; no ampliar ese alcance ahora.
 - Mantener el ánimo, las expresiones y el aro de color. Se retira acariciar y sus recompensas de felicidad/XP, no el sistema general de felicidad.

@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.6.3 — Ventana de juegos tablet y cara de baño
+
+- **Ventana de juegos nueva:** la tablet celeste de `minijuegos_v2.ai`, como en `minijuegos_v2(referencia).png`: dos recuadros con sólo el ícono de cada juego (caña y pelota), sin nombres ni título. El nombre queda para lectores de pantalla. El .ai se convirtió fiel a SVG (es vectorial, sin trazar): `assets/ui/games/window-v2.svg` (ventana y recuadros) y `assets/ui/games/close.svg` (la ✕ roja, separada para que funcione como botón con su animación al pasar el mouse). `assets/ui/games/window.svg` (la ventana de feria de v4.6.2) ya no se usa y se puede borrar.
+- **Bañar:** la mascota se queda quieta (no camina, no se sacude ni respira) y pone cara de baño: la boca pasa a ser la «boca 1» del creador y los ojos se reemplazan por «> <» dibujados con el mismo grosor de trazo que esa boca, centrados en los ojos de cada variante. Al terminar las burbujas vuelve su cara de siempre. También se ve así en las mascotas de otros jugadores.
+- Versión en `?v=4.6.3` en los CSS/JS de `index.html`.
+- **Hotfix:** durmiendo (y con movimiento reducido) las mangas de la ropa seguían balanceándose mientras los brazos quedaban quietos; ahora copian la misma pose. En Pesca desapareció la línea fina que marcaba el recorte del barco sobre el agua: en vez de tapar a la mascota con una segunda copia del lago, la mascota se recorta en el borde rojo del barco.
+
 ## Beta v4.6.2 — Viajes a los minijuegos y Penales nuevo
 
 - **Hotfix:** moscas, burbujas del baño y dormir no se animaban con «movimiento reducido» activo (en Windows lo activa solo tener apagado «Efectos de animación»): la app los apagaba por completo. Ahora siguen animados (un poco más lentos) porque son la única señal visible de esos estados. Además, `index.html` pide los CSS/JS con `?v=4.6.2` para que el navegador no use copias viejas guardadas en caché; hay que subir ese número en cada versión.

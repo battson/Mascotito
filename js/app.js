@@ -738,7 +738,7 @@ function startIdle(minMs, maxMs) {
  * (navLock — ver goToLocation). Tampoco corre si está muy cansada —
  * sigue pudiendo caminar despacio, pero no acelerar. */
 function canWalk() {
-  return !!state && !state.sleep.dormida && !navLock;
+  return !!state && !state.sleep.dormida && !navLock && !el.walker?.classList.contains("is-bathing");
 }
 function canRun() {
   return canWalk() && state.stats.energia > PET_CONFIG.energiaMuyCansadaUmbral;
@@ -1824,19 +1824,45 @@ function setupPetFx() {
   if (el.bathFx && !el.bathFx.firstElementChild) el.bathFx.innerHTML = bathFxMarkup();
 }
 
-/** Burbujas + sacudida. Sirve para la mascota propia y las remotas. */
+// v4.6.3: cara de baño — boca 1 (la del creador) y ojos en «> <» con el
+// mismo grosor de trazo que esa boca. Se centran en los ojos de cada
+// variante (PET_EYE_CENTERS_BY_OJOS); si la variante no figura, se usa el
+// centro de la opción 1.
+const BATH_FACE_MOUTH = "M181.17,183.93C194.91,192.11,204.28,191.99,218.03,183.93C207.75,196.00,191.41,196.07,181.17,183.93";
+function bathFaceSvg(ojosId) {
+  const c = (typeof PET_EYE_CENTERS_BY_OJOS !== "undefined" && PET_EYE_CENTERS_BY_OJOS[ojosId]) || { izq: { x: 169.5, y: 163.5 }, der: { x: 230.5, y: 163.5 } };
+  const w = 7, h = 7.5;
+  const l = c.izq, r = c.der;
+  return '<svg viewBox="0 0 400 400" class="pet-layer pet-layer-bath-face" aria-hidden="true">'
+    + '<g fill="none" stroke="#111110" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">'
+    + `<path d="M${l.x - w} ${l.y - h}L${l.x + w} ${l.y}L${l.x - w} ${l.y + h}"/>`
+    + `<path d="M${r.x + w} ${r.y - h}L${r.x - w} ${r.y}L${r.x + w} ${r.y + h}"/>`
+    + `</g><path d="${BATH_FACE_MOUTH}" fill="#111110"/></svg>`;
+}
+function setBathFace(stage, on) {
+  if (!stage) return;
+  stage.querySelector(".pet-layer-bath-face")?.remove();
+  stage.classList.toggle("is-bath-face", on);
+  if (on) stage.insertAdjacentHTML("beforeend", bathFaceSvg(stage.dataset.ojosId));
+}
+
+/** Burbujas + cara de baño, con la mascota quieta. Sirve para la mascota
+ *  propia y las remotas. */
 function playBathFx(walker, fx) {
   if (!fx) return;
   if (!fx.firstElementChild) fx.innerHTML = bathFxMarkup();
+  const stage = walker?.querySelector(".pet-stage");
   fx.classList.remove("bathing");
   walker?.classList.remove("is-bathing");
   void fx.offsetWidth;
   fx.classList.add("bathing");
   walker?.classList.add("is-bathing");
+  setBathFace(stage, true);
   clearTimeout(fx._bathTimer);
   fx._bathTimer = setTimeout(() => {
     fx.classList.remove("bathing");
     walker?.classList.remove("is-bathing");
+    setBathFace(walker?.querySelector(".pet-stage"), false);
   }, 2600);
 }
 
@@ -2880,7 +2906,8 @@ function doBañar() {
   trySave(state);
   refreshUI();
   updateCooldownButtons();
-  // Espuma, burbujas y sacudida (v4.6.2).
+  // Burbujas y cara de baño; la mascota se queda quieta mientras dura (v4.6.3).
+  startIdle(2700, 3200);
   playBathFx(el.walker, el.bathFx);
   showBubble("¡Qué bien me siento!");
 }

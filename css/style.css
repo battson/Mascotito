@@ -98,10 +98,13 @@ button, .swatch, input[type="text"], input[type="color"] {
      parte de la interacción, no un adorno. */
   .game-stage,
   .brazo,
+  .ropa-brazo,
   .game-stage.mood-critico,
   .cloud {
     animation: none !important;
   }
+  /* Las mangas quedan quietas junto con los brazos, con su escala. */
+  .ropa-brazo { transform: scale(1.14); }
   /* Mismo criterio con los adornos de cuidado (rebote del juguete,
    * aparición de manchas/burbujas/corazones, el pulso de aviso en una
    * barra baja) y, nuevo en esta entrega, con la transición decorativa del
@@ -124,8 +127,6 @@ button, .swatch, input[type="text"], input[type="color"] {
    * sólo un poco más lentas y suaves. */
   .fly-orbit, .fly-art { animation-duration: calc(var(--fly-t, 2.8s) * 1.6) !important; }
   .game-stage.sleeping { animation: sleep-breathe 5.5s ease-in-out infinite !important; }
-  .walker.is-bathing .game-stage,
-  .walker.is-bathing .remote-player-stage { animation: bath-wiggle 0.5s ease-in-out 3 !important; }
 }
 
 body {
@@ -1694,14 +1695,16 @@ body {
   15% { opacity: 1; }
   100% { opacity: 0; transform: translate(var(--dx, 0), -34cqh) scale(1.1); }
 }
-/* La mascota se sacude mientras se enjabona. */
-.walker.is-bathing .game-stage,
-.walker.is-bathing .remote-player-stage { animation: bath-wiggle 0.32s ease-in-out 5; }
-@keyframes bath-wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-3deg) translateX(-1%); }
-  75% { transform: rotate(3deg) translateX(1%); }
-}
+/* v4.6.3: mientras se baña la mascota se queda quieta (sin sacudirse ni
+   respirar) y pone cara de «> <»: los ojos y la boca propios se esconden
+   y se muestra la capa .pet-layer-bath-face (boca 1 + ojos en «> <», con
+   el mismo grosor de trazo que la boca). La arma setBathFace() en app.js. */
+.pet-stage.is-bath-face { animation: none !important; }
+.pet-stage.is-bath-face * { animation: none !important; }
+.pet-stage.is-bath-face .ropa-brazo { transform: scale(1.14); }
+.pet-stage.is-bath-face .pet-layer-ojos,
+.pet-stage.is-bath-face .pet-layer-boca { visibility: hidden; }
+.pet-layer-bath-face { pointer-events: none; }
 
 /* ---------- Dormir: postura + "Zzz" flotando ----------
  * Beta v4.6.2: las Z salen de arriba de la cabeza (antes flotaban lejos,
@@ -1761,6 +1764,10 @@ body {
 .game-stage.sleeping { animation: sleep-breathe 4.4s ease-in-out infinite; }
 .game-stage.sleeping .brazo { animation: none; transform: rotate(4deg); }
 .game-stage.sleeping #brazo-der { transform: rotate(-4deg); }
+/* Hotfix v4.6.3: las mangas de la ropa seguían balanceándose mientras los
+   brazos quedaban quietos. Ahora copian la misma pose (con su escala). */
+.game-stage.sleeping .ropa-brazo { animation: none; transform: rotate(4deg) scale(1.14); }
+.game-stage.sleeping .ropa-brazo-der { transform: rotate(-4deg) scale(1.14); }
 @keyframes sleep-breathe {
   0%, 100% { transform: rotate(-2.5deg) scale(1, 1); }
   45% { transform: rotate(-2deg) scale(1.012, 1.04); }

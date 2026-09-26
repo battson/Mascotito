@@ -87,9 +87,10 @@ const FISHING_SCENE = {
  *  1. el lago completo (con el barco);
  *  2. la mascota sosteniendo la caña (base de la caña; el hilo y la bocha
  *     van aparte para poder animarlos);
- *  3. otra vez el lago, recortado al casco del barco: tapa la mitad de
- *     abajo de la mascota y la deja «adentro» del barco;
- *  4. hilo, ondas, bocha y lo que se pesca.
+ *     (hotfix v4.6.3: la mascota se recorta en el borde rojo del barco con
+ *     clip-path, así queda «adentro»; antes lo hacía una segunda copia del
+ *     lago y dejaba una línea fina en el agua);
+ *  3. hilo, ondas, bocha y lo que se pesca.
  */
 function fishingSceneHtml() {
   const u = ++gamesSceneId;
@@ -114,7 +115,6 @@ function fishingSceneHtml() {
       </svg>
     </div>
   </div>
-  <img class="fs-hull" src="${FISHING_ART.lake}" alt="" draggable="false" />
   <svg class="fs-fx" viewBox="0 0 ${S.w} ${S.h}">
     <defs>
       <clipPath id="fs-waterline-${u}" clipPathUnits="userSpaceOnUse"><rect class="fs-waterline" x="-200" y="-400" width="400" height="800"/></clipPath>
@@ -265,8 +265,9 @@ function gameStatusText(id) {
 }
 
 // --------------------------------------------------------------- Selector
-// v4.6.2: ventana de feria sin título con dos paneles; cada panel muestra
-// sólo el ícono y el nombre del juego y se toca entero para jugar. El
+// v4.6.2: ventana sin título con dos paneles que se tocan enteros para
+// jugar. v4.6.3: ventana-tablet (minijuegos_v2.ai) y sólo el ícono de cada
+// juego, sin nombre visible (queda para lectores de pantalla). El
 // estado (partidas que quedan o espera) va en el título emergente y en el
 // nombre accesible; si no se puede jugar, el panel se apaga y al tocarlo
 // explica por qué abajo.
@@ -279,7 +280,7 @@ function renderGameCards() {
   box.innerHTML = Object.values(GAMES).map((g) => `
     <button type="button" class="game-panel" data-play="${g.id}">
       <img class="game-panel-icon" src="${GAME_PANEL_ICON[g.id]}" alt="" draggable="false" />
-      <span class="game-panel-name">${g.title}</span>
+      <span class="sr-only">${g.title}</span>
     </button>`).join("");
   box.querySelectorAll("[data-play]").forEach((btn) => btn.addEventListener("click", () => launchGame(btn.dataset.play)));
 }

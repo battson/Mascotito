@@ -108,92 +108,77 @@
 }
 
 /* ---------------------------------------------------------------- Selector
-   v4.6.2: ventana de feria (assets/ui/games/window.svg, 1200 × 651) sin
-   título y con dos paneles. Los botones calzan justo dentro de los marcos
-   dorados de la ventana (porcentajes medidos sobre el dibujo). */
+   v4.6.3: ventana-tablet celeste de minijuegos_v2.ai (assets/ui/games/
+   window-v2.svg, 1396 × 1038) con dos recuadros y sólo el ícono de cada
+   juego, sin nombres. La ✕ roja es su propio SVG (close.svg) encima del
+   mismo lugar del dibujo, para poder animarla. Porcentajes medidos sobre
+   el .ai original. */
 #stage-floor .games-window.games-picker {
-  width: min(880px, calc(100% - 48px));
+  width: min(760px, calc(100% - 48px));
   max-height: none;
-  aspect-ratio: 1200 / 651;
+  aspect-ratio: 1396 / 1038;
   overflow: visible;
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: url("../assets/ui/games/window.svg") center / 100% 100% no-repeat;
+  background: url("../assets/ui/games/window-v2.svg") center / 100% 100% no-repeat;
   box-shadow: none;
-  filter: drop-shadow(0 14px 22px rgba(60, 35, 15, .3));
+  filter: drop-shadow(0 14px 22px rgba(20, 60, 80, .28));
 }
 #stage-floor .games-picker .games-close {
   position: absolute;
-  top: -3%;
-  right: -3.5%;
+  left: 86.8%;
+  top: 6.1%;
   z-index: 2;
-  width: 7%;
-  height: auto;
-  aspect-ratio: 1;
+  width: 10.1%;
+  height: 14.4%;
+  aspect-ratio: auto;
 }
+#stage-floor .games-picker .games-close img { object-fit: contain; }
 #stage-floor .games-panels { position: absolute; inset: 0; }
 #stage-floor .game-panel {
   position: absolute;
-  top: 36%;
-  width: 39.4%;
-  height: 41%;
+  top: 31.5%;
+  width: 27.3%;
+  height: 38.3%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4%;
   min-width: 0;
   min-height: 0;
   padding: 0;
   border: 0;
-  border-radius: 3.2% / 6%;
-  /* Rayos y brillo como los paneles del dibujo original. */
-  background:
-    radial-gradient(ellipse at 50% 55%, rgba(255, 255, 255, .34), rgba(255, 255, 255, 0) 62%),
-    repeating-conic-gradient(from 0deg at 50% 55%, rgba(255, 255, 255, .09) 0 6deg, rgba(255, 255, 255, 0) 6deg 14deg);
-  color: #fff;
+  border-radius: 7% / 6%;
+  background: transparent;
   cursor: pointer;
-  transition: transform .16s ease, filter .16s ease;
+  transition: transform .16s ease, background-color .16s ease;
 }
-#stage-floor .game-panel[data-play="pesca"] { left: 10.2%; }
-#stage-floor .game-panel[data-play="penales"] { left: 52.4%; }
-#stage-floor .game-panel:hover:not(.is-blocked) { transform: scale(1.035); filter: brightness(1.08); }
-#stage-floor .game-panel:active:not(.is-blocked) { transform: scale(.98); }
-#stage-floor .game-panel:focus-visible { outline: 4px solid #ffe052; outline-offset: 3px; }
-#stage-floor .game-panel.is-blocked { cursor: not-allowed; background-color: rgba(40, 24, 10, .42); }
-#stage-floor .game-panel.is-blocked .game-panel-icon,
-#stage-floor .game-panel.is-blocked .game-panel-name { filter: grayscale(.7) brightness(.8); opacity: .8; }
+#stage-floor .game-panel[data-play="pesca"] { left: 17.85%; }
+#stage-floor .game-panel[data-play="penales"] { left: 54.35%; }
+#stage-floor .game-panel:hover:not(.is-blocked) { transform: scale(1.04); background-color: rgba(255, 233, 184, .45); }
+#stage-floor .game-panel:active:not(.is-blocked) { transform: scale(.97); }
+#stage-floor .game-panel:focus-visible { outline: 4px solid #3fb6d9; outline-offset: 3px; }
+#stage-floor .game-panel.is-blocked { cursor: not-allowed; }
+#stage-floor .game-panel.is-blocked .game-panel-icon { filter: grayscale(.85); opacity: .45; }
 #stage-floor .game-panel-icon {
-  width: auto;
-  height: 58%;
-  max-width: 60%;
+  width: 62%;
+  height: 62%;
   object-fit: contain;
-  filter: drop-shadow(0 6px 0 rgba(20, 30, 60, .22));
   pointer-events: none;
   transition: transform .2s ease;
 }
-#stage-floor .game-panel:hover:not(.is-blocked) .game-panel-icon { transform: rotate(-6deg) scale(1.05); }
-#stage-floor .game-panel-name {
-  font: 900 clamp(22px, 3.3vw, 40px)/1 "Baloo 2", sans-serif;
-  color: #ffe052;
-  -webkit-text-stroke: 3px #78410d;
-  paint-order: stroke fill;
-  text-shadow: 0 3px 0 #512a0c;
-  letter-spacing: .01em;
-  pointer-events: none;
-}
+#stage-floor .game-panel:hover:not(.is-blocked) .game-panel-icon { transform: rotate(-6deg) scale(1.06); }
 #stage-floor .games-picker .games-note {
   position: absolute;
   left: 50%;
-  bottom: 13.5%;
-  width: 46%;
+  bottom: 17%;
+  width: 70%;
   margin: 0;
   min-height: 0;
   transform: translateX(-50%);
-  font: 800 14px/1.2 "Baloo 2", sans-serif;
-  color: #fff3cf;
-  text-shadow: 0 1px 0 #3e1a06, 0 0 6px rgba(0, 0, 0, .45);
+  text-align: center;
+  font: 800 15px/1.25 "Baloo 2", sans-serif;
+  color: #7a4a1c;
 }
 #stage-floor .games-picker .games-note:empty { display: none; }
 
@@ -238,8 +223,7 @@
 /* El área de juego sigue en 2:1 (entra en pantallas bajas): el lago, más
    alto, se apoya abajo y recorta un poco de cielo. */
 #stage-floor .fishing-scene { position: absolute; left: 0; right: 0; bottom: -2%; aspect-ratio: 1672 / 941; }
-#stage-floor .fs-lake,
-#stage-floor .fs-hull {
+#stage-floor .fs-lake {
   position: absolute;
   inset: 0;
   display: block;
@@ -247,11 +231,6 @@
   height: 100%;
   pointer-events: none;
   user-select: none;
-}
-/* Sólo el casco del barco (desde el borde rojo hacia abajo), encima de la mascota. */
-#stage-floor .fs-hull {
-  clip-path: polygon(10.77% 64.08%, 26.91% 63.34%, 35.89% 62.8%, 41.87% 62.27%, 47.85% 61.53%,
-    50.84% 61%, 52.63% 60.57%, 54.72% 60.57%, 54.72% 100%, 10.77% 100%);
 }
 #stage-floor .fs-fx { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
@@ -266,6 +245,14 @@
   top: 27.5%;
   width: 27.5%;
   aspect-ratio: 1;
+  /* Hotfix v4.6.3: antes una segunda copia del lago, recortada al casco,
+     tapaba la mitad de abajo de la mascota; en el borde de ese recorte
+     quedaba una línea fina visible (sobre todo la vertical en el agua, a la
+     derecha del barco). Ahora se recorta la mascota misma justo en el
+     borde rojo del barco: mismo resultado, sin segunda capa ni línea.
+     Puntos = el mismo borde de antes, pasado a % de esta caja. */
+  clip-path: polygon(-100% -100%, 200% -100%, 200% 200%, 92.44% 200%, 92.44% 67.68%, 84.84% 67.68%,
+    78.33% 68.56%, 67.45% 69.64%, 45.71% 71.16%, 23.96% 72.24%, -8.69% 73.35%, -67.38% 74.86%, -100% 74.86%);
 }
 #stage-floor .fs-pet-body { position: absolute; inset: 0; transform-origin: 50% 66%; }
 #stage-floor .fs-pet .fs-pet-stage { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; }
@@ -601,7 +588,6 @@
 @media (max-width: 760px) {
   #stage-floor.is-minigame .games-play .games-hint { top: 70px; max-width: calc(100% - 32px); font-size: 15px; }
   #stage-floor.is-minigame .games-play .games-chip { min-width: 0; padding: 3px 10px; font-size: 14px; }
-  #stage-floor .game-panel-name { -webkit-text-stroke-width: 2px; }
   #stage-floor .games-title { font-size: 26px; -webkit-text-stroke-width: 2px; }
   #stage-floor .games-window { padding: 12px 14px 14px; }
   #stage-floor .games-action { min-width: 140px; font-size: 18px; }
