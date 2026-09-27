@@ -13,14 +13,14 @@
    ========================================================================== */
 
 const ROULETTE_ART = {
-  wheel: "assets/games/roulette/wheel.svg",
-  disc: "assets/games/roulette/disc.svg",
+  wheel: liteArt("assets/games/roulette/wheel.svg"),
+  disc: liteArt("assets/games/roulette/disc.svg"),
 };
 const ROULETTE_ICON = {
   coin: "assets/shop/moneda.svg",
   fish: "assets/ui/inventory/cofre/pescado.svg",
-  energy: "assets/ui/inventory/cofre/energizante.svg",
-  can: "assets/games/fishing/can.svg",
+  energy: liteArt("assets/ui/inventory/cofre/energizante.svg"),
+  can: liteArt("assets/games/fishing/can.svg"),
   crown: "assets/clothes/corona-preview.png",
 };
 const ROULETTE_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z" fill="#ffd34d" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';

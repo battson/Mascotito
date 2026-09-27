@@ -10,6 +10,7 @@ const context = vm.createContext({
   window: { addEventListener() {}, matchMedia: () => ({ matches: false }) },
   document: { getElementById: () => null, addEventListener() {} },
   addBond: (n) => { bond.xp += n; },
+  liteArt: (src) => src,
   console, Math,
 });
 vm.runInContext(`${read("js/roulette.js")}\nthis.api = { ROULETTE_PRIZES, pickRoulettePrize, applyRoulettePrize, setState: (s) => { state = s; } };`.replace("const ROULETTE_ART", "var state;\nconst ROULETTE_ART"), context);

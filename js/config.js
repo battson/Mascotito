@@ -9,7 +9,7 @@
  * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
  */
 const APP_CHANNEL = "Beta";
-const APP_VERSION = "4.6.5";
+const APP_VERSION = "4.6.6";
 
 /**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
@@ -259,3 +259,63 @@ const PET_CONFIG = {
     transitionMsReducedMotion: 120,
   },
 };
+
+/* Beta v4.6.6 — modo liviano para celulares y tablets (pantalla táctil sin
+   mouse). En la compu no cambia nada. Se puede forzar para probar con
+   ?lite=1 (o apagar con ?lite=0) en la dirección.
+   - La clase html.is-lite frena adornos que obligan a repintar la mascota
+     en cada cuadro (ver el bloque v4.6.6 al final de css/style.css).
+   - liteArt() cambia los dibujos más pesados (SVG de 50 KB a 1 MB) por una
+     copia WebP del mismo dibujo (scripts/export-lite-v466.py). */
+const LITE_GFX = (() => {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  const forced = new URLSearchParams(window.location?.search || "").get("lite");
+  if (forced === "1" || forced === "0") return forced === "1";
+  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+})();
+if (LITE_GFX && typeof document !== "undefined") document.documentElement.classList.add("is-lite");
+const LITE_ART = new Set([
+  "assets/brand/logo-full.svg",
+  "assets/games/fishing/can.svg",
+  "assets/games/fishing/lake.svg",
+  "assets/games/fishing/rod-icon.svg",
+  "assets/games/fishing/rod.svg",
+  "assets/games/penalty/ball.svg",
+  "assets/games/penalty/field.svg",
+  "assets/games/penalty/glove-left.svg",
+  "assets/games/penalty/glove-right.svg",
+  "assets/games/roulette/disc.svg",
+  "assets/games/roulette/wheel.svg",
+  "assets/ui/actions/01-remera.svg",
+  "assets/ui/actions/03-sol.svg",
+  "assets/ui/actions/04-pelota.svg",
+  "assets/ui/actions/05-bolsa.svg",
+  "assets/ui/actions/06-jabon.svg",
+  "assets/ui/actions/cerrar.svg",
+  "assets/ui/ficha/energia.svg",
+  "assets/ui/ficha/ficha.svg",
+  "assets/ui/ficha/hambre.svg",
+  "assets/ui/ficha/higiene.svg",
+  "assets/ui/ficha/luna.svg",
+  "assets/ui/ficha/sed.svg",
+  "assets/ui/ficha/zzz.svg",
+  "assets/ui/games/window-v3.svg",
+  "assets/ui/inventory/cofre/energizante.svg",
+  "assets/ui/inventory/title-tab.svg",
+  "assets/ui/phone/add.svg",
+  "assets/ui/phone/check.svg",
+  "assets/ui/phone/remove.svg",
+  "assets/ui/phone/room.svg",
+  "assets/ui/phone/search.svg",
+  "assets/ui/phone/send.svg",
+  "assets/ui/phone/visit.svg",
+  "assets/ui/puerta.svg",
+  "assets/ui/wardrobe/armario.svg",
+  "assets/ui/wardrobe/piernas.svg",
+]);
+function liteArt(src) {
+  if (!LITE_GFX || typeof src !== "string") return src;
+  const clean = src.replace(/^\.\.\//, "").split(/[?#]/)[0];
+  if (!LITE_ART.has(clean)) return src;
+  return "assets/lite/" + clean.slice("assets/".length, -".svg".length) + ".webp";
+}

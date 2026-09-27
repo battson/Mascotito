@@ -238,11 +238,11 @@
 #stage-floor .fs-fx { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
 /* Mascota: lienzo de 400 × 400 que cae sobre 460 unidades del lago. */
-@property --fs-arm { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
-@property --fs-flex { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+/* v4.6.6: la pose de la mascota que pesca (brazo, caña y cuerpo) la mueve
+   js/games.js (FS_POSES, fishingApplyPose) con los mismos tiempos y curvas
+   que tenían acá las animaciones; así no se recalculan los estilos de toda
+   la mascota en cada cuadro. Acá quedan sólo los puntos de giro. */
 #stage-floor .fs-pet {
-  --fs-arm: 0deg;
-  --fs-flex: 0deg;
   position: absolute;
   left: 29.3%;
   top: 27.5%;
@@ -261,73 +261,10 @@
 #stage-floor .fs-pet .fs-pet-stage { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; }
 #stage-floor .fs-rod-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 /* El brazo derecho sostiene la caña: brazo, manga y caña giran juntos desde el hombro. */
-#stage-floor .fs-pet #brazo-der { animation: none; transform: rotate(calc(-55deg + var(--fs-arm))); }
-#stage-floor .fs-pet .ropa-brazo-der { animation: none; transform: rotate(calc(-55deg + var(--fs-arm))) scale(1.14); }
-#stage-floor .fs-rod-arm { transform-origin: 221.2px 198.8px; transform: rotate(var(--fs-arm)); }
-#stage-floor .fs-rod-flex { transform: rotate(var(--fs-flex)); }
+#stage-floor .fs-pet #brazo-der { animation: none; transform: rotate(-55deg); }
+#stage-floor .fs-pet .ropa-brazo-der { animation: none; transform: rotate(-55deg) scale(1.14); }
+#stage-floor .fs-rod-arm { transform-origin: 221.2px 198.8px; }
 #stage-floor .fs-paw { fill: var(--pet-body-color, #6cb9dd); stroke: rgba(0, 0, 0, .08); stroke-width: 3; }
-
-/* Poses de cada fase (sin movimiento reducido quedan estas). */
-#stage-floor [data-phase="wait"] .fs-pet,
-#stage-floor [data-phase="nibble"] .fs-pet,
-#stage-floor [data-phase="bite"] .fs-pet { --fs-arm: 8deg; }
-#stage-floor [data-phase="reel"] .fs-pet { --fs-arm: -12deg; }
-
-/* 1) Quieta, antes de lanzar: respira y mece la caña. */
-#stage-floor [data-phase="idle"] .fs-pet { animation: fsIdleArm 2.4s ease-in-out infinite; }
-#stage-floor [data-phase="idle"] .fs-pet-body { animation: fsBreath 2.4s ease-in-out infinite; }
-@keyframes fsIdleArm { 0%, 100% { --fs-arm: -4deg; --fs-flex: 0deg; } 50% { --fs-arm: 3deg; --fs-flex: -2deg; } }
-@keyframes fsBreath { 0%, 100% { transform: none; } 50% { transform: translateY(-1.2%) rotate(-1deg); } }
-
-/* 2) Lanza: lleva la caña atrás y la tira hacia adelante (la bocha sale a los 420 ms). */
-#stage-floor [data-phase="cast"] .fs-pet { animation: fsCastArm 1.04s cubic-bezier(.3, .7, .3, 1) both; }
-#stage-floor [data-phase="cast"] .fs-pet-body { animation: fsCastBody 1.04s ease both; }
-@keyframes fsCastArm {
-  0% { --fs-arm: 0deg; --fs-flex: 0deg; }
-  32% { --fs-arm: -50deg; --fs-flex: -8deg; }
-  48% { --fs-arm: 26deg; --fs-flex: 10deg; }
-  66% { --fs-arm: 5deg; --fs-flex: -4deg; }
-  100% { --fs-arm: 8deg; --fs-flex: 0deg; }
-}
-@keyframes fsCastBody {
-  32% { transform: rotate(-6deg) translateX(-2%); }
-  48% { transform: rotate(6deg) translateX(2%); }
-  100% { transform: rotate(2deg); }
-}
-
-/* 3) Espera con la bocha en el agua; tiembla cuando tantean y se inclina cuando pica. */
-#stage-floor [data-phase="wait"] .fs-pet { animation: fsWaitArm 3s ease-in-out infinite; }
-#stage-floor :is([data-phase="wait"], [data-phase="nibble"]) .fs-pet-body { animation: fsWaitBody 3s ease-in-out infinite; }
-#stage-floor [data-phase="nibble"] .fs-pet { animation: fsNibbleArm .65s ease-in-out; }
-#stage-floor [data-phase="bite"] .fs-pet { animation: fsBiteArm .26s ease-in-out infinite alternate; }
-#stage-floor [data-phase="bite"] .fs-pet-body { transform: rotate(5deg) translateX(1.5%); transition: transform .2s ease; }
-@keyframes fsWaitArm { 0%, 100% { --fs-arm: 8deg; --fs-flex: 0deg; } 50% { --fs-arm: 5deg; --fs-flex: 1.5deg; } }
-@keyframes fsWaitBody { 0%, 100% { transform: rotate(2deg); } 50% { transform: rotate(3deg) translateY(.8%); } }
-@keyframes fsNibbleArm {
-  0%, 100% { --fs-arm: 8deg; --fs-flex: 0deg; }
-  25% { --fs-arm: 11deg; --fs-flex: 5deg; }
-  50% { --fs-arm: 7deg; --fs-flex: -1deg; }
-  75% { --fs-arm: 10deg; --fs-flex: 3deg; }
-}
-@keyframes fsBiteArm { from { --fs-arm: 9deg; --fs-flex: 4deg; } to { --fs-arm: 15deg; --fs-flex: 11deg; } }
-
-/* 4) Recoge: tira la caña para arriba y la sacude mientras enrolla. */
-#stage-floor [data-phase="reel"] .fs-pet { animation: fsReelArm .9s ease-out both; }
-#stage-floor [data-phase="reel"] .fs-pet-body { animation: fsReelBody .9s ease-out both; }
-@keyframes fsReelArm {
-  0% { --fs-arm: 10deg; --fs-flex: 6deg; }
-  25% { --fs-arm: -30deg; --fs-flex: -10deg; }
-  40% { --fs-arm: -22deg; --fs-flex: -4deg; }
-  55% { --fs-arm: -32deg; --fs-flex: -9deg; }
-  70% { --fs-arm: -24deg; --fs-flex: -3deg; }
-  100% { --fs-arm: -12deg; --fs-flex: 0deg; }
-}
-@keyframes fsReelBody {
-  25% { transform: rotate(-6deg) translateX(-2%); }
-  40% { transform: rotate(-4deg) translateX(-1.5%); }
-  55% { transform: rotate(-6deg) translateX(-2%); }
-  100% { transform: rotate(-1deg); }
-}
 
 /* Hilo, bocha y ondas (en unidades del lago). */
 #stage-floor .fs-line { fill: none; stroke: #f6ecd2; stroke-width: 3.5; stroke-linecap: round; }
@@ -453,6 +390,10 @@
    Sólo queda el juego y la pantalla de carga. Sin título del juego: las
    fichas de puntaje y el botón de volver flotan arriba, sobre el paisaje. */
 #stage-floor.is-minigame > :not(#minigame-panel):not(#stage-transition) { visibility: hidden !important; }
+/* v4.6.6: lo de la casa queda escondido durante el juego; sus animaciones
+   se pausan para no repintar cosas que no se ven. */
+#stage-floor.is-minigame > :not(#minigame-panel):not(#stage-transition),
+#stage-floor.is-minigame > :not(#minigame-panel):not(#stage-transition) * { animation-play-state: paused !important; }
 #stage-floor.is-minigame .games-window.games-play {
   inset: 0;
   left: 0;
@@ -727,3 +668,11 @@
 @media (prefers-reduced-motion: reduce) {
   .roulette-result-card { animation: none; }
 }
+
+/* v4.6.6: en celulares y tablets, la ventana de minijuegos en su copia WebP. */
+html.is-lite #stage-floor .games-window.games-picker { background-image: url("../assets/lite/ui/games/window-v3.webp"); }
+/* v4.6.6: en celulares, cada parte de la Pesca en su propia capa: el lago
+   no se repinta cuando se mueven la mascota, la caña o el hilo. */
+html.is-lite #stage-floor .fs-lake,
+html.is-lite #stage-floor .fs-pet-body,
+html.is-lite #stage-floor .fs-fx { will-change: transform; }

@@ -45,26 +45,26 @@ const GAMES = {
 const GAME_ICON = {
   coin: "assets/shop/moneda.svg",
   fish: "assets/ui/inventory/cofre/pescado.svg",
-  can: "assets/games/fishing/can.svg",
-  energy: "assets/ui/ficha/energia.svg",
-  ball: "assets/games/penalty/ball.svg",
+  can: liteArt("assets/games/fishing/can.svg"),
+  energy: liteArt("assets/ui/ficha/energia.svg"),
+  ball: liteArt("assets/games/penalty/ball.svg"),
 };
 
 // Beta v4.6.1: arte de Pesca (vectorizado con scripts/vectorize-fishing-assets.py).
 const FISHING_ART = {
-  lake: "assets/games/fishing/lake.svg",
-  rod: "assets/games/fishing/rod.svg",
-  icon: "assets/games/fishing/rod-icon.svg",
+  lake: liteArt("assets/games/fishing/lake.svg"),
+  rod: liteArt("assets/games/fishing/rod.svg"),
+  icon: liteArt("assets/games/fishing/rod-icon.svg"),
   bobber: "assets/games/fishing/bobber.svg",
 };
 // Beta v4.6.2: arte de Penales (scripts/vectorize-games-v462.py).
 const PENALTY_ART = {
-  field: "assets/games/penalty/field.svg",
-  ball: "assets/games/penalty/ball.svg",
-  gloveL: "assets/games/penalty/glove-left.svg",
-  gloveR: "assets/games/penalty/glove-right.svg",
+  field: liteArt("assets/games/penalty/field.svg"),
+  ball: liteArt("assets/games/penalty/ball.svg"),
+  gloveL: liteArt("assets/games/penalty/glove-left.svg"),
+  gloveR: liteArt("assets/games/penalty/glove-right.svg"),
 };
-const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, ruleta: "assets/games/roulette/wheel.svg" };
+const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, ruleta: liteArt("assets/games/roulette/wheel.svg") };
 const GAME_PRELOAD = {
   pesca: [FISHING_ART.lake, FISHING_ART.rod, FISHING_ART.bobber],
   penales: [PENALTY_ART.field, PENALTY_ART.ball, PENALTY_ART.gloveL, PENALTY_ART.gloveR],
@@ -479,6 +479,162 @@ function setAction(label, { disabled = false, hot = false } = {}) {
 const fsLerp = (a, b, p) => a + (b - a) * p;
 const fsEaseInOut = (p) => (p < .5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2);
 
+/* v4.6.6 (rendimiento en celular): la pose de la mascota que pesca (brazo
+   con la caña, flexión de la caña y cuerpo) ya no la anima CSS con
+   propiedades heredadas (--fs-arm/--fs-flex obligaban a recalcular los
+   estilos de toda la mascota en cada cuadro) ni se mide la punta de la caña
+   con getBoundingClientRect (forzaba el recálculo). Ahora se calcula acá,
+   con las mismas curvas y tiempos que tenían las animaciones CSS, se
+   escribe directo en los 4 nodos que se mueven y la punta sale por cuenta. */
+function fsBezier(x1, y1, x2, y2) {
+  const bx = (t) => 3 * x1 * t * (1 - t) ** 2 + 3 * x2 * t * t * (1 - t) + t ** 3;
+  const dbx = (t) => 3 * x1 * (1 - t) ** 2 + 6 * (x2 - x1) * t * (1 - t) + 3 * (1 - x2) * t * t;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const err = bx(t) - x;
+      if (Math.abs(err) < 1e-4) break;
+      const d = dbx(t);
+      if (Math.abs(d) < 1e-6) break;
+      t = Math.min(1, Math.max(0, t - err / d));
+    }
+    return 3 * y1 * t * (1 - t) ** 2 + 3 * y2 * t * t * (1 - t) + t ** 3;
+  };
+}
+const FS_EASE = {
+  inOut: fsBezier(.42, 0, .58, 1),
+  ease: fsBezier(.25, .1, .25, 1),
+  out: fsBezier(0, 0, .58, 1),
+  cast: fsBezier(.3, .7, .3, 1),
+};
+// a = brazo (grados), f = flexión de la caña; cuerpo: r = giro, x/y = % de la caja.
+// "from" = arranca desde la pose en la que estaba (sin saltos).
+const FS_POSES = {
+  idle: {
+    arm: { dur: 2400, ease: "inOut", loop: true, frames: [[0, { a: -4, f: 0 }], [.5, { a: 3, f: -2 }], [1, { a: -4, f: 0 }]] },
+    body: { dur: 2400, ease: "inOut", loop: true, frames: [[0, {}], [.5, { r: -1, y: -1.2 }], [1, {}]] },
+    still: { a: 0 },
+  },
+  cast: {
+    arm: { dur: 1040, ease: "cast", frames: [[0, { a: 0, f: 0 }], [.32, { a: -50, f: -8 }], [.48, { a: 26, f: 10 }], [.66, { a: 5, f: -4 }], [1, { a: 8, f: 0 }]] },
+    body: { dur: 1040, ease: "ease", frames: [[0, "from"], [.32, { r: -6, x: -2 }], [.48, { r: 6, x: 2 }], [1, { r: 2 }]] },
+    still: { a: 0 },
+  },
+  wait: {
+    arm: { dur: 3000, ease: "inOut", loop: true, frames: [[0, { a: 8 }], [.5, { a: 5, f: 1.5 }], [1, { a: 8 }]] },
+    body: { dur: 3000, ease: "inOut", loop: true, clock: "wait", frames: [[0, { r: 2 }], [.5, { r: 3, y: .8 }], [1, { r: 2 }]] },
+    still: { a: 8 },
+  },
+  nibble: {
+    arm: { dur: 650, ease: "inOut", frames: [[0, { a: 8 }], [.25, { a: 11, f: 5 }], [.5, { a: 7, f: -1 }], [.75, { a: 10, f: 3 }], [1, { a: 8 }]] },
+    body: { dur: 3000, ease: "inOut", loop: true, clock: "wait", frames: [[0, { r: 2 }], [.5, { r: 3, y: .8 }], [1, { r: 2 }]] },
+    still: { a: 8 },
+  },
+  bite: {
+    arm: { dur: 260, ease: "inOut", loop: true, alternate: true, frames: [[0, { a: 9, f: 4 }], [1, { a: 15, f: 11 }]] },
+    body: { dur: 200, ease: "ease", frames: [[0, "from"], [1, { r: 5, x: 1.5 }]] },
+    still: { a: 8 }, stillBody: { r: 5, x: 1.5 },
+  },
+  reel: {
+    arm: { dur: 900, ease: "out", frames: [[0, { a: 10, f: 6 }], [.25, { a: -30, f: -10 }], [.4, { a: -22, f: -4 }], [.55, { a: -32, f: -9 }], [.7, { a: -24, f: -3 }], [1, { a: -12, f: 0 }]] },
+    body: { dur: 900, ease: "out", frames: [[0, "from"], [.25, { r: -6, x: -2 }], [.4, { r: -4, x: -1.5 }], [.55, { r: -6, x: -2 }], [1, { r: -1 }]] },
+    still: { a: -12 },
+  },
+};
+// Geometría de la caña dentro del lienzo 400 × 400 de la mascota (ver fishingSceneHtml).
+const FS_ROD = { shoulder: { x: 221.2, y: 198.8 }, grip: { x: 298, y: 204 }, tip: { x: 298 + 765 * .33, y: 204 - 495 * .33 } };
+// Caja de la mascota en el lago (left 29.3 %, top 27.5 %, ancho 27.5 %) y
+// origen del giro del cuerpo (50 % 66 %).
+const FS_PET_BOX = { x: .293 * 1672, y: .275 * 941, size: .275 * 1672, origin: { x: 200, y: 264 } };
+
+function fsSample(anim, elapsed, from) {
+  let p = elapsed / anim.dur;
+  if (anim.loop) {
+    const cycle = Math.floor(p);
+    p -= cycle;
+    if (anim.alternate && cycle % 2) p = 1 - p;
+  } else p = Math.min(1, Math.max(0, p));
+  const frames = anim.frames;
+  let i = 0;
+  while (i < frames.length - 2 && p > frames[i + 1][0]) i++;
+  const [o0, v0raw] = frames[i];
+  const [o1, v1raw] = frames[i + 1];
+  const v0 = v0raw === "from" ? from || {} : v0raw;
+  const v1 = v1raw === "from" ? from || {} : v1raw;
+  const e = FS_EASE[anim.ease]((p - o0) / (o1 - o0 || 1));
+  const out = {};
+  new Set([...Object.keys(v0), ...Object.keys(v1)]).forEach((k) => { out[k] = fsLerp(v0[k] || 0, v1[k] || 0, e); });
+  return out;
+}
+
+const FS_REDUCED_MOTION = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+function fsReduceMotion() {
+  return !!FS_REDUCED_MOTION?.matches;
+}
+
+/** Pose actual { a, f, r, x, y } según la fase y el tiempo. */
+function fishingPose(t) {
+  const m = minigame;
+  const spec = FS_POSES[m?.phase] || FS_POSES.idle;
+  const P = m.pose || (m.pose = { t0: t, waitT0: t, body: {} });
+  if (fsReduceMotion()) return { a: spec.still.a, f: 0, ...(spec.stillBody || {}) };
+  const arm = fsSample(spec.arm, t - P.t0);
+  const bodyClock = spec.body.clock === "wait" ? P.waitT0 : P.t0;
+  const body = fsSample(spec.body, t - bodyClock, P.fromBody);
+  return { a: arm.a || 0, f: arm.f || 0, r: body.r || 0, x: body.x || 0, y: body.y || 0 };
+}
+
+/** Escribe la pose en los nodos (sólo si cambió) y la guarda. */
+function fishingApplyPose(pose) {
+  const m = minigame;
+  const els = fishingEls();
+  if (!els) return;
+  const bodyT = `rotate(${pose.r.toFixed(2)}deg) translate(${pose.x.toFixed(2)}%, ${pose.y.toFixed(2)}%)`;
+  const armT = `rotate(${pose.a.toFixed(2)}deg)`;
+  const flexT = `rotate(${pose.f.toFixed(2)}deg)`;
+  const petArm = `rotate(${(-55 + pose.a).toFixed(2)}deg)`;
+  const key = `${bodyT}|${armT}|${flexT}`;
+  if (m.poseKey !== key) {
+    m.poseKey = key;
+    els.body.style.transform = bodyT;
+    els.rodArm.style.transform = armT;
+    els.rodFlex.style.transform = flexT;
+    els.petArms.forEach((node) => {
+      node.style.transform = node.classList.contains("ropa-brazo") ? `${petArm} scale(1.14)` : petArm;
+    });
+  }
+  if (m.pose) m.pose.body = { r: pose.r, x: pose.x, y: pose.y };
+}
+
+/** Nodos de la escena que se mueven (se vuelven a buscar si la mascota se redibujó). */
+function fishingEls() {
+  const m = minigame;
+  let els = m.fsEls;
+  const stale = !els || !els.body.isConnected || els.petArms.some((node) => !node.isConnected)
+    || (els.stage && els.stage.firstChild !== els.stageFirst);
+  if (stale) {
+    const body = gamesQ(".fs-pet-body");
+    if (!body) return null;
+    const stage = gamesQ(".fs-pet-stage");
+    els = m.fsEls = {
+      body,
+      rodArm: gamesQ(".fs-rod-arm"),
+      rodFlex: gamesQ(".fs-rod-flex"),
+      bobber: gamesQ(".fs-bobber"),
+      waterline: gamesQ(".fs-waterline"),
+      line: gamesQ(".fs-line"),
+      lineShadow: gamesQ(".fs-line-shadow"),
+      stage,
+      stageFirst: stage?.firstChild || null,
+      petArms: stage ? [...stage.querySelectorAll("#brazo-der, .ropa-brazo-der")] : [],
+    };
+    m.poseKey = "";
+  }
+  return els;
+}
+
 function startFishing() {
   const m = minigame;
   m.cast = 0;
@@ -496,8 +652,18 @@ function startFishing() {
 }
 
 function fishingPhase(phase) {
-  minigame.phase = phase;
+  const m = minigame;
+  const prev = m.phase;
+  m.phase = phase;
   $g("minigame-arena").dataset.phase = phase;
+  // La pose arranca de nuevo con cada fase; el cuerpo sigue su ciclo entre
+  // «espera» y «tantean» (en CSS era la misma animación).
+  const now = performance.now();
+  const P = m.pose || (m.pose = { body: {} });
+  P.t0 = now;
+  P.fromBody = { ...(P.body || {}) };
+  const waiting = (p) => p === "wait" || p === "nibble";
+  if (!(waiting(phase) && waiting(prev)) || P.waitT0 == null) P.waitT0 = now;
 }
 
 function fishingReady() {
@@ -610,18 +776,21 @@ function fishingReel(hooked, why = "") {
   }, 900);
 }
 
-/** Punta de la caña, en unidades del lago (sigue a las animaciones CSS). */
-function fishingTip() {
-  const tip = gamesQ(".fs-rod-tip");
-  const fx = gamesQ(".fs-fx");
-  if (!tip || !fx) return null;
-  const a = tip.getBoundingClientRect();
-  const r = fx.getBoundingClientRect();
-  if (!r.width) return null;
-  return {
-    x: (a.left + a.width / 2 - r.left) * FISHING_SCENE.w / r.width,
-    y: (a.top + a.height / 2 - r.top) * FISHING_SCENE.h / r.height,
-  };
+/** Punta de la caña, en unidades del lago, calculada con la pose (sin medir el DOM). */
+function fsRotateAround(p, c, deg) {
+  const rad = deg * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
+  const dx = p.x - c.x, dy = p.y - c.y;
+  return { x: c.x + dx * cos - dy * sin, y: c.y + dx * sin + dy * cos };
+}
+function fishingTip(pose = minigame?.pose?.last) {
+  if (!pose) return null;
+  let p = fsRotateAround(FS_ROD.tip, FS_ROD.grip, pose.f);
+  p = fsRotateAround(p, FS_ROD.shoulder, pose.a);
+  // Cuerpo: rotate(r) translate(x %, y %) desde el origen 50 % 66 %.
+  const o = FS_PET_BOX.origin;
+  p = fsRotateAround({ x: p.x + pose.x * 4, y: p.y + pose.y * 4 }, o, pose.r);
+  const k = FS_PET_BOX.size / 400;
+  return { x: FS_PET_BOX.x + p.x * k, y: FS_PET_BOX.y + p.y * k };
 }
 
 function fishingHangPoint(t, tip = fishingTip()) {
@@ -633,8 +802,12 @@ function fishingHangPoint(t, tip = fishingTip()) {
 function fishingDraw(t) {
   const m = minigame;
   if (!m || m.type.id !== "pesca") return false;
-  const tip = fishingTip();
-  const bobber = gamesQ(".fs-bobber");
+  const pose = fishingPose(t);
+  fishingApplyPose(pose);
+  m.pose.last = pose;
+  const els = fishingEls();
+  const tip = fishingTip(pose);
+  const bobber = els?.bobber;
   if (!tip || !bobber) return;
   const b = m.bob;
   const hang = fishingHangPoint(t, tip);
@@ -660,11 +833,11 @@ function fishingDraw(t) {
   bobber.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
   // En el agua se esconde la parte de abajo de la bocha (flota a medias).
   const bh = FISHING_SCENE.bobberW * 393 / 400;
-  gamesQ(".fs-waterline")?.setAttribute("height", inWater ? String(400 + bh * .64) : "800");
+  els.waterline?.setAttribute("height", inWater ? String(400 + bh * .64) : "800");
   const mx = (tip.x + x) / 2, my = (tip.y + y) / 2 + sag;
   const d = `M${tip.x.toFixed(1)} ${tip.y.toFixed(1)}Q${mx.toFixed(1)} ${my.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  gamesQ(".fs-line")?.setAttribute("d", d);
-  gamesQ(".fs-line-shadow")?.setAttribute("d", d);
+  els.line?.setAttribute("d", d);
+  els.lineShadow?.setAttribute("d", d);
 }
 
 /** Ondas alrededor de la bocha: splash, nibble, bite u off (calma). */

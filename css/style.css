@@ -3788,14 +3788,24 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .housing-window-sky { fill: #50cae7; transition: fill .8s ease; }
 .housing-window-horizon { fill: #71dcf1; transition: fill .8s ease; }
 .housing-window-cloud { fill: #e9fbff; opacity: .95; }
-.housing-window-cloud.cloud-one { animation: windowCloudDriftOne 14s ease-in-out infinite alternate; }
-.housing-window-cloud.cloud-two { animation: windowCloudDriftTwo 19s ease-in-out infinite alternate; }
+/* v4.6.6: las nubes van en una capa HTML aparte, encima del vidrio (ver
+   layoutWindowClouds en js/app.js); se deslizan con transform en su propia
+   capa, así no se repinta la casa entera en cada cuadro. */
+.housing-cloud-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.housing-window-clouds { position: absolute; overflow: hidden; pointer-events: none; }
+.housing-window-cloud-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
+.housing-window-cloud-layer.cloud-one { animation: windowCloudDriftOne 14s ease-in-out infinite alternate; }
+.housing-window-cloud-layer.cloud-two { animation: windowCloudDriftTwo 19s ease-in-out infinite alternate; }
 .stage-floor.is-night .housing-window-sky { fill: #1a3458; }
 .stage-floor.is-night .housing-window-horizon { fill: #294e73; }
 .stage-floor.is-night .housing-window-cloud { fill: #bacde4; opacity: .72; }
-@keyframes windowCloudDriftOne { from { transform: translateX(-13px); } to { transform: translateX(24px); } }
-@keyframes windowCloudDriftTwo { from { transform: translateX(20px); } to { transform: translateX(-25px); } }
-@media (prefers-reduced-motion: reduce) { .housing-window-cloud { animation: none !important; } }
+/* Antes el tinte de noche de la casa (#scene-noche-overlay) también las
+   oscurecía; ahora están encima, así que llevan el tinte en el color. */
+.stage-floor.location-casa.is-night .housing-window-cloud { fill: #76869f; }
+/* Mismo recorrido que antes (−13 → 24 y 20 → −25 unidades de un vidrio de 286). */
+@keyframes windowCloudDriftOne { from { transform: translateX(-4.55%); } to { transform: translateX(8.39%); } }
+@keyframes windowCloudDriftTwo { from { transform: translateX(6.99%); } to { transform: translateX(-8.74%); } }
+@media (prefers-reduced-motion: reduce) { .housing-window-cloud-layer { animation: none !important; } }
 .housing-object { pointer-events: none; }
 #scene-puerta { pointer-events: auto; }
 #stage-floor.is-decorating .location-deco { z-index: 20; pointer-events: auto; }
@@ -5370,3 +5380,28 @@ button:disabled, [aria-disabled="true"], input:disabled, select:disabled { curso
   .rotate-hint img { width: 120px; height: auto; animation: rotateHint 2.4s ease-in-out infinite; }
   @keyframes rotateHint { 0%, 30% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
 }
+
+/* ==========================================================================
+   Beta v4.6.6 — rendimiento en celulares y tablets (html.is-lite, ver
+   LITE_GFX en js/config.js). En la compu no cambia nada.
+   Un SVG se repinta entero cada vez que algo se mueve adentro suyo; en el
+   celular eso es lo que trababa. Acá:
+   - los brazos quedan quietos en reposo (la mascota se sigue meciendo
+     entera, que lo hace la placa de video sin repintar); caminar, saludar,
+     dormir y bañarse siguen animados igual;
+   - la mascota chiquita de la ficha no se anima;
+   - la mascota y quien la mueve van en su propia capa;
+   - fondos pesados en su copia WebP (scripts/export-lite-v466.py).
+   ========================================================================== */
+html.is-lite .brazo,
+html.is-lite .ropa-brazo { animation: none; }
+html.is-lite .ropa-brazo { transform: scale(1.14); }
+html.is-lite .wellbeing-avatar *,
+html.is-lite .preview-stage * { animation: none !important; }
+html.is-lite .walker,
+html.is-lite .game-stage,
+html.is-lite .fly-orbit,
+html.is-lite .fly-art svg { will-change: transform; }
+html.is-lite #wellbeing-widget.ficha > div { background-image: url("../assets/lite/ui/ficha/ficha.webp"); }
+html.is-lite #wardrobe-overlay .wardrobe-window,
+html.is-lite .wardrobe-window { background-image: url("../assets/lite/ui/wardrobe/armario.webp"); }

@@ -1,5 +1,19 @@
 # Mascotito Beta
 
+## Beta v4.6.6 — Rendimiento en el celular (hotfix)
+
+- **Por qué se trababa:** en el celular el navegador tenía que volver a dibujar gran parte de la pantalla 60 veces por segundo, aun con la mascota quieta. Medido en un iPhone 11 simulado (CPU 4 veces más lenta): quieta en la casa pasó de ~340 a ~90 ms de trabajo por segundo, caminando de ~650 a ~320 y en la Pesca de ~880 a ~300.
+- **Nubes de la ventana:** se movían adentro del SVG de la casa, y cualquier cosa que se mueve adentro de un SVG obliga a repintarlo entero (toda la casa). Ahora son dos capitas aparte, encima del vidrio, que se deslizan sin repintar nada (`layoutWindowClouds()` en `js/app.js`). Se ven igual, también de noche y al arrastrar la ventana en «Decorar casa». Esto vale también para la compu.
+- **Pesca:** la pose de la mascota (brazo, caña y cuerpo) ya no la animan propiedades CSS heredadas (`--fs-arm`/`--fs-flex` hacían recalcular los estilos de toda la mascota en cada cuadro) ni se mide la punta de la caña en la pantalla en cada cuadro. La calcula `js/games.js` (`FS_POSES`, `fishingPose`, `fishingTip`) con los mismos tiempos y curvas; el hilo sigue saliendo exactamente de la punta (probado contra la medición anterior, diferencia < 0,1 px). Igual en la compu.
+- **Durante un minijuego** la mascota de la casa (que está escondida) deja de caminar y se pausan las animaciones de la casa.
+- **Caminar:** ya no se mide el piso en cada cuadro para avisar la posición a la sala, y las piezas que mueve el paso se buscan una vez por dibujo de la mascota.
+- **Modo liviano, sólo en celulares y tablets** (pantalla táctil sin mouse; clase `html.is-lite`, `LITE_GFX` en `js/config.js`; se puede forzar con `?lite=1` o apagar con `?lite=0` en la dirección):
+  - En reposo los brazos quedan quietos (la mascota se sigue meciendo entera); caminar, saludar, dormir y bañarse siguen animados igual. La mascota chiquita de la ficha y la del editor no se animan.
+  - Mascota, moscas y partes de la Pesca van en capas propias, así moverlas no repinta el fondo.
+  - Los dibujos más pesados (SVG de 40 KB a 1 MB: lago, cancha, ruleta, ficha, ventana de minijuegos, armario, caña, guantes, pelota e íconos de acciones, del celular y de la ficha) se cargan en una copia WebP del mismo dibujo, a ~2x del tamaño en que se ve (`assets/lite/`, `scripts/export-lite-v466.py`, lista en `LITE_ART`).
+  - Ya no se repite el «movimiento del mouse» cada 120 ms (en el celular cada toque dejaba ese intervalo repintando la mascota para siempre). En la compu ahora sólo se repite mientras la mascota camina, que es cuando hace falta.
+- Pruebas nuevas: `tests/lite.test.js`. Versión en `?v=4.6.6`.
+
 ## Beta v4.6.5 — Celular horizontal (hotfix)
 
 - **Referencia: iPhone 11 apaisado** (896 × 414, y probado también más bajo, 812 × 340, como queda con las barras de Safari). Todo entra en la pantalla sin scroll.

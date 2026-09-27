@@ -678,9 +678,15 @@ function setupPreviewStageHover() {
 let lastMouse = null;
 function setupEyeTracking() {
   // v4.6.4: si la mascota camina con el mouse quieto, igual lo sigue mirando.
-  setInterval(() => {
-    if (lastMouse && !document.hidden) document.dispatchEvent(new MouseEvent("mousemove", { clientX: lastMouse.x, clientY: lastMouse.y }));
-  }, 120);
+  // v4.6.6: sólo con mouse de verdad. En el celular cada toque genera un
+  // «mousemove» de compatibilidad y este intervalo seguía repitiéndolo para
+  // siempre (y con eso repintaba la mascota 8 veces por segundo).
+  const hasMouse = window.matchMedia("(hover: hover)").matches && !LITE_GFX;
+  if (hasMouse) {
+    setInterval(() => {
+      if (lastMouse && !document.hidden && walkState === "walking") document.dispatchEvent(new MouseEvent("mousemove", { clientX: lastMouse.x, clientY: lastMouse.y }));
+    }, 120);
+  }
   document.addEventListener("mousemove", (event) => {
     if (event.isTrusted) lastMouse = { x: event.clientX, y: event.clientY };
     if (state && state.sleep.dormida) return; // dormida: ojos cerrados, no sigue nada
@@ -735,9 +741,16 @@ function registerInteraction() {
   lastInteractionTs = performance.now();
 }
 
+// v4.6.6: medidas del piso y de la mascota guardadas (antes se leían del
+// DOM en cada cuadro para avisar la posición a la sala, y eso obligaba al
+// navegador a recalcular el layout 60 veces por segundo).
+let walkFloorWidth = 0;
+let walkWalkerWidth = 200;
 function computeWalkBounds() {
   const floorWidth = el.stageFloor.clientWidth;
   const walkerWidth = el.walker.offsetWidth || 200;
+  walkFloorWidth = floorWidth;
+  walkWalkerWidth = walkerWidth;
   walkMax = Math.max(0, floorWidth - walkerWidth - WALK_PAD * 2);
   if (walkX > walkMax) walkX = walkMax;
   if (walkTarget > walkMax) walkTarget = walkMax;
@@ -759,6 +772,28 @@ function restLegs() {
   });
 }
 
+/** v4.6.6: nodos que mueve el ciclo de paso, buscados una vez por dibujo de
+ *  la mascota (antes: 5 querySelectorAll por cuadro mientras camina). */
+let gaitNodesCache = null;
+function gaitNodes(stage) {
+  const first = stage.firstElementChild;
+  const c = gaitNodesCache;
+  const alive = (list) => !list.length || (list[0][0] || list[0]).isConnected;
+  if (c && c.stage === stage && c.first === first && first?.isConnected
+    && alive(c.head) && alive(c.armL) && alive(c.armR) && alive(c.legL) && alive(c.legR)) return c;
+  const legScale = (node) => (node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1);
+  gaitNodesCache = {
+    stage,
+    first,
+    head: [...stage.querySelectorAll(".pet-layer-cabeza, .pet-layer-orejas, .pet-layer-cejas, .pet-layer-ojos, .pet-layer-narices, .pet-layer-boca, .pet-layer-clothing-accessory")],
+    armL: [...stage.querySelectorAll("#brazo-izq, .ropa-brazo-izq")],
+    armR: [...stage.querySelectorAll("#brazo-der, .ropa-brazo-der")],
+    legL: [...stage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq")].map((node) => [node, legScale(node)]),
+    legR: [...stage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der")].map((node) => [node, legScale(node)]),
+  };
+  return gaitNodesCache;
+}
+
 function applyLegSwing(stridePhase, intensity) {
   const s = Math.sin(stridePhase);
   const swing = s * LEG_SWING_MAX_DEG * intensity;
@@ -770,18 +805,13 @@ function applyLegSwing(stridePhase, intensity) {
   stage.style.translate = `0 ${(-lift).toFixed(2)}%`;
   stage.style.rotate = `${(GAIT_LEAN_DEG * intensity).toFixed(1)}deg`;
   const tilt = `${(s * GAIT_HEAD_TILT_DEG * intensity).toFixed(1)}deg`;
-  stage.querySelectorAll(".pet-layer-cabeza, .pet-layer-orejas, .pet-layer-cejas, .pet-layer-ojos, .pet-layer-narices, .pet-layer-boca, .pet-layer-clothing-accessory").forEach((node) => { node.style.rotate = tilt; });
+  const nodes = gaitNodes(stage);
+  nodes.head.forEach((node) => { node.style.rotate = tilt; });
   const arm = s * ARM_SWING_MAX_DEG * intensity;
-  stage.querySelectorAll("#brazo-izq, .ropa-brazo-izq").forEach((node) => { node.style.rotate = `${(-arm).toFixed(1)}deg`; });
-  stage.querySelectorAll("#brazo-der, .ropa-brazo-der").forEach((node) => { node.style.rotate = `${arm.toFixed(1)}deg`; });
-  el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
-    const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
-    node.style.transform = `rotate(${swing.toFixed(1)}deg) scale(${scale})`;
-  });
-  el.gameStage.querySelectorAll("#pierna-der, .ropa-pierna-der, .ropa-calzado-der").forEach((node) => {
-    const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
-    node.style.transform = `rotate(${(-swing).toFixed(1)}deg) scale(${scale})`;
-  });
+  nodes.armL.forEach((node) => { node.style.rotate = `${(-arm).toFixed(1)}deg`; });
+  nodes.armR.forEach((node) => { node.style.rotate = `${arm.toFixed(1)}deg`; });
+  nodes.legL.forEach(([node, scale]) => { node.style.transform = `rotate(${swing.toFixed(1)}deg) scale(${scale})`; });
+  nodes.legR.forEach(([node, scale]) => { node.style.transform = `rotate(${(-swing).toFixed(1)}deg) scale(${scale})`; });
 }
 
 function startIdle(minMs, maxMs) {
@@ -813,8 +843,9 @@ function publishLocalMovement(animationOverride) {
   if (!Multiplayer || !Multiplayer.enabled || !Multiplayer.connected || !state || el.game.hidden) return;
   const expectedRoom = activeVisit?.usernameLower || currentUsername;
   if (!expectedRoom || Multiplayer.currentRoom !== expectedRoom) return;
-  const floorWidth = el.stageFloor.clientWidth;
-  const walkerWidth = el.walker.offsetWidth || 200;
+  if (!walkFloorWidth) computeWalkBounds();
+  const floorWidth = walkFloorWidth;
+  const walkerWidth = walkWalkerWidth;
   if (!floorWidth) return;
   const centerX = walkX + WALK_PAD + walkerWidth / 2;
   const xPct = clamp(centerX / floorWidth * 100, 4, 96);
@@ -826,6 +857,7 @@ function publishLocalMovement(animationOverride) {
   Multiplayer.publishMovement({ xPct, direction: walkDirection, animation });
 }
 
+let lastWalkerTransform = "";
 function walkFrame(ts) {
   if (walkLastTs == null) walkLastTs = ts;
   const dt = Math.min((ts - walkLastTs) / 1000, 0.1);
@@ -835,6 +867,11 @@ function walkFrame(ts) {
   // el control total de walkX/el.walker — este loop se queda en pausa (pero
   // se sigue re-agendando solo) para no pelear por la posición.
   if (navLock) {
+    requestAnimationFrame(walkFrame);
+    return;
+  }
+  // v4.6.6: de viaje en un minijuego la mascota no está en la casa: no camina.
+  if (typeof gameTrip !== "undefined" && gameTrip) {
     requestAnimationFrame(walkFrame);
     return;
   }
@@ -875,7 +912,11 @@ function walkFrame(ts) {
     }
   }
 
-  el.walker.style.transform = `translateX(${(walkX + WALK_PAD).toFixed(1)}px)`;
+  const walkerT = `translateX(${(walkX + WALK_PAD).toFixed(1)}px)`;
+  if (walkerT !== lastWalkerTransform) {
+    lastWalkerTransform = walkerT;
+    el.walker.style.transform = walkerT;
+  }
   publishLocalMovement();
   requestAnimationFrame(walkFrame);
 }
@@ -962,6 +1003,7 @@ function setupWalking() {
   startIdle(300, 1200);
   requestAnimationFrame(walkFrame);
   window.addEventListener("resize", computeWalkBounds);
+  if (typeof ResizeObserver === "function") new ResizeObserver(() => computeWalkBounds()).observe(el.stageFloor);
   setupClickToWalk();
 }
 
@@ -1003,18 +1045,68 @@ function appendWindowWeather(svg, entry, index) {
     class: "housing-window-horizon",
     d: `M ${entry.x + 75} ${entry.y + 248} L ${entry.x + 361} ${entry.y + 286} L ${entry.x + 361} ${entry.y + 373} L ${entry.x + 75} ${entry.y + 373} Z`,
   }));
-  const positioned = housingSceneElement("g", { transform: `translate(${entry.x} ${entry.y})` });
-  const first = housingSceneElement("g", { class: "housing-window-cloud cloud-one" });
-  first.appendChild(housingSceneElement("path", {
-    d: "M 93 194 C 89 186 95 177 105 177 C 109 161 130 155 141 169 C 151 163 164 170 164 181 C 178 181 180 196 167 201 L 103 201 C 98 201 95 198 93 194 Z",
-  }));
-  const second = housingSceneElement("g", { class: "housing-window-cloud cloud-two" });
-  second.appendChild(housingSceneElement("path", {
-    d: "M 222 226 C 210 211 219 190 237 190 C 244 169 270 164 283 181 C 299 174 315 184 318 199 C 339 201 346 225 329 236 L 238 238 C 231 238 225 233 222 226 Z",
-  }));
-  positioned.append(first, second);
-  weather.appendChild(positioned);
   svg.appendChild(weather);
+}
+
+/* v4.6.6 (rendimiento en celular): las nubes de la ventana ya no se mueven
+   dentro del SVG de la casa — cualquier cosa que se anima adentro de un SVG
+   obliga a repintar el SVG entero (toda la casa) en cada cuadro. Ahora son
+   dos capitas HTML aparte, encima del vidrio, que se deslizan con
+   transform y las mueve la placa de video sin repintar nada. Cada vidrio
+   se ubica sobre la escena con la misma cuenta que usa el SVG
+   (preserveAspectRatio "xMidYMax slice"). */
+const WINDOW_CLOUD_PATHS = [
+  "M 93 194 C 89 186 95 177 105 177 C 109 161 130 155 141 169 C 151 163 164 170 164 181 C 178 181 180 196 167 201 L 103 201 C 98 201 95 198 93 194 Z",
+  "M 222 226 C 210 211 219 190 237 190 C 244 169 270 164 283 181 C 299 174 315 184 318 199 C 339 201 346 225 329 236 L 238 238 C 231 238 225 233 222 226 Z",
+];
+const WINDOW_PANE = { x: 75, y: 135, w: 286, h: 238 };
+
+function windowCloudsElement(entry) {
+  const pane = document.createElement("div");
+  pane.className = "housing-window-clouds";
+  pane.dataset.uid = entry.uid;
+  pane.dataset.x = entry.x;
+  pane.dataset.y = entry.y;
+  pane.setAttribute("aria-hidden", "true");
+  WINDOW_CLOUD_PATHS.forEach((d, i) => {
+    const cloud = document.createElementNS(SVG_NS, "svg");
+    cloud.setAttribute("class", `housing-window-cloud-layer cloud-${i ? "two" : "one"}`);
+    cloud.setAttribute("viewBox", `${WINDOW_PANE.x} ${WINDOW_PANE.y} ${WINDOW_PANE.w} ${WINDOW_PANE.h}`);
+    cloud.setAttribute("preserveAspectRatio", "none");
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("class", "housing-window-cloud");
+    path.setAttribute("d", d);
+    cloud.appendChild(path);
+    pane.appendChild(cloud);
+  });
+  return pane;
+}
+
+/** Ubica los vidrios con nubes sobre la escena (al dibujar, al cambiar de tamaño y al arrastrar la ventana). */
+function layoutWindowClouds() {
+  const deco = el.locationDeco;
+  const layer = deco?.querySelector(".housing-cloud-layer");
+  if (!layer) return;
+  const cw = deco.clientWidth, ch = deco.clientHeight;
+  if (!cw || !ch) return;
+  const scale = Math.max(cw / HOUSING_WIDTH, ch / HOUSING_HEIGHT);
+  const ox = (cw - HOUSING_WIDTH * scale) / 2;
+  const oy = ch - HOUSING_HEIGHT * scale;
+  layer.querySelectorAll(".housing-window-clouds").forEach((pane) => {
+    const x = Number(pane.dataset.x) + WINDOW_PANE.x;
+    const y = Number(pane.dataset.y) + WINDOW_PANE.y;
+    pane.style.left = `${(ox + x * scale).toFixed(2)}px`;
+    pane.style.top = `${(oy + y * scale).toFixed(2)}px`;
+    pane.style.width = `${(WINDOW_PANE.w * scale).toFixed(2)}px`;
+    pane.style.height = `${(WINDOW_PANE.h * scale).toFixed(2)}px`;
+  });
+}
+
+let windowCloudsObserver = null;
+function watchWindowClouds() {
+  if (windowCloudsObserver || !el.locationDeco || typeof ResizeObserver !== "function") return;
+  windowCloudsObserver = new ResizeObserver(() => layoutWindowClouds());
+  windowCloudsObserver.observe(el.locationDeco);
 }
 
 function renderHousingScene() {
@@ -1035,6 +1127,7 @@ function renderHousingScene() {
   image(HOUSING_ITEMS[housing.wall] || HOUSING_ITEMS.pared_basica_1, 0, 0, HOUSING_WIDTH, HOUSING_HEIGHT);
   image(HOUSING_ITEMS[housing.floor] || HOUSING_ITEMS.piso_basico_1, 0, HOUSING_FLOOR_Y, HOUSING_WIDTH, HOUSING_HEIGHT - HOUSING_FLOOR_Y);
   let windowIndex = 0;
+  const clouds = [];
   housing.placed.forEach((entry) => {
     const item = HOUSING_ITEMS[entry.id];
     if (!item) return;
@@ -1043,13 +1136,21 @@ function renderHousingScene() {
       class: `housing-object${housingSelected?.uid === entry.uid && housingEditing ? " is-selected" : ""}`,
       "data-uid": entry.uid,
     });
-    if (item.id === "ventana_madera_1_1") appendWindowWeather(svg, entry, windowIndex++);
+    if (item.id === "ventana_madera_1_1") {
+      appendWindowWeather(svg, entry, windowIndex++);
+      clouds.push(windowCloudsElement(entry));
+    }
   });
   svg.appendChild(housingSceneElement("rect", {
     id: "scene-noche-overlay", x: 0, y: 0, width: HOUSING_WIDTH, height: HOUSING_HEIGHT,
     fill: "#111c39", "pointer-events": "none",
   }));
-  el.locationDeco.replaceChildren(svg);
+  const cloudLayer = document.createElement("div");
+  cloudLayer.className = "housing-cloud-layer";
+  cloudLayer.append(...clouds);
+  el.locationDeco.replaceChildren(svg, cloudLayer);
+  watchWindowClouds();
+  layoutWindowClouds();
 }
 
 function housingPointerPosition(event, svg) {
@@ -2333,7 +2434,7 @@ const ACTION_ICON_FILES = {
 };
 
 function actionIconMarkup(icon) {
-  return `<img class="action-art" src="assets/ui/actions/${ACTION_ICON_FILES[icon]}" alt="" draggable="false" />`;
+  return `<img class="action-art" src="${liteArt(`assets/ui/actions/${ACTION_ICON_FILES[icon]}`)}" alt="" draggable="false" />`;
 }
 
 function syncActionPanels() {
@@ -2906,6 +3007,12 @@ function setupHousingUI() {
     const image = Array.from(svg.querySelectorAll(".housing-object")).find((node) => node.dataset.uid === entry.uid);
     image?.setAttribute("x", position.x);
     image?.setAttribute("y", position.y);
+    const pane = el.locationDeco.querySelector(`.housing-window-clouds[data-uid="${CSS.escape(entry.uid)}"]`);
+    if (pane) {
+      pane.dataset.x = position.x;
+      pane.dataset.y = position.y;
+      layoutWindowClouds();
+    }
   });
   const endDrag = (event) => {
     if (!housingDrag) return;
@@ -3811,8 +3918,32 @@ function setupStageModals() {
   });
 }
 
+/** v4.6.6: en modo liviano (celular/tablet) cambia cualquier <img> de un
+ *  dibujo pesado por su copia WebP, también las que se agregan después. */
+function setupLiteArt() {
+  if (!LITE_GFX) return;
+  const swap = (img) => {
+    const src = img.getAttribute("src");
+    const lite = liteArt(src);
+    if (lite !== src) img.setAttribute("src", lite);
+  };
+  const scan = (root) => {
+    if (root.nodeType !== 1) return;
+    if (root.tagName === "IMG") swap(root);
+    else root.querySelectorAll?.("img[src$='.svg']").forEach(swap);
+  };
+  scan(document.body);
+  new MutationObserver((records) => {
+    records.forEach((record) => {
+      if (record.type === "attributes") scan(record.target);
+      else record.addedNodes.forEach(scan);
+    });
+  }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
+}
+
 (function init() {
   applyAppVersion();
+  setupLiteArt();
   setupStageModals();
   // Iconos estáticos que no cambian durante la sesión.
   // v3.5: el botón "Salir al jardín" (#btn-nav, antes con el ícono de
