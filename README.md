@@ -1,5 +1,25 @@
 # Mascotito Beta
 
+## Beta v4.6.9 — Ruleta nueva (hotfix)
+
+- **Ruleta rediseñada** con `ruleta.ai` (la ruleta vacía) y `puntero_ruleta.ai` (la flecha). Los .ai son vectoriales: se pasaron directo a SVG, sin trazar (`scripts/export-roulette-v469.py`; se sacó una imagen suelta de 1 px que traían escondida y se redondearon coordenadas para que pesen menos): `assets/games/roulette/wheel-v2.svg`, `pointer.svg` e `icon.svg` (ruleta + flecha, para el recuadro de Minijuegos).
+- Capas: la ruleta entera quieta abajo; encima la misma ruleta recortada en círculo justo sobre la línea oscura que separa el disco del aro, que es la que gira (la unión no se nota); encima el botón central quieto y la flecha nueva arriba al centro, con una sombrita.
+- Los gajos se volvieron a medir sobre el dibujo nuevo y cada premio sigue en el mismo color que antes; la probabilidad sigue siendo la de la tabla.
+- En celulares/tablets se usan sus copias WebP (modo liviano). `assets/games/roulette/wheel.svg` y `disc.svg` (la ruleta anterior) y sus WebP en `assets/lite/games/roulette/` ya no se usan y se pueden borrar.
+- Versión en `?v=4.6.9`.
+
+## Beta v4.6.8 — Pesca (hotfix)
+
+- **No aparecían el hilo ni la bocha** en las compus con «movimiento reducido» activo (en Windows lo activa tener apagados los «Efectos de animación»): desde v4.6.6 la pose quieta de la mascota salía incompleta y el dibujo del hilo fallaba en cada cuadro. Arreglado y probado con y sin movimiento reducido.
+- **Indicaciones más visibles:** «Tocá Lanzar…», «Esperá a que pique…», «¡Otra vez!…» y las demás ahora van grandes, abajo al centro justo arriba del botón (sobre el agua, entre el barco y la bocha), con el mismo cartel de borde marrón que los resultados, y cada una nueva aparece con un saltito. En Penales quedan como estaban.
+- Versión en `?v=4.6.8`.
+
+## Beta v4.6.7 — Caminar (hotfix)
+
+- **Mangas desincronizadas al caminar/correr:** las mangas seguían con su balanceo de reposo encima del paso y sin el suavizado del brazo. Ahora, mientras camina, copian exactamente el giro del brazo (mismo ángulo en cada cuadro).
+- **Inclinación hacia la izquierda:** al caminar para la izquierda la mascota se inclinaba para la derecha (el espejado no invertía el giro del cuerpo). Ahora se inclina hacia donde camina.
+- Versión en `?v=4.6.7`.
+
 ## Beta v4.6.6 — Rendimiento en el celular (hotfix)
 
 - **Por qué se trababa:** en el celular el navegador tenía que volver a dibujar gran parte de la pantalla 60 veces por segundo, aun con la mascota quieta. Medido en un iPhone 11 simulado (CPU 4 veces más lenta): quieta en la casa pasó de ~340 a ~90 ms de trabajo por segundo, caminando de ~650 a ~320 y en la Pesca de ~880 a ~300.

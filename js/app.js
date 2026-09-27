@@ -803,7 +803,10 @@ function applyLegSwing(stridePhase, intensity) {
   stage.style.scale = walkDirection === "left" ? "-1 1" : "";
   const lift = Math.abs(Math.cos(stridePhase)) * GAIT_BOUNCE_PCT * intensity;
   stage.style.translate = `0 ${(-lift).toFixed(2)}%`;
-  stage.style.rotate = `${(GAIT_LEAN_DEG * intensity).toFixed(1)}deg`;
+  // v4.6.7: el espejado (scale -1 1) no invierte el giro del contenedor:
+  // hacia la izquierda la inclinación va con signo contrario.
+  const lean = GAIT_LEAN_DEG * intensity * (walkDirection === "left" ? -1 : 1);
+  stage.style.rotate = `${lean.toFixed(1)}deg`;
   const tilt = `${(s * GAIT_HEAD_TILT_DEG * intensity).toFixed(1)}deg`;
   const nodes = gaitNodes(stage);
   nodes.head.forEach((node) => { node.style.rotate = tilt; });

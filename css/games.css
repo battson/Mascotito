@@ -440,6 +440,25 @@
   transform: translateX(-50%);
 }
 #stage-floor.is-minigame .games-play .games-hint:empty { display: none; }
+/* Hotfix v4.6.8: en la Pesca la indicación va grande, abajo al centro,
+   justo arriba del botón (sobre el agua, entre el barco y la bocha), con el
+   mismo cartel que los resultados. */
+#stage-floor.is-minigame .games-play[data-game="pesca"] .games-hint {
+  top: auto;
+  bottom: 98px;
+  max-width: 34%;
+  padding: 8px 22px 10px;
+  border: 4px solid #5a3a22;
+  border-radius: 18px;
+  background: #fffdf3;
+  color: #4b2e18;
+  font: 800 22px/1.2 "Baloo 2", system-ui, sans-serif;
+  text-align: center;
+  box-shadow: 0 5px 0 rgba(60, 35, 15, .28);
+}
+#stage-floor.is-minigame .games-play .games-hint.is-new { animation: gamesHintPop .35s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes gamesHintPop { from { transform: translateX(-50%) scale(.82); opacity: .4; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #stage-floor.is-minigame .games-play .games-hint.is-new { animation: none; } }
 #stage-floor.is-minigame .games-play .games-stage { position: absolute; inset: 0; }
 #stage-floor.is-minigame .games-play .games-arena {
   position: absolute;
@@ -577,14 +596,26 @@
   filter: drop-shadow(0 14px 18px rgba(20, 20, 40, .35));
 }
 .roulette-wheel .rw-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; user-select: none; }
+/* v4.6.9: ruleta nueva. El disco gira recortado en círculo justo sobre la
+   línea oscura que lo separa del aro (la unión no se ve); el botón central
+   y la flecha quedan quietos encima. Medidas en % de ruleta.ai (1254 px). */
 .roulette-wheel .rw-disc {
-  transform-origin: 49.88% 50.96%;
+  transform-origin: 50% 49.88%;
   will-change: transform;
 }
+.roulette-wheel .rw-disc-art { clip-path: circle(39.55% at 50% 49.88%); }
+.roulette-wheel .rw-hub { clip-path: circle(7.3% at 49.97% 50.11%); }
 .roulette-wheel .rw-pointer {
-  clip-path: polygon(40.27% 1.59%, 59.81% 1.59%, 60.61% 5.58%, 51.04% 18.98%, 48.8% 18.98%, 39.47% 5.58%);
+  position: absolute;
+  left: 41%;
+  top: 0.5%;
+  width: 18%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 3px 2px rgba(40, 20, 10, .35));
 }
-.roulette-wheel .rw-hub { clip-path: circle(6.7% at 49.88% 50.96%); }
 .roulette-wheel .rw-prize {
   position: absolute;
   width: 11%;

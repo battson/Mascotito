@@ -920,6 +920,10 @@ body {
 .game-stage { transition: translate 0.12s ease-out, rotate 0.2s ease-out; }
 .game-stage.is-walking { animation: none; }
 .game-stage.is-walking .brazo { animation: none; }
+/* v4.6.7: las mangas seguían con su balanceo idle mientras caminaba (y sin
+   el suavizado del brazo): ahora copian exactamente el giro del brazo. */
+.game-stage.is-walking .ropa-brazo { animation: none; transform: scale(1.14); }
+.game-stage .ropa-brazo { transition: rotate 0.15s ease-out; }
 .game-stage .brazo, .game-stage .pet-layer { transition: rotate 0.15s ease-out; }
 
 /* Expresiones faciales completas por ánimo — cejas + boca. Sólo se aplica

@@ -64,7 +64,7 @@ const PENALTY_ART = {
   gloveL: liteArt("assets/games/penalty/glove-left.svg"),
   gloveR: liteArt("assets/games/penalty/glove-right.svg"),
 };
-const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, ruleta: liteArt("assets/games/roulette/wheel.svg") };
+const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, ruleta: liteArt("assets/games/roulette/icon.svg") };
 const GAME_PRELOAD = {
   pesca: [FISHING_ART.lake, FISHING_ART.rod, FISHING_ART.bobber],
   penales: [PENALTY_ART.field, PENALTY_ART.ball, PENALTY_ART.gloveL, PENALTY_ART.gloveR],
@@ -215,7 +215,15 @@ function gamesClearAll() {
   clearInterval(minigame.clock);
   cancelAnimationFrame(minigame.raf);
 }
-function gamesHint(text) { const h = $g("minigame-instructions"); if (h) h.textContent = text; }
+function gamesHint(text) {
+  const h = $g("minigame-instructions");
+  if (!h || h.textContent === text) return;
+  h.textContent = text;
+  // v4.6.8: cada indicación nueva aparece con un pequeño salto, para que se note.
+  h.classList.remove("is-new");
+  void h.offsetWidth;
+  if (text) h.classList.add("is-new");
+}
 function gamesQ(sel) { return $g("minigame-arena")?.querySelector(sel); }
 function gamesWait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 function gamesPreload(sources) {
@@ -579,7 +587,9 @@ function fishingPose(t) {
   const m = minigame;
   const spec = FS_POSES[m?.phase] || FS_POSES.idle;
   const P = m.pose || (m.pose = { t0: t, waitT0: t, body: {} });
-  if (fsReduceMotion()) return { a: spec.still.a, f: 0, ...(spec.stillBody || {}) };
+  // Hotfix v4.6.8: con «movimiento reducido» faltaban r/x/y y fallaba cada
+  // cuadro (no se dibujaban ni el hilo ni la bocha).
+  if (fsReduceMotion()) return { a: spec.still.a, f: 0, r: 0, x: 0, y: 0, ...(spec.stillBody || {}) };
   const arm = fsSample(spec.arm, t - P.t0);
   const bodyClock = spec.body.clock === "wait" ? P.waitT0 : P.t0;
   const body = fsSample(spec.body, t - bodyClock, P.fromBody);

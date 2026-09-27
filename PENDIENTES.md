@@ -2,7 +2,7 @@
 
 ## Estado y forma de trabajo
 
-- Base actual: Beta v4.6.6. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
+- Base actual: Beta v4.6.9. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
 - Trabajar por etapas, revisando con el usuario cada cambio de diseño. Entregar capturas cuando se cambie la interfaz.
 - Priorizar escritorio. v4.6.5: el celular apaisado (ref. iPhone 11) ya se ve entero escalando el escenario de escritorio; el vertical pide girar el teléfono. v4.6.6: en celulares y tablets se aliviana lo que se dibuja (modo liviano, `?lite=1` para probarlo en la compu); si al agregar arte nuevo pesado (SVG de más de ~40 KB) se nota lento en el celular, sumarlo a `scripts/export-lite-v466.py` y a `LITE_ART`. Una versión móvil dedicada (controles táctiles propios, textos más grandes) queda para más adelante.
 - Mantener el ánimo, las expresiones y el aro de color. Se retira acariciar y sus recompensas de felicidad/XP, no el sistema general de felicidad.

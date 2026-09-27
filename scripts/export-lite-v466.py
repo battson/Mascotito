@@ -6,12 +6,14 @@ navegador repinta su zona; en la compu no se nota, en el celular sí. Estas
 copias salen del mismo SVG, dibujado por Chromium a ~2x del tamaño en que
 se ve, así que se ven iguales.
 
-Uso: python scripts/export-lite-v466.py   (necesita playwright + Pillow)
+Uso: python scripts/export-lite-v466.py [ruta.svg ...]   (necesita playwright + Pillow;
+     sin rutas exporta todos)
 Genera assets/lite/<misma ruta>.webp
 """
 import asyncio
 import io
 import json
+import sys
 import re
 import threading
 from functools import partial
@@ -36,8 +38,9 @@ LITE = {
     "assets/ui/wardrobe/armario.svg": 1032,
     "assets/games/penalty/field.svg": 1600,
     "assets/games/fishing/lake.svg": 1672,
-    "assets/games/roulette/wheel.svg": 1000,
-    "assets/games/roulette/disc.svg": 1000,
+    "assets/games/roulette/wheel-v2.svg": 1000,  # v4.6.9: ruleta nueva
+    "assets/games/roulette/pointer.svg": 400,
+    "assets/games/roulette/icon.svg": 256,
     "assets/games/fishing/rod.svg": 700,
     "assets/brand/logo-full.svg": 320,
     **{p: ICON for p in [
@@ -77,7 +80,10 @@ async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page(device_scale_factor=1)
+        only = sys.argv[1:]  # opcional: exportar sólo estos SVG
         for svg, width in LITE.items():
+            if only and svg not in only:
+                continue
             vw, vh = view_box(svg)
             height = round(width * vh / vw)
             await page.set_viewport_size({"width": width, "height": height})

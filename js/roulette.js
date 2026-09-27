@@ -4,17 +4,21 @@
    No se viaja: se abre encima de la casa, como el inventario. Se entra
    desde el tercer recuadro de Minijuegos.
 
-   Arte: assets/games/roulette/wheel.svg (la ruleta completa, quieta: aro,
-   puntero y botón central) + disc.svg (sólo el disco de colores, que gira).
-   Ver scripts/export-games-v464.py. Los gajos del dibujo ya vienen de
+   Arte (v4.6.9): assets/games/roulette/wheel-v2.svg (ruleta.ai) y
+   pointer.svg (puntero_ruleta.ai), ver scripts/export-roulette-v469.py.
+   Los gajos del dibujo vienen de
    distinto ancho; cada premio va en el suyo, del más ancho al más angosto
    según la probabilidad. La probabilidad real es la de `weight` (el sorteo
    no depende del ancho dibujado).
    ========================================================================== */
 
+// v4.6.9: ruleta nueva (ruleta.ai y puntero_ruleta.ai, vectoriales; ver
+// scripts/export-roulette-v469.py). La misma ruleta se usa en tres capas:
+// entera y quieta abajo, el disco (recortado en círculo) que gira, y el
+// botón central quieto encima; la flecha es su propio dibujo.
 const ROULETTE_ART = {
-  wheel: liteArt("assets/games/roulette/wheel.svg"),
-  disc: liteArt("assets/games/roulette/disc.svg"),
+  wheel: liteArt("assets/games/roulette/wheel-v2.svg"),
+  pointer: liteArt("assets/games/roulette/pointer.svg"),
 };
 const ROULETTE_ICON = {
   coin: "assets/shop/moneda.svg",
@@ -25,20 +29,22 @@ const ROULETTE_ICON = {
 };
 const ROULETTE_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z" fill="#ffd34d" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 
-// Centro y radio del disco en % del dibujo (medidos sobre ruleta.png, 1254 px).
-const ROULETTE_GEOM = { cx: 49.88, cy: 50.96, r: 39.39 };
+// Centro y radio del disco en % del dibujo (medidos sobre ruleta.ai, 1254 px).
+const ROULETTE_GEOM = { cx: 50, cy: 49.88, r: 38.84 };
 
 // Gajos en grados, en sentido horario desde arriba (0° = donde apunta el
 // puntero con la ruleta quieta). weight = probabilidad en %.
 const ROULETTE_PRIZES = [
-  { id: "coins10", weight: 30, from: -2, to: 73.5, label: "10 monedas", icon: "coin", tag: "10" },
-  { id: "fish2", weight: 16, from: 75, to: 132.5, label: "2 pescados", icon: "fish", tag: "×2" },
-  { id: "coins25", weight: 12, from: 134, to: 191, label: "25 monedas", icon: "coin", tag: "25" },
-  { id: "energizante", weight: 11, from: 193, to: 234, label: "1 lata energizante", icon: "energy", tag: "" },
-  { id: "xp30", weight: 11, from: 235.5, to: 273, label: "30 de experiencia", icon: "star", tag: "+30" },
-  { id: "lata", weight: 9, from: 275, to: 309, label: "1 lata (chatarra)", icon: "can", tag: "" },
-  { id: "coins100", weight: 8, from: 311, to: 342, label: "100 monedas", icon: "coin", tag: "100" },
-  { id: "corona", weight: 3, from: 343.5, to: 356, label: "la Corona", icon: "crown", tag: "", small: true },
+  // v4.6.9: gajos medidos sobre la ruleta nueva (líneas en 0, 73.5, 133.5,
+  // 191.5, 234, 274, 310, 344 y 359°), con 1,5° de margen a cada lado.
+  { id: "coins10", weight: 30, from: 1.5, to: 72, label: "10 monedas", icon: "coin", tag: "10" },
+  { id: "fish2", weight: 16, from: 75, to: 132, label: "2 pescados", icon: "fish", tag: "×2" },
+  { id: "coins25", weight: 12, from: 135, to: 190, label: "25 monedas", icon: "coin", tag: "25" },
+  { id: "energizante", weight: 11, from: 193, to: 232.5, label: "1 lata energizante", icon: "energy", tag: "" },
+  { id: "xp30", weight: 11, from: 235.5, to: 272.5, label: "30 de experiencia", icon: "star", tag: "+30" },
+  { id: "lata", weight: 9, from: 275.5, to: 308.5, label: "1 lata (chatarra)", icon: "can", tag: "" },
+  { id: "coins100", weight: 8, from: 311.5, to: 342.5, label: "100 monedas", icon: "coin", tag: "100" },
+  { id: "corona", weight: 3, from: 345.5, to: 357.5, label: "la Corona", icon: "crown", tag: "", small: true },
 ];
 
 let rouletteAngle = 0;
@@ -64,11 +70,11 @@ function buildRoulette() {
   wheel.innerHTML = `
     <img class="rw-layer rw-base" src="${ROULETTE_ART.wheel}" alt="" draggable="false" />
     <div class="rw-layer rw-disc" id="roulette-disc">
-      <img class="rw-layer" src="${ROULETTE_ART.disc}" alt="" draggable="false" />
+      <img class="rw-layer rw-disc-art" src="${ROULETTE_ART.wheel}" alt="" draggable="false" />
       ${icons}
     </div>
-    <img class="rw-layer rw-pointer" src="${ROULETTE_ART.wheel}" alt="" draggable="false" />
-    <img class="rw-layer rw-hub" src="${ROULETTE_ART.wheel}" alt="" draggable="false" />`;
+    <img class="rw-layer rw-hub" src="${ROULETTE_ART.wheel}" alt="" draggable="false" />
+    <img class="rw-pointer" src="${ROULETTE_ART.pointer}" alt="" draggable="false" />`;
   wheel.dataset.ready = "1";
 }
 
