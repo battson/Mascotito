@@ -219,7 +219,7 @@ function localDateKey(date = new Date()) {
 // Progreso del día: hoy sólo cuenta las partidas de Pesca (el sistema de
 // Objetivos que también vivía acá se retiró en v4.5.1).
 function defaultDailyProgress() {
-  return { date: localDateKey(), fishingPlays: 0 };
+  return { date: localDateKey(), fishingPlays: 0, rouletteSpun: false };
 }
 
 function normalizeDailyProgress(raw) {
@@ -228,6 +228,8 @@ function normalizeDailyProgress(raw) {
   return {
     date: today,
     fishingPlays: Number.isFinite(raw.fishingPlays) ? Math.max(0, Math.min(3, Math.floor(raw.fishingPlays))) : 0,
+    // Beta v4.6.4: ruleta diaria — una tirada por día (se reinicia con la fecha).
+    rouletteSpun: raw.rouletteSpun === true,
   };
 }
 
@@ -275,7 +277,11 @@ function normalizeState(raw) {
       pescado: Number.isFinite(raw.inventory?.pescado) ? Math.max(0, Math.floor(raw.inventory.pescado)) : 0,
       // Beta v4.6.1: chatarra de Pesca; más adelante se podrá vender.
       lata: Number.isFinite(raw.inventory?.lata) ? Math.max(0, Math.floor(raw.inventory.lata)) : 0,
+      // Beta v4.6.4: lata energizante (+energía, −sed).
+      energizante: Number.isFinite(raw.inventory?.energizante) ? Math.max(0, Math.floor(raw.inventory.energizante)) : 0,
     },
+    // Beta v4.6.4: marcas de una sola vez (ej. regalo de prueba del admin).
+    flags: { adminEnergizante30: raw.flags?.adminEnergizante30 === true },
     wardrobe: normalizeWardrobe(raw.wardrobe),
     housing: normalizeHousing(raw.housing, !raw.housing),
     daily: normalizeDailyProgress(raw.daily),
@@ -300,7 +306,8 @@ function createNewState(name, look, housingGiftStatus = "none") {
     economy: { coins: 0 },
     unlockedColors: {},
     world: normalizeWorld(null),
-    inventory: { pescado: 0, lata: 0 },
+    inventory: { pescado: 0, lata: 0, energizante: 0 },
+    flags: { adminEnergizante30: false },
     wardrobe: defaultWardrobe(),
     housing: defaultHousing(housingGiftStatus),
     digestion: { pending: [] },

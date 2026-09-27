@@ -229,7 +229,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   box-shadow: 0 2px 0 var(--wood-edge);
   transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
 }
@@ -276,7 +276,7 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--ink);
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .options-menu-item:hover { background: var(--soft-green); }
 .options-menu-danger { color: var(--danger); }
@@ -329,8 +329,13 @@ body {
      que el "pecho" suba un poco pero la mascota no parezca flotar sobre
      el piso. */
   transform-origin: 50% 100%;
-  animation: bob 3.2s ease-in-out infinite;
-  cursor: default;
+  /* v4.7: idle = balanceo lateral lento desde los pies (antes: bob scaleY). */
+  animation: idleSway 2s ease-in-out infinite;
+  cursor: url("../assets/ui/cursors/default.png") 2 1, default; cursor: -webkit-image-set(url("../assets/ui/cursors/default.png") 1x, url("../assets/ui/cursors/default@2x.png") 2x) 2 1, default;
+}
+@keyframes idleSway {
+  0%, 100% { rotate: -0.9deg; }
+  50% { rotate: 0.9deg; }
 }
 @keyframes bob {
   0%, 100% { transform: scaleY(1); }
@@ -451,7 +456,7 @@ body {
   opacity: 0.4;
 }
 #scene-puerta {
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   pointer-events: auto;
   transition: fill-opacity 0.15s ease;
 }
@@ -772,11 +777,37 @@ body {
 /* Balanceo idle de los brazos: mismo ciclo, desfasado entre izquierdo y
    derecho para que no se muevan como espejo perfecto. */
 @keyframes armSwing {
-  0%, 100% { transform: rotate(-6deg); }
-  50% { transform: rotate(6deg); }
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
 }
-.brazo { animation: armSwing 2.4s ease-in-out infinite; }
-#brazo-der { animation-delay: -1.2s; animation-direction: reverse; }
+/* v4.7: los brazos cuelgan y siguen el balanceo del cuerpo con un leve retraso. */
+.brazo { animation: armSwing 2s ease-in-out infinite; animation-delay: 0.25s; }
+
+/* v4.7: saludo ocasional en idle (js/app.js, scheduleIdleWave). */
+@keyframes waveBody { 0%, 100% { rotate: 0deg; } 15%, 85% { rotate: -8deg; } }
+@keyframes waveHead { 0%, 100% { rotate: 0deg; } 18%, 82% { rotate: -10deg; } }
+@keyframes waveArm {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-80deg); }
+  32% { transform: rotate(-58deg); }
+  44% { transform: rotate(-92deg); }
+  56% { transform: rotate(-58deg); }
+  68% { transform: rotate(-88deg); }
+  85% { transform: rotate(-80deg); }
+}
+.game-stage.is-waving { animation: waveBody 2.3s ease-in-out; }
+.game-stage.is-waving .pet-layer-cabeza,
+.game-stage.is-waving .pet-layer-orejas,
+.game-stage.is-waving .pet-layer-cejas,
+.game-stage.is-waving .pet-layer-ojos,
+.game-stage.is-waving .pet-layer-narices,
+.game-stage.is-waving .pet-layer-boca,
+.game-stage.is-waving .pet-layer-clothing-accessory { animation: waveHead 2.3s ease-in-out; }
+.game-stage.is-waving #brazo-der,
+.game-stage.is-waving .ropa-brazo-der { animation: waveArm 2.3s ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  .game-stage, .game-stage .brazo, .game-stage.is-waving * { animation: none !important; }
+}
 
 /* Brazos, piernas, cabeza y orejas toman el color de cuerpo elegido
    (variable seteada en js/app.js al renderizar), así siempre matchean sin
@@ -883,6 +914,13 @@ body {
   transition: transform 0.09s ease-in-out;
 }
 .pierna { transition: transform 0.15s ease-out; }
+/* v4.7: ciclo de paso (ver applyLegSwing en js/app.js). Mientras camina o
+   corre, brazos y cuerpo los mueve JS: se apagan la respiración y el
+   balanceo idle; translate/rotate se suavizan igual que las piernas. */
+.game-stage { transition: translate 0.12s ease-out, rotate 0.2s ease-out; }
+.game-stage.is-walking { animation: none; }
+.game-stage.is-walking .brazo { animation: none; }
+.game-stage .brazo, .game-stage .pet-layer { transition: rotate 0.15s ease-out; }
 
 /* Expresiones faciales completas por ánimo — cejas + boca. Sólo se aplica
    en el escenario de JUEGO (.game-stage.mood-*): en la personalización no
@@ -1201,7 +1239,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .creator-icon-tile.selected { border-color: #d98226; background: #ffedcf; }
 .creator-icon-svg, .creator-icon-crop { width: 100%; height: 100%; }
@@ -1237,7 +1275,7 @@ body {
 }
 .creator-tab {
   font-family: inherit;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   padding: 8px 16px;
   border-radius: 999px;
   border: 2px solid var(--wood-edge);
@@ -1264,7 +1302,7 @@ body {
   border-radius: 13px;
   border: 2px solid var(--line);
   outline: none;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   background: var(--panel);
   transition: border-color 0.15s, transform 0.1s;
 }
@@ -1318,7 +1356,7 @@ body {
 .secondary-btn,
 .action-circle {
   font-family: inherit;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   border: none;
 }
 .primary-btn {
@@ -1339,7 +1377,7 @@ body {
 }
 .primary-btn:hover { filter: brightness(1.06); }
 .primary-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--wood-edge); }
-.primary-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: grayscale(0.3); }
+.primary-btn:disabled { opacity: 0.55; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; filter: grayscale(0.3); }
 .primary-btn:focus-visible { outline: 3px solid var(--wood-edge); outline-offset: 2px; }
 
 .secondary-btn {
@@ -1353,7 +1391,7 @@ body {
 }
 .secondary-btn:hover { background: var(--soft-green); }
 .secondary-btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--wood-edge); }
-.secondary-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+.secondary-btn:disabled { opacity: 0.55; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; box-shadow: none; }
 
 /* ---------- Pantalla de juego: identidad ----------
  * v2.5: pedido explícito — se saca el renglón de arriba del escenario
@@ -1510,7 +1548,7 @@ body {
 .action-circle .icon { width: 1.55rem; height: 1.55rem; }
 .action-circle:hover:not(:disabled) { filter: brightness(1.15); }
 .action-circle:active:not(:disabled) { transform: translateY(3px); }
-.action-circle:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.25); }
+.action-circle:disabled { opacity: 0.5; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; filter: grayscale(0.25); }
 .action-circle:focus-visible { outline: 3px solid var(--wood-highlight); outline-offset: 2px; }
 /* Barra de cooldown embutida: track siempre presente (discreto) + relleno
    dorado que avanza con --pct — "en curso" sin tapar la etiqueta ni el
@@ -1597,7 +1635,7 @@ body {
   align-items: center;
   justify-content: center;
   pointer-events: auto;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   box-shadow: 0 2px 6px rgba(41, 62, 57, 0.22);
   animation: dirt-pop 0.25s ease-out;
 }
@@ -1821,7 +1859,7 @@ body {
   border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--bg);
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   font-size: 0.75rem;
 }
 
@@ -2208,7 +2246,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   background:transparent;
   border:0;
   color:#6b3a19;
-  cursor:pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   transition:transform .15s ease, background .15s ease;
 }
 .header-edit-btn:hover { transform:translateY(-1px); background:rgba(217,130,38,.12); }
@@ -2321,9 +2359,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   border-radius:0;
 }
 .debug-title { margin:0 46px 14px 0; font:800 1.2rem/1 "Baloo 2",sans-serif; }
-.debug-close { position:absolute; top:10px; right:10px; width:36px; height:36px; border:0; border-radius:0; background:#ead8b9; color:#45230f; font-size:1.3rem; cursor:pointer; }
+.debug-close { position:absolute; top:10px; right:10px; width:36px; height:36px; border:0; border-radius:0; background:#ead8b9; color:#45230f; font-size:1.3rem; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .debug-row { padding:10px 0; border-bottom:1px solid rgba(69,35,15,.10); }
-.debug-row button { border:0; border-radius:0; background:#e9cf9f; color:#45230f; padding:8px 10px; cursor:pointer; }
+.debug-row button { border:0; border-radius:0; background:#e9cf9f; color:#45230f; padding:8px 10px; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .debug-row button:hover { background:#dfbc7d; }
 
 /* Editing experience */
@@ -2355,7 +2393,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
    arriba" — se baja el ancla de #walker (pero sin llegar a superponerse con
    .stage-actions-row, ver el mismo ajuste más abajo en @media(max-width:640px)). */
 .walker { width:clamp(340px,31vw,440px); bottom:55px; }
-.walker .game-stage { width:100%; height:auto; aspect-ratio:1; cursor:default; touch-action:manipulation; }
+.walker .game-stage { width:100%; height:auto; aspect-ratio:1; cursor: url("../assets/ui/cursors/default.png") 2 1, default; cursor: -webkit-image-set(url("../assets/ui/cursors/default.png") 1x, url("../assets/ui/cursors/default@2x.png") 2x) 2 1, default; touch-action:manipulation; }
 .speech-bubble { top:auto; bottom:88%; height:auto; padding:16px 20px 20px; max-width:min(300px,80vw); overflow-wrap:anywhere; }
 .flies,.bath-fx,.zzz-fx,.heart-pop,.pet-shadow { pointer-events:none; }
 .debug-panel { inset:0; width:100%; height:100dvh; max-height:none; z-index:2147483647; padding:24px; margin:0; background:rgba(15,30,48,.72); display:grid; place-items:center; overflow:auto; }
@@ -2430,7 +2468,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 /* v3.1 — games, fishing, inventory and notifications */
 .debug-window { display:flex; flex-direction:column; }
 .debug-save-actions { order:99; display:flex; gap:8px; position:sticky; bottom:0; background:#fff8e8; padding:12px 0; }
-.debug-save-actions button { flex:1; border:0; padding:12px; cursor:pointer; }
+.debug-save-actions button { flex:1; border:0; padding:12px; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 #debug-save { background:#244962; color:white; }
 .debug-help { margin:6px 0 12px; font-size:.8rem; line-height:1.4; }
 .notification-card { position:absolute; left:18px; width:250px; z-index:10; background:#fff8e8; color:#244962; padding:10px 12px; box-shadow:0 5px 16px #14253a20; max-height:160px; overflow:auto; }
@@ -2451,7 +2489,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   width:24px; height:24px;
   display:grid; place-items:center;
   border:0; border-radius:0; background:transparent;
-  color:#244962; font-size:1.1rem; line-height:1; cursor:pointer;
+  color:#244962; font-size:1.1rem; line-height:1; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .notice-close-btn:hover, .notice-close-btn:focus-visible { background:#e4d9bf; }
 .dirt-layer { z-index:6; }
@@ -2537,10 +2575,10 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   background: #fff;
   color: #3c4043;
   font: 700 0.95rem/1 "Baloo 2", sans-serif;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .google-btn:hover { background: #f7f7f7; }
-.google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.google-btn:disabled { opacity: 0.6; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 .google-btn .google-icon { flex-shrink: 0; }
 #google-username-form { margin-top: 14px; }
 
@@ -2605,7 +2643,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   border-radius: 10px;
   padding: 7px 12px;
   font: 700 0.8rem/1 "Baloo 2", sans-serif;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .friend-btn-accept { background: var(--ui-green, #43a957); color: #fff; }
 .friend-btn-reject { background: #ecdcc4; color: var(--ui-navy, #17233f); }
@@ -2673,7 +2711,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   background: rgba(255, 249, 236, .96);
   box-shadow: 0 9px 24px rgba(26, 20, 16, .18);
   font: 800 .82rem/1 "Baloo 2", sans-serif;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .room-chat-toggle:hover { transform: translateY(-2px); }
 .room-chat-toggle.is-offline { opacity: .72; }
@@ -2710,7 +2748,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .room-chat-panel header > div { display: grid; gap: 2px; min-width: 0; }
 .room-chat-panel header strong { font: 800 1rem/1.1 "Baloo 2", sans-serif; }
 .room-chat-participants { overflow: hidden; color: #68738a; font-size: .68rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.room-chat-panel header button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(23, 35, 63, .08); color: inherit; font-size: 1.2rem; cursor: pointer; }
+.room-chat-panel header button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(23, 35, 63, .08); color: inherit; font-size: 1.2rem; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .room-chat-status { min-height: 1.3em; margin: 0; padding: 7px 14px 0; color: var(--muted); font-size: .72rem; }
 .room-chat-typing { min-height: 1.25em; margin: 0; padding: 2px 14px 0; color: #41577f; font-size: .72rem; font-style: italic; }
 .room-chat-messages { display: grid; align-content: start; gap: 8px; min-height: 90px; margin: 0; padding: 10px 12px; overflow-y: auto; list-style: none; }
@@ -2723,7 +2761,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .room-chat-empty { grid-row: 4; align-self: center; z-index: 1; margin: 12px 22px; color: var(--muted); text-align: center; font-size: .76rem; line-height: 1.3; pointer-events: none; }
 .room-chat-form { grid-row: 5; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; padding: 10px 12px 12px; border-top: 1px solid rgba(23, 35, 63, .1); }
 .room-chat-form input { min-width: 0; padding: 9px 10px; border: 1px solid rgba(23, 35, 63, .18); border-radius: 10px; color: inherit; background: #fff; font: 600 .8rem/1.2 system-ui, sans-serif; }
-.room-chat-form button { padding: 9px 12px; border: 0; border-radius: 10px; color: #fff; background: #31466f; font-weight: 800; cursor: pointer; }
+.room-chat-form button { padding: 9px 12px; border: 0; border-radius: 10px; color: #fff; background: #31466f; font-weight: 800; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .room-chat-form button:disabled { opacity: .5; cursor: wait; }
 
 .visit-host-walker.walker {
@@ -2741,7 +2779,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   0%, 100% { left: 46%; }
   50% { left: 78%; }
 }
-.visit-host-walker .pet-stage { cursor: default; }
+.visit-host-walker .pet-stage { cursor: url("../assets/ui/cursors/default.png") 2 1, default; cursor: -webkit-image-set(url("../assets/ui/cursors/default.png") 1x, url("../assets/ui/cursors/default@2x.png") 2x) 2 1, default; }
 .visit-host-tag {
   position: absolute;
   left: 50%;
@@ -2788,9 +2826,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 }
 .remote-player-walker.is-facing-left .remote-player-stage { scale: -1 1; }
 .remote-player-walker.is-moving .remote-player-stage,
-.visit-host-walker.is-moving .pet-stage { animation-duration: .48s; }
+.visit-host-walker.is-moving .pet-stage { animation-duration: .25s; }
 .remote-player-walker.is-running .remote-player-stage,
-.visit-host-walker.is-running .pet-stage { animation-duration: .28s; }
+.visit-host-walker.is-running .pet-stage { animation-duration: .25s; }
 @keyframes remoteIdle {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
@@ -2937,7 +2975,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   aspect-ratio: 1;
   animation: bob 3.2s ease-in-out infinite;
   transform-origin: 50% 100%;
-  cursor: default;
+  cursor: url("../assets/ui/cursors/default.png") 2 1, default; cursor: -webkit-image-set(url("../assets/ui/cursors/default.png") 1x, url("../assets/ui/cursors/default@2x.png") 2x) 2 1, default;
 }
 
 /* La barra mantiene su ancho original fuera de Crear/Editar.
@@ -3062,7 +3100,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
    arriba (era "Modern action rail"), que era justo lo pedido. */
 #creator-color-icons .action-circle-wrap { width: 40px; }
 #creator-color-icons .cooldown-ring { width: 40px; height: 40px; }
-.editor-color-locked { opacity: .55; cursor: not-allowed; }
+.editor-color-locked { opacity: .55; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 .editor-color-locked .swatch-lock-icon {
   position: absolute;
   inset: 0;
@@ -3387,7 +3425,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   color: #382315;
   background: #fff;
   text-align: left;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .room-chat-contact-item:last-child { border-bottom: 1px solid #eee5d5; }
 .room-chat-contact-item:hover,
@@ -3626,12 +3664,12 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   color: #382315;
   background: rgba(255, 249, 236, .94);
   font: 700 .72rem/1 Arial, Helvetica, sans-serif;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .room-quick-chat button:hover:not(:disabled),
 .room-quick-chat button:focus-visible { background: rgba(247, 235, 210, .98); }
 .room-quick-chat button:disabled,
-.room-quick-chat input:disabled { cursor: not-allowed; opacity: .55; }
+.room-quick-chat input:disabled { cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; opacity: .55; }
 
 @media (max-width: 1240px) {
   .room-quick-chat { width: min(540px, calc(100% - 310px)); }
@@ -3677,20 +3715,20 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .inventory-tab {
   flex: 0 0 auto; padding: 10px 13px; border: 0; border-bottom: 3px solid transparent;
   border-radius: 0; background: transparent; color: #624936;
-  font: 700 .76rem/1 Arial, sans-serif; cursor: pointer;
+  font: 700 .76rem/1 Arial, sans-serif; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .inventory-tab.is-active { border-bottom-color: #d98226; color: #352316; }
-.inventory-tab:disabled { opacity: .38; cursor: not-allowed; }
+.inventory-tab:disabled { opacity: .38; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 .inventory-grid, .wardrobe-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 12px; padding: 18px; overflow-y: auto;
 }
 .inventory-item, .wardrobe-item, .beta-welcome-choice {
   min-height: 150px; display: grid; place-items: center; gap: 8px; padding: 12px;
-  border: 1px solid #ddc9a8; border-radius: 0; background: #fffdf7; color: #432d1f; cursor: pointer;
+  border: 1px solid #ddc9a8; border-radius: 0; background: #fffdf7; color: #432d1f; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .inventory-item img, .wardrobe-item img { width: 100%; height: 105px; object-fit: contain; }
-.inventory-item:disabled { opacity: .42; cursor: not-allowed; }
+.inventory-item:disabled { opacity: .42; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 .wardrobe-item.is-selected { outline: 3px solid #d98226; outline-offset: -3px; background: #fff5df; }
 .inventory-status { margin: 0; padding: 0 18px 18px; color: #756556; font-size: .82rem; }
 
@@ -3713,7 +3751,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .room-chat-friend-actions { display: flex; gap: 5px; }
 .room-chat-friend-actions button, .room-chat-tools button {
   border: 1px solid #d8c5a6; border-radius: 0; padding: 6px 8px;
-  background: rgba(255,249,236,.94); color: #4b301e; font: 700 .64rem/1 Arial, sans-serif; cursor: pointer;
+  background: rgba(255,249,236,.94); color: #4b301e; font: 700 .64rem/1 Arial, sans-serif; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 
 @media (max-width: 640px) {
@@ -3779,14 +3817,14 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .housing-editor-controls { display: flex; gap: 6px; }
 .housing-editor-heading button, #housing-editor-remove {
   border: 1px solid #b78b60; background: #f4dfbc; color: #432d1f;
-  padding: 7px 10px; cursor: pointer; font-weight: 700;
+  padding: 7px 10px; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; font-weight: 700;
 }
 .housing-editor-panel.is-collapsed #housing-editor-hint,
 .housing-editor-panel.is-collapsed #housing-editor-items,
 .housing-editor-panel.is-collapsed #housing-editor-remove { display: none; }
 #housing-editor-hint { margin: 0; font-size: .78rem; line-height: 1.35; }
 .housing-editor-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 7px; overflow: auto; }
-.housing-editor-item { min-width: 0; height: auto; min-height: 90px; padding: 6px; border: 1px solid #d6b990; background: white; cursor: pointer; color: #49301f; }
+.housing-editor-item { min-width: 0; height: auto; min-height: 90px; padding: 6px; border: 1px solid #d6b990; background: white; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; color: #49301f; }
 .housing-editor-item img { display: block; width: 100%; height: 58px; object-fit: contain; }
 .housing-editor-item span { display: block; font-size: .67rem; line-height: 1.2; }
 .housing-editor-item.is-selected, .housing-editor-item.is-equipped { border: 2px solid #d98226; background: #fff1d4; }
@@ -3796,7 +3834,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .housing-gift-group { margin: 12px 0; }
 .housing-gift-group h3 { margin: 0 0 6px; font-size: .9rem; }
 .housing-gift-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px; }
-.housing-gift-choice { padding: 7px; border: 2px solid #ddc9a8; background: #fffdf7; cursor: pointer; color: #432d1f; }
+.housing-gift-choice { padding: 7px; border: 2px solid #ddc9a8; background: #fffdf7; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; color: #432d1f; }
 .housing-gift-choice.is-selected { border-color: #d98226; background: #fff1d4; }
 .housing-gift-choice img { display: block; width: 100%; height: 75px; object-fit: contain; }
 .housing-gift-choice span { font-weight: 700; font-size: .72rem; }
@@ -3935,7 +3973,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .room-quick-chat .room-quick-chat-help {
   width: 100%; height: auto; padding: 8px; background: transparent;
   border: 0; color: #633719; font: 600 .76rem/1.4 "Segoe UI", sans-serif;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 .room-quick-chat.is-active .room-quick-chat-help { display: none; }
 .room-quick-chat .room-quick-chat-help:hover,
@@ -4007,7 +4045,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #inventory-water .inventory-item-visual img { width: 88px; height: 105px; max-width: none; transform: rotate(-12deg); transform-origin: center; }
 .inventory-pages { position: absolute; left: 28px; right: 28px; bottom: 18px; display: flex; gap: 10px; pointer-events: none; }
 .inventory-pages[hidden], .inventory-pages button[hidden] { display: none; }
-.inventory-pages button { border: 0; padding: 0; width: 38px; height: 38px; background: transparent; cursor: pointer; pointer-events: auto; transition: transform .15s ease; }
+.inventory-pages button { border: 0; padding: 0; width: 38px; height: 38px; background: transparent; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; pointer-events: auto; transition: transform .15s ease; }
 #inventory-next { margin-left: auto; }
 .inventory-pages img { width: 100%; height: 100%; object-fit: contain; }
 .inventory-pages button:hover { transform: scale(1.02); }
@@ -4019,7 +4057,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   width: 44px; height: 44px; padding: 6px;
   border: 0; border-radius: 50%;
   background: transparent; box-shadow: none;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   transition: transform .15s ease;
 }
 .inventory-close-icon img { display: block; width: 32px; height: 32px; object-fit: contain; pointer-events: none; }
@@ -4181,7 +4219,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   display: grid; place-items: center;
   width: 58px; height: 52px; padding: 2px;
   border: none; border-radius: 0; background: transparent;
-  cursor: pointer; transition: transform .15s ease;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; transition: transform .15s ease;
 }
 .room-chat-tools .room-chat-tool-icon img { width: 44px; height: 44px; object-fit: contain; pointer-events: none; }
 /* El − es muy ancho y bajo: se muestra al mismo ancho visual que el +. */
@@ -4215,7 +4253,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   display: inline-grid; place-items: center;
   width: 44px; height: 44px; min-width: 0; padding: 2px;
   border: none; border-radius: 0; background: transparent; box-shadow: none;
-  cursor: pointer; transition: transform .15s ease;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; transition: transform .15s ease;
 }
 .friend-icon-btn:hover:not(:disabled) { background: transparent; filter: none; transform: translateY(-2px) scale(1.06); }
 .friend-icon-btn:active:not(:disabled) { transform: translateY(1px) scale(.94); }
@@ -4237,7 +4275,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   display: grid; place-items: center;
   width: 46px; min-width: 0; height: 46px; padding: 2px;
   border: none; border-radius: 0; background: transparent;
-  cursor: pointer; transition: transform .15s ease;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; transition: transform .15s ease;
 }
 .room-chat-form .room-chat-send-icon img { width: 42px; height: 42px; pointer-events: none; }
 .room-chat-form .room-chat-send-icon:hover:not(:disabled) { background: transparent; transform: translateY(-2px) scale(1.06); }
@@ -4313,7 +4351,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   display: grid; place-items: center;
   border: none; border-radius: 50%;
   color: #7a5230; background: #ead7ae;
-  font: 700 .9rem/1 Arial, sans-serif; cursor: pointer;
+  font: 700 .9rem/1 Arial, sans-serif; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 #room-chat-panel header .room-chat-back[hidden] { display: none; }
 #room-chat-panel header .room-chat-back:hover { background: #e2c994; }
@@ -4355,7 +4393,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #room-chat-panel header .phone-menu-btn {
   display: flex; gap: 3px; align-items: center; justify-content: center;
   width: 34px; height: 26px; padding: 0;
-  border: none; border-radius: 13px; background: transparent; cursor: pointer;
+  border: none; border-radius: 13px; background: transparent; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 #room-chat-panel header .phone-menu-btn[hidden] { display: none; }
 #room-chat-panel header .phone-menu-btn i { width: 7px; height: 7px; border-radius: 50%; background: #d7bf8f; }
@@ -4372,7 +4410,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   display: flex; align-items: center; gap: 10px;
   width: 100%; height: auto; padding: 7px 8px;
   border: none; border-radius: 10px; background: transparent;
-  color: #4a2c17; font: 700 .8rem/1 Arial, sans-serif; text-align: left; cursor: pointer;
+  color: #4a2c17; font: 700 .8rem/1 Arial, sans-serif; text-align: left; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 #room-chat-panel header .phone-menu button:hover,
 #room-chat-panel header .phone-menu button:focus-visible { background: #f5e8c7; }
@@ -4474,7 +4512,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #room-chat-panel .phone-home-btn {
   position: absolute; left: 42%; width: 16%; bottom: 2.2%; height: 8.6%;
   padding: 0; border: none; border-radius: 50%;
-  background: transparent; cursor: pointer;
+  background: transparent; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 #room-chat-panel .phone-home-btn:hover { background: radial-gradient(closest-side, rgba(255, 244, 190, .55), transparent); }
 #room-chat-panel .phone-home-btn:active { background: radial-gradient(closest-side, rgba(122, 74, 42, .22), transparent); }
@@ -4483,7 +4521,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .friend-search-btn {
   flex: 0 0 auto; display: grid; place-items: center;
   width: 50px; height: 50px; padding: 2px;
-  border: none; background: transparent; cursor: pointer; transition: transform .15s ease;
+  border: none; background: transparent; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; transition: transform .15s ease;
 }
 .friend-search-btn img { width: 44px; height: 44px; pointer-events: none; }
 .friend-search-btn:hover { transform: translateY(-2px) scale(1.06); }
@@ -4533,7 +4571,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #room-chat-panel #add-friend-result .secondary-btn {
   display: block; margin: 10px auto 0; padding: 8px 14px;
   border: 2px solid #9fcfa9; border-radius: 16px; background: #dcefe0; color: #2f5d3a;
-  font: 700 .78rem/1 Arial, sans-serif; cursor: pointer;
+  font: 700 .78rem/1 Arial, sans-serif; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 #room-chat-panel #add-friend-result .secondary-btn:hover:not(:disabled) { background: #cde8d3; }
 #room-chat-panel .phone-requests-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
@@ -4645,7 +4683,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   background: url('../assets/ui/wardrobe/ventana.svg') center / 100% 100% no-repeat;
   box-shadow: none; overflow: visible; color: #603817; font-family: 'Baloo 2', sans-serif;
 }
-.dressing-close { position: absolute; top: 16px; right: 19px; width: 48px; height: 48px; padding: 0; border: 0; background: none; cursor: pointer; }
+.dressing-close { position: absolute; top: 16px; right: 19px; width: 48px; height: 48px; padding: 0; border: 0; background: none; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .dressing-close img { width: 100%; height: 100%; }
 .dressing-close:hover { transform: scale(1.02); }
 .dressing-layout { display: grid; grid-template-columns: 36% minmax(0,1fr); gap: 24px; height: 100%; min-height: 0; }
@@ -4653,20 +4691,20 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .dressing-preview h3 { margin: 0; font-size: 22px; }
 #wardrobe-preview { flex: 1; min-height: 0; width: 100%; height: auto; }
 #wardrobe-preview .pet-layer { overflow: visible; }
-.dressing-preview button, .dressing-actions button, #wardrobe-shop { border: 2px solid #b89762; border-radius: 22px; background: linear-gradient(#fffcf0,#f0dfbb); color: #613817; padding: 7px 20px; font: 800 18px 'Baloo 2',sans-serif; cursor: pointer; box-shadow: inset 0 2px #fff9df,0 2px 0 #ad86563b; }
+.dressing-preview button, .dressing-actions button, #wardrobe-shop { border: 2px solid #b89762; border-radius: 22px; background: linear-gradient(#fffcf0,#f0dfbb); color: #613817; padding: 7px 20px; font: 800 18px 'Baloo 2',sans-serif; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; box-shadow: inset 0 2px #fff9df,0 2px 0 #ad86563b; }
 .dressing-collection { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .dressing-tabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; margin-bottom: 10px; }
-.dressing-tabs button { display: grid; justify-items: center; padding: 5px 2px; border: 2px solid #e2cc9f; border-radius: 14px; background: #f5e8cd; color: #603817; font: 800 14px 'Baloo 2',sans-serif; cursor: pointer; }
+.dressing-tabs button { display: grid; justify-items: center; padding: 5px 2px; border: 2px solid #e2cc9f; border-radius: 14px; background: #f5e8cd; color: #603817; font: 800 14px 'Baloo 2',sans-serif; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .dressing-tabs button.is-active { background: linear-gradient(#ffe89d,#ffd15f); border-color: #cc942b; }
 .dressing-tabs img { width: 46px; height: 35px; object-fit: contain; }
 .wardrobe-window .wardrobe-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); grid-template-rows: repeat(2,minmax(0,1fr)); gap: 10px; padding: 0; flex: 1; min-height: 0; overflow: hidden; }
-.wardrobe-window .wardrobe-item { position: relative; display: grid; place-items: center; padding: 8px; min-height: 0; border: 2px solid #ead9b6; border-radius: 18px; background: #fff8e750; cursor: pointer; }
+.wardrobe-window .wardrobe-item { position: relative; display: grid; place-items: center; padding: 8px; min-height: 0; border: 2px solid #ead9b6; border-radius: 18px; background: #fff8e750; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .wardrobe-window .wardrobe-item img { width: 100%; height: 100%; min-height: 0; object-fit: contain; max-height: 115px; }
 .wardrobe-window .wardrobe-item.is-selected { border-color: #d69519; background: #fffbee; }
 .wardrobe-window .wardrobe-item.is-selected::after { content: '✓'; position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; display: grid; place-items: center; border: 2px solid #378832; border-radius: 50%; background: linear-gradient(#9fe671,#41a747); color: white; font: 900 19px/1 sans-serif; }
 .wardrobe-window button:focus-visible { outline: 3px solid #226886; outline-offset: 2px; }
 .dressing-pages { display: flex; justify-content: center; align-items: center; gap: 20px; min-height: 36px; margin: 7px 0; font-size: 18px; font-weight: 800; }
-.dressing-pages button { border: 0; background: none; cursor: pointer; width: 30px; height: 30px; padding: 0; }
+.dressing-pages button { border: 0; background: none; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; width: 30px; height: 30px; padding: 0; }
 .dressing-pages button[hidden] { display: none; }
 .dressing-pages img { width: 100%; height: 100%; }
 #wardrobe-next img { transform: scaleX(-1); }
@@ -4721,7 +4759,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .dressing-preview { background: radial-gradient(ellipse at 50% 35%,#fffbed,#e8d2a6); border: 2px solid #fff4d6; }
 .dressing-preview #wardrobe-clear,
 .dressing-actions #wardrobe-save,
-.dressing-actions #wardrobe-close-action { border: 0; background: none; box-shadow: none; padding: 0; width: 140px; height: 55px; flex: 0 1 160px; cursor: pointer; }
+.dressing-actions #wardrobe-close-action { border: 0; background: none; box-shadow: none; padding: 0; width: 140px; height: 55px; flex: 0 1 160px; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .dressing-preview #wardrobe-clear { flex: 0 0 48px; width: 125px; }
 .dressing-actions button img,.dressing-preview button img { width: 100%; height: 100%; display: block; }
 .dressing-actions { border: 0; padding-top: 0; flex-direction: row-reverse; }
@@ -4827,7 +4865,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   left: calc(958 * var(--u)); top: calc(63 * var(--u));
   width: calc(114 * var(--u)); height: calc(114 * var(--u));
   display: grid; place-items: center; padding: 0;
-  border: 0; border-radius: 50%; background: transparent; cursor: pointer;
+  border: 0; border-radius: 50%; background: transparent; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
 }
 #wellbeing-widget .ficha-toggle svg {
   width: 62%; height: 62%;
@@ -4906,7 +4944,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .nb-trail img { height: 22px; width: auto; }
 .nb-close {
   width: 30px; height: 24px; padding: 0;
-  border: 0; background: transparent; cursor: pointer;
+  border: 0; background: transparent; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   color: #4f6a37; font: 700 1.15rem/1 Arial, sans-serif;
 }
 .nb-close:hover { color: #2f4520; }
@@ -5054,7 +5092,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #stage-floor .visit-home-btn {
   pointer-events: auto;
   width: 58px; height: 64px; min-width: 0; min-height: 0; padding: 0;
-  border: 0; background: none; cursor: pointer;
+  border: 0; background: none; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   opacity: .55;
   transition: opacity .18s ease, transform .15s ease;
 }
@@ -5132,7 +5170,7 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
   display: block; grid-column: 2; grid-row: 1;
   width: calc(var(--u) * 496); height: calc(var(--u) * 198);
   min-width: 0; min-height: 0; padding: 0; margin: 0;
-  border: 0; border-radius: 0; background: none; box-shadow: none; cursor: pointer;
+  border: 0; border-radius: 0; background: none; box-shadow: none; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   transition: transform .12s ease, filter .12s ease;
 }
 /* Sin activar, «Enviar» se ve pero todavía no hay nada que mandar. */
@@ -5141,9 +5179,194 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 #room-quick-chat .room-quick-chat-send:hover:not(:disabled),
 #room-quick-chat .room-quick-chat-send:focus-visible { background: none; transform: translateY(-1px); filter: brightness(1.05); }
 #room-quick-chat .room-quick-chat-send:active:not(:disabled) { transform: translateY(1px) scale(.96); }
-#room-quick-chat .room-quick-chat-send:disabled { opacity: .55; cursor: not-allowed; }
+#room-quick-chat .room-quick-chat-send:disabled { opacity: .55; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 
 /* v4.6.2: fila de minijuegos del modo prueba. */
-.debug-games-row .debug-check { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; }
+.debug-games-row .debug-check { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
 .debug-games-row .debug-check input { flex: none; min-width: 0; width: 18px; height: 18px; }
 .debug-games-status { flex-basis: 100%; color: #7a5a3a; font-size: .8rem; }
+
+/* ==========================================================================
+   Beta v4.6.4
+   ========================================================================== */
+
+/* Cursores propios (cursor_default.ai, cursor_pointer.ai y
+   cursor_not-allowed.ai → assets/ui/cursors, ver
+   scripts/export-cursors-v464.py). Los tres miden lo mismo: 28 px de alto
+   la flecha y la mano, con versión @2x para pantallas de alta densidad. */
+html { cursor: url("../assets/ui/cursors/default.png") 2 1, default; cursor: -webkit-image-set(url("../assets/ui/cursors/default.png") 1x, url("../assets/ui/cursors/default@2x.png") 2x) 2 1, default; }
+a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), summary, select, label[for],
+input[type="checkbox"], input[type="radio"], input[type="range"] { cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer; }
+button:disabled, [aria-disabled="true"], input:disabled, select:disabled { cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
+
+/* Inventario: la lata (chatarra) se ve del mismo tamaño y a la misma
+   altura que el resto de los objetos (antes tenía scale(.8) y quedaba más
+   baja) y no se puede usar: cursor de prohibido. */
+.inventory-window .inventory-item-visual { display: flex; align-items: center; justify-content: center; }
+#inventory-can .inventory-item-visual img,
+#inventory-energy .inventory-item-visual img {
+  width: auto; height: 100%; max-width: 100%; transform: none; object-fit: contain;
+}
+#inventory-can, #inventory-can * { cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
+#inventory-energy-count {
+  display: grid; place-items: center;
+  border: 2px solid #75400e;
+  background: radial-gradient(ellipse at 33% 20%, #fff7b0 0%, #ffe06b 38%, #ffc632 73%, #e8a222 100%);
+  color: #633300; font-family: "Baloo 2", sans-serif; font-weight: 800;
+  box-shadow: inset 0 0 0 2px #fff0a0, 0 1px 1px #5c310b25;
+  position: absolute; top: 0; right: 0; min-width: 38px; width: max-content; aspect-ratio: 1; padding: 3px;
+  box-sizing: border-box; border-radius: 50%; font-size: 23px; line-height: 1;
+}
+#inventory-energy:disabled { opacity: 1; }
+#inventory-energy:disabled .inventory-item-visual img { opacity: .42; }
+@media (max-width: 480px) {
+  #inventory-energy-count { min-width: 28px; font-size: 18px; padding: 2px; }
+}
+
+/* Ventanas que tardaban en aparecer la primera vez: mientras su arte no
+   terminó de cargar, la ventana entera queda oculta (ver revealWhenReady en
+   app.js) y aparece junta, marco y contenido. */
+.is-loading-art { visibility: hidden !important; }
+
+/* Dormir ↔ despertar con transición (antes cambiaba de golpe). Al dormirse
+   cierra los ojos despacio y se acomoda; al despertarse abre los ojos
+   despacio, se estira y las «Z» se desvanecen. */
+.game-stage.is-falling-asleep .ojo,
+.game-stage.is-waking .ojo { transition-duration: .9s; }
+.game-stage.sleeping.is-falling-asleep { animation: sleep-enter .9s ease-out both, sleep-breathe 4.4s ease-in-out .9s infinite; }
+.game-stage.is-waking { animation: sleep-exit 1s ease-out both; }
+.game-stage.is-waking .brazo { animation: none; }
+@keyframes sleep-enter {
+  0% { transform: rotate(0deg) scale(1, 1); }
+  55% { transform: rotate(-3.5deg) scale(1.01, .97); }
+  100% { transform: rotate(-2.5deg) scale(1, 1); }
+}
+@keyframes sleep-exit {
+  0% { transform: rotate(-2.5deg) scale(1, 1); }
+  45% { transform: rotate(1.5deg) scale(.97, 1.06); }
+  75% { transform: rotate(-.5deg) scale(1.01, .99); }
+  100% { transform: rotate(0deg) scale(1, 1); }
+}
+#walker:has(.game-stage.is-waking) .zzz-fx,
+.remote-player-walker:has(.is-waking) .zzz-fx { display: block; animation: zzz-fade-out .6s ease-out forwards; }
+.zzz-fx { transition: opacity .6s ease; }
+#walker:has(.game-stage.is-falling-asleep) .zzz-fx { animation: zzz-fade-in .9s ease-in both; }
+@keyframes zzz-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zzz-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .game-stage.sleeping.is-falling-asleep { animation: sleep-breathe 5.5s ease-in-out infinite !important; }
+  .game-stage.is-waking { animation: none !important; }
+}
+
+/* Pupilas: sin pupila propia (ojos 2) se mueve el ojo entero, un poquito. */
+.pet-stage .pet-layer-ojos { transition: translate .12s ease-out, rotate .15s ease-out; }
+
+/* ==========================================================================
+   Beta v4.6.5 — Celular horizontal (referencia: iPhone 11 apaisado,
+   896 × 414, y más bajo cuando Safari muestra sus barras).
+   Idea: el escenario se arma con las MISMAS medidas que en la compu
+   (640 px de alto «lógico») y se achica entero con transform: scale para
+   entrar en la pantalla. Así mascota, ficha, botones, ventanas y juegos
+   conservan las proporciones ya probadas en escritorio, y todo entra sin
+   scroll. El factor (--mh-s) lo calcula syncMobileLandscape() en app.js
+   según el alto real disponible. Encabezado: finito, a tamaño real.
+   ========================================================================== */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --mh-head: 38px; --mh-s: .56; --mh-lh: 640px; }
+  html, body { height: 100dvh; overflow: hidden; }
+  body { overscroll-behavior: none; }
+
+  /* Encabezado finito. */
+  #app-header.app-header { height: var(--mh-head); min-height: 0; flex-shrink: 0; margin: 0 auto; padding: 4px 12px; max-width: none; box-sizing: border-box; }
+  #app-header .brand-symbol { height: 28px; width: auto; }
+  #app-header .header-edit-btn,
+  #app-header .header-actions > button { min-height: 30px; height: 30px; padding: 2px 10px; font-size: 12px; }
+  #app-header .header-edit-btn svg { width: 16px; height: 16px; }
+  #app-header .header-actions { gap: 8px; }
+  .options-menu { max-height: calc(100dvh - var(--mh-head) - 8px); overflow: auto; }
+
+  /* Contenedor del escenario: ocupa todo lo que queda (tamaño real). */
+  #game.screen, main.screen { padding: 0 8px 0; max-width: none; min-height: 0; flex-shrink: 0; }
+  #game .game-main { margin: 0; gap: 0; }
+  #game .stage-col {
+    max-width: none;
+    height: calc(var(--mh-lh) * var(--mh-s));
+    /* clip (no hidden): así un focus() adentro no «scrollea» el contenedor. */
+    overflow: hidden;
+    overflow: clip;
+    border-radius: 12px;
+  }
+  /* Escenario «de compu», achicado entero. */
+  #stage-floor.stage-floor {
+    width: calc((100vw - 16px) / var(--mh-s)) !important;
+    height: var(--mh-lh) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    margin: 0 !important;
+    flex-shrink: 0;
+    transform: scale(var(--mh-s));
+    transform-origin: 0 0;
+    border-radius: 20px;
+  }
+
+  /* Mascota: en escritorio mide ~58 % del alto del escenario. */
+  #stage-floor .walker:not(.remote-player-walker) { width: calc(var(--mh-lh) * .6); }
+  #stage-floor .remote-player-walker { width: calc(var(--mh-lh) * .5); }
+
+  /* Lo que usaba el alto de la VENTANA (vh/dvh) pasa al alto lógico. */
+  .editor-pet-pos { width: min(520px, calc(var(--mh-lh) * .64), calc(100% - 32px)); }
+  .wardrobe-window { height: min(640px, calc(var(--mh-lh) - 24px)); width: min(1000px, calc(100% - 24px)); }
+  #stage-floor .roulette-wheel { width: min(100%, calc(var(--mh-lh) - 190px)); }
+
+  /* Crear mascota: el logo y «Creá tu mascota» pasan a la izquierda, debajo
+     del nombre (al centro tapaban la cara de la mascota). */
+  .editor-welcome { left: 24px; top: 190px; transform: none; align-items: flex-start; }
+  .editor-welcome .editor-emblem { width: 110px; height: 110px; }
+  .editor-welcome #onboarding-title { text-align: left; }
+
+  /* Entrar: dos columnas (logo y texto | formulario) y, si igual no
+     entra (por ejemplo con el teclado abierto), se puede desplazar. */
+  #login-screen.login-screen:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-rows: auto auto auto auto auto 1fr;
+    column-gap: 32px;
+    align-content: center;
+    max-width: 820px;
+    height: 100dvh;
+    overflow-y: auto;
+    padding: 12px 24px;
+    box-sizing: border-box;
+  }
+  #login-screen .brand-emblem { grid-column: 1; grid-row: 1; width: 96px; height: 96px; margin: 0 auto 4px; }
+  #login-screen > h2 { grid-column: 1; grid-row: 2; margin: 0; font-size: 1.3rem; }
+  #login-screen > .login-hint { grid-column: 1; grid-row: 3; margin: 6px 0 0; font-size: .82rem; }
+  #login-screen > #login-form,
+  #login-screen > #google-username-form { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+  #login-screen > .login-divider { grid-column: 2; grid-row: 4; margin: 6px 0; }
+  #login-screen > #login-google { grid-column: 2; grid-row: 5; }
+  #login-screen > #login-google-error { grid-column: 2; grid-row: 6; }
+  #login-screen .name-input { padding-top: 8px; padding-bottom: 8px; }
+}
+
+/* Celular en vertical: el juego está pensado apaisado (v4.6.5). */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (max-width: 500px) and (pointer: coarse) {
+  .rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 14px;
+    padding: 24px;
+    background: #17233f;
+    color: #ffe582;
+    text-align: center;
+    font: 800 1.15rem/1.35 "Baloo 2", sans-serif;
+  }
+  .rotate-hint img { width: 120px; height: auto; animation: rotateHint 2.4s ease-in-out infinite; }
+  @keyframes rotateHint { 0%, 30% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+}

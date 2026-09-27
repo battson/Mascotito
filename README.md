@@ -1,5 +1,31 @@
 # Mascotito Beta
 
+## Beta v4.6.5 — Celular horizontal (hotfix)
+
+- **Referencia: iPhone 11 apaisado** (896 × 414, y probado también más bajo, 812 × 340, como queda con las barras de Safari). Todo entra en la pantalla sin scroll.
+- **Cómo se hizo:** el escenario se arma con las mismas medidas que en la compu (640 px de alto «lógico») y se achica entero con `transform: scale` para entrar en el alto real. Así la mascota, la ficha, los botones, las ventanas (cofre, ropero, minijuegos, ruleta) y los juegos (Pesca y Penales) conservan exactamente las proporciones ya probadas en escritorio. El factor lo calcula `syncMobileLandscape()` en `js/app.js` (se recalcula al girar el celular o cuando Safari muestra/oculta sus barras). El encabezado queda finito (38 px) y a tamaño real.
+- Tocar el escenario para caminar y mover el panel de «Decorar casa» se corrigieron para el escenario achicado (antes el toque caía en otro lugar).
+- **Crear mascota:** el logo y «Creá tu mascota» pasan a la izquierda, debajo del nombre (al centro tapaban la cara de la mascota).
+- **Entrar (usuario y PIN):** dos columnas, logo y texto a la izquierda y el formulario a la derecha; antes el botón «Entrar» quedaba fuera de la pantalla. Si no entra (por ejemplo con el teclado abierto) se puede desplazar.
+- **Celular en vertical:** se muestra «Girá el celular para jugar a Mascotito».
+- El fondo de la casa ahora se recorta desde arriba (`xMidYMax slice`) cuando el escenario es más ancho que 16:9: el piso queda siempre abajo, bajo los pies de la mascota. En la compu (16:9) no cambia nada.
+- En la compu no cambia nada más: todo lo nuevo está dentro de `@media (orientation: landscape) and (max-height: 500px)` al final de `css/style.css`.
+
+## Beta v4.6.4 — Ruleta diaria, lata energizante y cursores propios
+
+- **Ruleta diaria:** tercer recuadro de Minijuegos (la ventana-tablet ahora tiene tres: Pesca, Penales y Ruleta, `assets/ui/games/window-v3.svg`). No se viaja: se abre encima de la casa, como el inventario. Una tirada gratis por día (`state.daily.rouletteSpun`, se reinicia con la fecha). La tirada y el premio se guardan al girar, así no se repite recargando a mitad de la animación.
+  - Premios y probabilidades: 10 monedas 30 %, 2 pescados 16 %, 25 monedas 12 %, lata energizante 11 %, +30 de XP 11 %, 1 lata (chatarra) 9 %, 100 monedas 8 %, Corona 3 %. Si sale la Corona y ya la tenía, se cambia por 100 monedas.
+  - Cada premio va en su gajo con su ícono; los gajos del dibujo ya venían de distinto ancho y se asignaron del más ancho al más angosto según la probabilidad. El sorteo usa los porcentajes de la tabla (`ROULETTE_PRIZES` en `js/roulette.js`), no el ancho dibujado.
+  - Arte: `ruleta.png` vectorizada en `assets/games/roulette/wheel.svg` (quieta: aro, puntero y botón central) y `disc.svg` (sólo el disco, que gira; la parte que tapaba el puntero se rellenó con el mismo gajo). Script: `scripts/export-games-v464.py`.
+  - El modo prueba (admin) «Sin límite» y «Reiniciar contador» también valen para la ruleta.
+- **Lata energizante:** nuevo objeto del inventario (ícono de `energizante.ai`). Sube la energía 60 (hasta el tope) y baja la sed 30; sin espera entre una y otra. La cuenta admin (Jony) recibe 30 una sola vez para probarlas (`state.flags.adminEnergizante30`).
+- **Inventario:** la lata (chatarra) se ve del mismo tamaño y a la misma altura que los demás objetos, y al pasar el mouse muestra el cursor de prohibido (no se puede usar).
+- **Cursores propios:** `cursor_default.ai`, `cursor_pointer.ai` y `cursor_not-allowed.ai` exportados a PNG (1x y 2x) en `assets/ui/cursors/` con `scripts/export-cursors-v464.py`. Los tres miden lo mismo (28 px de alto la flecha y la mano); la flecha de prohibido es la misma flecha con el cartelito. Reemplazan todos los `cursor: default / pointer / not-allowed` del juego.
+- **Dormir y despertar con transición:** al dormirse cierra los ojos despacio, se acomoda y las Z aparecen de a poco; al despertarse abre los ojos despacio, se estira y las Z se desvanecen. También en las mascotas de otros jugadores.
+- **Los ojos siguen al mouse:** la mirada ahora sigue la dirección del mouse en todo el escenario y se nota más (antes el movimiento quedaba casi siempre en vertical y muy chico). Mientras la mascota camina con el mouse quieto, lo sigue mirando. Los ojos sin pupila propia mueven el ojo entero, apenas. Con el mouse encima de la mascota mira al frente, como antes.
+- **Ventanas que aparecían «por partes»:** la primera vez que se abría el inventario, el ropero o los minijuegos se veía primero el contenido y después el marco (el marco es una imagen de fondo que el navegador recién pedía al mostrarse). Ahora esas imágenes se precargan en segundo plano al entrar, y si igual se abre una ventana antes de que estén listas, se muestra entera recién cuando terminó de cargar (máximo 1,5 s).
+- Pruebas nuevas: `tests/roulette.test.js`.
+
 ## Beta v4.6.3 — Ventana de juegos tablet y cara de baño
 
 - **Ventana de juegos nueva:** la tablet celeste de `minijuegos_v2.ai`, como en `minijuegos_v2(referencia).png`: dos recuadros con sólo el ícono de cada juego (caña y pelota), sin nombres ni título. El nombre queda para lectores de pantalla. El .ai se convirtió fiel a SVG (es vectorial, sin trazar): `assets/ui/games/window-v2.svg` (ventana y recuadros) y `assets/ui/games/close.svg` (la ✕ roja, separada para que funcione como botón con su animación al pasar el mouse). `assets/ui/games/window.svg` (la ventana de feria de v4.6.2) ya no se usa y se puede borrar.

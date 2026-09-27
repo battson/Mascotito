@@ -9,7 +9,7 @@
  * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
  */
 const APP_CHANNEL = "Beta";
-const APP_VERSION = "4.6.3";
+const APP_VERSION = "4.6.5";
 
 /**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
@@ -87,6 +87,10 @@ const PET_CONFIG = {
   // sin límite. beber/bañar usan el mismo criterio contra sus propias
   // necesidades (ver llenaUmbral más abajo, es el mismo valor para todas).
   llenaUmbral: 97,
+
+  // Beta v4.6.4: lata energizante (inventario). Sube la energía hasta el
+  // tope y baja la sed; sin espera entre una y otra (pedido explícito).
+  energizante: { energia: 60, sed: 30 },
 
   // ---------- Beber / Bañar: siguen siendo una sola acción cada una ----------
   actionGain: {

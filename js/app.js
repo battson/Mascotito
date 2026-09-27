@@ -582,19 +582,41 @@ function clampToEyeEllipse(dx, dy, rx, ry) {
   return { dx, dy };
 }
 
+/* v4.6.4: la mirada sigue la DIRECCIÓN del mouse. Antes se recortaba el
+ * vector al óvalo del ojo, y como el óvalo es muy bajito (ry chico) casi
+ * cualquier posición terminaba mirando sólo arriba o abajo, con muy poco
+ * movimiento: parecía que no seguía. Ahora el ángulo decide hacia dónde y
+ * la distancia cuánto (llega al borde del óvalo a ~140 unidades). Los ojos
+ * sin pupila propia (ojos 2) mueven el ojo entero, apenas. */
+const EYE_FOLLOW_FULL_DIST = 140;
+const EYE_SHIFT_NO_PUPIL = { x: 2.2, y: 1.4 };
+function lookOffset(dx, dy, rx, ry) {
+  const dist = Math.hypot(dx, dy);
+  if (!dist || !rx || !ry) return { dx: 0, dy: 0 };
+  const k = Math.min(1, dist / EYE_FOLLOW_FULL_DIST);
+  return { dx: (dx / dist) * rx * k, dy: (dy / dist) * ry * k };
+}
 function updatePupils(stageEl, mx, my) {
   const centers = PET_EYE_CENTERS_BY_OJOS[stageEl.dataset.ojosId];
-  if (!centers) return;
+  if (!centers) {
+    const layer = stageEl.querySelector(".pet-layer-ojos");
+    if (!layer) return;
+    const o = lookOffset(mx - 200, my - 164, EYE_SHIFT_NO_PUPIL.x, EYE_SHIFT_NO_PUPIL.y);
+    layer.style.translate = `${o.dx.toFixed(2) / 4}% ${o.dy.toFixed(2) / 4}%`;
+    return;
+  }
   ["izq", "der"].forEach((side) => {
     const center = centers[side];
-    const clamped = clampToEyeEllipse(mx - center.x, my - center.y, centers.rx, centers.ry);
-    setPupilOffset(stageEl, side, clamped.dx, clamped.dy);
+    const o = lookOffset(mx - center.x, my - center.y, centers.rx, centers.ry);
+    setPupilOffset(stageEl, side, o.dx, o.dy);
   });
 }
 
 function resetPupils(stageEl) {
   setPupilOffset(stageEl, "izq", 0, 0);
   setPupilOffset(stageEl, "der", 0, 0);
+  const layer = stageEl?.querySelector(".pet-layer-ojos");
+  if (layer) layer.style.translate = "";
 }
 
 function scheduleGlance() {
@@ -653,8 +675,14 @@ function setupPreviewStageHover() {
   });
 }
 
+let lastMouse = null;
 function setupEyeTracking() {
+  // v4.6.4: si la mascota camina con el mouse quieto, igual lo sigue mirando.
+  setInterval(() => {
+    if (lastMouse && !document.hidden) document.dispatchEvent(new MouseEvent("mousemove", { clientX: lastMouse.x, clientY: lastMouse.y }));
+  }, 120);
   document.addEventListener("mousemove", (event) => {
+    if (event.isTrusted) lastMouse = { x: event.clientX, y: event.clientY };
     if (state && state.sleep.dormida) return; // dormida: ojos cerrados, no sigue nada
     const activeStage = el.stageFloor.classList.contains("is-editing")
       ? el.previewStage
@@ -665,7 +693,9 @@ function setupEyeTracking() {
     const rect = activeStage.getBoundingClientRect();
     if (!rect.width) return;
     const scale = rect.width / 400;
-    const mx = (event.clientX - rect.left) / scale;
+    const flipped = activeStage === el.gameStage && el.gameStage.style.scale === "-1 1";
+    const mxRaw = (event.clientX - rect.left) / scale;
+    const mx = flipped ? 400 - mxRaw : mxRaw;
     const my = (event.clientY - rect.top) / scale;
     updatePupils(activeStage, mx, my);
   });
@@ -688,7 +718,16 @@ const WALK_SPEED_MAX = 82;
 const RUN_SPEED_MIN = 130;
 const RUN_SPEED_MAX = 170;
 const RUN_HOLD_MS = 180;
-const LEG_SWING_MAX_DEG = 16;
+const LEG_SWING_MAX_DEG = 28;
+// v4.7: ciclo de paso único para caminar y correr (sólo cambia la
+// velocidad de desplazamiento). Zancada completa cada GAIT_PERIOD_S, brazos
+// opuestos a las piernas, rebote por paso, leve inclinación hacia adelante
+// y balanceo de cabeza. La mascota mira hacia donde camina.
+const GAIT_PERIOD_S = 0.5;
+const ARM_SWING_MAX_DEG = 36;
+const GAIT_BOUNCE_PCT = 3;
+const GAIT_LEAN_DEG = 5;
+const GAIT_HEAD_TILT_DEG = 3;
 
 const AUTONOMOUS_IDLE_DELAY_MS = 10000;
 let lastInteractionTs = 0;
@@ -705,6 +744,11 @@ function computeWalkBounds() {
 }
 
 function restLegs() {
+  el.gameStage.classList.remove("is-walking");
+  el.gameStage.style.translate = "";
+  el.gameStage.style.rotate = "";
+  el.gameStage.querySelectorAll(".pet-layer-cabeza, .pet-layer-orejas, .pet-layer-cejas, .pet-layer-ojos, .pet-layer-narices, .pet-layer-boca, .pet-layer-clothing-accessory").forEach((node) => { node.style.rotate = ""; });
+  el.gameStage.querySelectorAll("#brazo-izq, #brazo-der, .ropa-brazo-izq, .ropa-brazo-der").forEach((node) => { node.style.rotate = ""; });
   el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
     const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
     node.style.transform = `rotate(0deg) scale(${scale})`;
@@ -716,7 +760,20 @@ function restLegs() {
 }
 
 function applyLegSwing(stridePhase, intensity) {
-  const swing = Math.sin(stridePhase) * LEG_SWING_MAX_DEG * intensity;
+  const s = Math.sin(stridePhase);
+  const swing = s * LEG_SWING_MAX_DEG * intensity;
+  const stage = el.gameStage;
+  stage.classList.add("is-walking");
+  stage.classList.remove("is-waving");
+  stage.style.scale = walkDirection === "left" ? "-1 1" : "";
+  const lift = Math.abs(Math.cos(stridePhase)) * GAIT_BOUNCE_PCT * intensity;
+  stage.style.translate = `0 ${(-lift).toFixed(2)}%`;
+  stage.style.rotate = `${(GAIT_LEAN_DEG * intensity).toFixed(1)}deg`;
+  const tilt = `${(s * GAIT_HEAD_TILT_DEG * intensity).toFixed(1)}deg`;
+  stage.querySelectorAll(".pet-layer-cabeza, .pet-layer-orejas, .pet-layer-cejas, .pet-layer-ojos, .pet-layer-narices, .pet-layer-boca, .pet-layer-clothing-accessory").forEach((node) => { node.style.rotate = tilt; });
+  const arm = s * ARM_SWING_MAX_DEG * intensity;
+  stage.querySelectorAll("#brazo-izq, .ropa-brazo-izq").forEach((node) => { node.style.rotate = `${(-arm).toFixed(1)}deg`; });
+  stage.querySelectorAll("#brazo-der, .ropa-brazo-der").forEach((node) => { node.style.rotate = `${arm.toFixed(1)}deg`; });
   el.gameStage.querySelectorAll("#pierna-izq, .ropa-pierna-izq, .ropa-calzado-izq").forEach((node) => {
     const scale = node.classList.contains("ropa-calzado") ? 1.08 : node.classList.contains("ropa-pierna") ? 1.07 : 1;
     node.style.transform = `rotate(${swing.toFixed(1)}deg) scale(${scale})`;
@@ -810,8 +867,8 @@ function walkFrame(ts) {
       startIdle(700, 3200);
     } else {
       walkX += Math.sign(dist) * step;
-      walkStridePhase += dt * (walkSpeed / 12);
-      applyLegSwing(walkStridePhase, Math.min(1, walkSpeed / WALK_SPEED_MAX));
+      walkStridePhase += dt * (2 * Math.PI / GAIT_PERIOD_S);
+      applyLegSwing(walkStridePhase, 1);
       if (Math.random() < 0.003) {
         startIdle(400, 1400);
       }
@@ -841,7 +898,10 @@ function setPointerWalkTarget(clientX) {
   if (walkMax <= 0) return;
   const rect = el.stageFloor.getBoundingClientRect();
   const walkerWidth = el.walker.offsetWidth || 200;
-  const x = clientX - rect.left;
+  // v4.6.5: en celular horizontal el escenario está achicado con
+  // transform: scale; se pasa el toque a medidas del escenario.
+  const scale = rect.width / (el.stageFloor.offsetWidth || rect.width) || 1;
+  const x = (clientX - rect.left) / scale;
   const desired = x - walkerWidth / 2 - WALK_PAD;
   walkTarget = clamp(desired, 0, walkMax);
 }
@@ -881,7 +941,22 @@ function setupClickToWalk() {
   el.stageFloor.addEventListener("pointerleave", endHold);
 }
 
+// v4.7: saludo ocasional mientras está quieta (ver .is-waving en style.css).
+const IDLE_WAVE_MS = 2300;
+function scheduleIdleWave() {
+  setTimeout(() => {
+    const stage = el.gameStage;
+    if (stage && walkState === "idle" && canWalk() && !stage.classList.contains("mood-critico")
+      && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      stage.classList.add("is-waving");
+      setTimeout(() => stage.classList.remove("is-waving"), IDLE_WAVE_MS);
+    }
+    scheduleIdleWave();
+  }, 12000 + Math.random() * 10000);
+}
+
 function setupWalking() {
+  scheduleIdleWave();
   computeWalkBounds();
   registerInteraction();
   startIdle(300, 1200);
@@ -949,7 +1024,7 @@ function renderHousingScene() {
     : state?.housing || defaultHousing();
   const svg = housingSceneElement("svg", {
     id: "housing-scene", viewBox: `0 0 ${HOUSING_WIDTH} ${HOUSING_HEIGHT}`,
-    preserveAspectRatio: "xMidYMid slice", width: "100%", height: "100%",
+    preserveAspectRatio: "xMidYMax slice", width: "100%", height: "100%",
     "aria-hidden": "true",
   });
   const image = (item, x, y, width, height, extra = {}) => {
@@ -1003,6 +1078,7 @@ function setLocationVisuals(locationId) {
 function animateWalkTo(targetX, ms) {
   return new Promise((resolve) => {
     const startX = walkX;
+    walkDirection = targetX < startX ? "left" : "right";
     const startTs = performance.now();
     if (ms <= 0) {
       walkX = targetX;
@@ -1014,8 +1090,8 @@ function animateWalkTo(targetX, ms) {
     function step(ts) {
       const t = Math.min(1, (ts - startTs) / ms);
       walkX = startX + (targetX - startX) * t;
-      walkStridePhase += 0.32;
-      applyLegSwing(walkStridePhase, 0.85);
+      walkStridePhase += (2 * Math.PI / GAIT_PERIOD_S) / 60;
+      applyLegSwing(walkStridePhase, 1);
       el.walker.style.transform = `translateX(${(walkX + WALK_PAD).toFixed(1)}px)`;
       if (t < 1) {
         requestAnimationFrame(step);
@@ -1923,6 +1999,7 @@ function removeDirt(id) {
 // ---------- Refresco general ----------
 
 function refreshUI() {
+  grantAdminTestItems();
   el.petName.textContent = state.name;
   renderPetLayers(el.gameStage, state.look, state.wardrobe);
   updateMeters();
@@ -2341,6 +2418,65 @@ function buildActionsDock() {
   syncActionPanels();
 }
 
+// ---------- v4.6.4: ventanas que aparecen enteras ----------
+// La primera vez que se abría el inventario, el ropero o los minijuegos, el
+// contenido (<img>) aparecía antes que el marco (imagen de fondo por CSS,
+// que el navegador recién pide cuando la ventana se muestra). Ahora: 1) al
+// arrancar se precargan en segundo plano todas las imágenes de esas
+// ventanas; 2) si igual se abre una antes de que termine, queda oculta
+// (.is-loading-art) hasta que su arte está listo (máximo 1,5 s).
+const artDecodes = new Map();
+function decodeArt(url) {
+  if (!artDecodes.has(url)) {
+    artDecodes.set(url, new Promise((resolve) => {
+      const img = new Image();
+      img.src = url;
+      (img.decode ? img.decode() : Promise.resolve()).then(() => resolve(true), () => resolve(false));
+    }));
+  }
+  return artDecodes.get(url);
+}
+function collectArtUrls(root) {
+  const urls = new Set();
+  [root, ...root.querySelectorAll("*")].forEach((node) => {
+    const bg = getComputedStyle(node).backgroundImage;
+    if (bg && bg !== "none") for (const m of bg.matchAll(/url\(["']?([^"')]+)["']?\)/g)) urls.add(m[1]);
+    if (node.tagName === "IMG" && node.getAttribute("src")) urls.add(node.src);
+  });
+  return [...urls];
+}
+const artReady = new WeakSet();
+async function revealWhenReady(windowEl) {
+  if (!windowEl || artReady.has(windowEl)) return;
+  const urls = collectArtUrls(windowEl);
+  const pending = urls.filter((u) => !artDecodes.has(u));
+  if (!pending.length && urls.length) {
+    // Ya pedidas: sólo esperar si alguna todavía no terminó.
+    const done = await Promise.race([Promise.all(urls.map(decodeArt)).then(() => true), new Promise((r) => setTimeout(() => r(false), 0))]);
+    if (done) { artReady.add(windowEl); return; }
+  }
+  windowEl.classList.add("is-loading-art");
+  await Promise.race([Promise.all(urls.map(decodeArt)), new Promise((r) => setTimeout(r, 1500))]);
+  windowEl.classList.remove("is-loading-art");
+  artReady.add(windowEl);
+}
+const ART_WINDOWS = ["inventory-overlay", "wardrobe-overlay", "shop-overlay", "game-selector", "roulette-overlay", "minigame-panel"];
+function setupArtWindows() {
+  const observer = new MutationObserver((records) => {
+    records.forEach((r) => { if (!r.target.hidden) revealWhenReady(r.target.matches(".modal-overlay") ? r.target.querySelector(".modal-window") || r.target : r.target); });
+  });
+  ART_WINDOWS.forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) observer.observe(node, { attributes: true, attributeFilter: ["hidden"] });
+  });
+  // Precarga en segundo plano, sin trabar el arranque.
+  const warm = () => ART_WINDOWS.forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) collectArtUrls(node).forEach(decodeArt);
+  });
+  if ("requestIdleCallback" in window) requestIdleCallback(warm, { timeout: 3000 }); else setTimeout(warm, 1500);
+}
+
 // ---------- Beta v1.2: inventario, vestidor y regalo de bienvenida ----------
 
 function refreshInventory() {
@@ -2369,6 +2505,15 @@ function refreshInventory() {
     if (canStock > 0) delete el.inventoryCan.dataset.empty; else el.inventoryCan.dataset.empty = "1";
     el.inventoryCan.setAttribute("aria-label", `Latas: ${canStock}. Chatarra de pesca; más adelante se va a poder vender.`);
     document.getElementById("inventory-can-count").textContent = String(canStock);
+  }
+  const energyStock = Math.max(0, Number(state.inventory?.energizante) || 0);
+  const energyItem = document.getElementById("inventory-energy");
+  if (energyItem) {
+    // v4.6.4: lata energizante (+energía, −sed, sin espera). Sin stock no ocupa lugar.
+    if (energyStock > 0) delete energyItem.dataset.empty; else energyItem.dataset.empty = "1";
+    energyItem.disabled = sleeping || state.stats.energia >= PET_CONFIG.llenaUmbral;
+    energyItem.setAttribute("aria-label", `Lata energizante: ${energyStock}. Sube la energía y baja un poco la sed.`);
+    document.getElementById("inventory-energy-count").textContent = String(energyStock);
   }
   if (el.inventoryWater) el.inventoryWater.disabled = sleeping || waterCooldown || state.stats.hidratacion >= PET_CONFIG.llenaUmbral;
   if (el.inventoryWaterCooldown) {
@@ -2680,8 +2825,9 @@ function setupHousingUI() {
     if (!housingPanelDrag) return;
     const panel = el.housingEditorPanel;
     const floor = el.stageFloor;
-    panel.style.left = `${clampHousing(housingPanelDrag.left + event.clientX - housingPanelDrag.x, 0, Math.max(0, floor.clientWidth - panel.offsetWidth))}px`;
-    panel.style.top = `${clampHousing(housingPanelDrag.top + event.clientY - housingPanelDrag.y, 0, Math.max(0, floor.clientHeight - panel.offsetHeight))}px`;
+    const k = stageScale();
+    panel.style.left = `${clampHousing(housingPanelDrag.left + (event.clientX - housingPanelDrag.x) / k, 0, Math.max(0, floor.clientWidth - panel.offsetWidth))}px`;
+    panel.style.top = `${clampHousing(housingPanelDrag.top + (event.clientY - housingPanelDrag.y) / k, 0, Math.max(0, floor.clientHeight - panel.offsetHeight))}px`;
   });
   const stopPanelDrag = () => { housingPanelDrag = null; };
   el.housingEditorHeading?.addEventListener("pointerup", stopPanelDrag);
@@ -2785,6 +2931,7 @@ function setupBetaInventoryUI() {
     refreshInventory();
   });
   el.inventoryWater?.addEventListener("click", () => { doBeber(); refreshInventory(); });
+  document.getElementById("inventory-energy")?.addEventListener("click", () => { doEnergizante(); refreshInventory(); renderInventoryPage(); });
   document.getElementById("wardrobe-save")?.addEventListener("click", saveWardrobe);
   document.getElementById("wardrobe-clear")?.addEventListener("click", () => { if (!wardrobeDraft) return; WARDROBE_SLOTS.forEach(slot => wardrobeDraft[slot] = null); renderWardrobe(); });
   document.getElementById("wardrobe-prev")?.addEventListener("click", () => { wardrobePage = Math.max(0, wardrobePage - 1); renderWardrobe(); });
@@ -2872,6 +3019,43 @@ function doComer(key) {
   updateCooldownButtons();
 }
 
+// ---------- v4.6.4: lata energizante ----------
+// Sube la energía (hasta el tope) y baja la sed. Sin espera entre latas
+// (pedido explícito); se consume del inventario.
+function doEnergizante() {
+  if (!state || state.sleep.dormida) return;
+  const stock = Math.max(0, Number(state.inventory?.energizante) || 0);
+  if (!stock) { notifySystem("No te quedan latas energizantes."); return; }
+  if (state.stats.energia >= PET_CONFIG.llenaUmbral) {
+    notifySystem(`${state.name} ya tiene la energía al máximo.`);
+    return;
+  }
+  const fx = PET_CONFIG.energizante;
+  registerInteraction();
+  state.inventory.energizante = stock - 1;
+  playMouthAnim(el.gameStage, "beber", 550);
+  state.stats.energia = clamp(state.stats.energia + fx.energia, 0, 100);
+  state.stats.hidratacion = clamp(state.stats.hidratacion - fx.sed, 0, 100);
+  addBond(1);
+  emitRealtimeAction("drink", { item: "energizante" });
+  showBubble("¡Pila cargada!");
+  trySave(state);
+  refreshUI();
+  updateCooldownButtons();
+}
+
+/** v4.6.4: la cuenta admin (Jony) recibe 30 latas energizantes para
+ *  probarlas, una sola vez por guardado. */
+function grantAdminTestItems() {
+  if (!state || typeof isAdmin !== "function" || !isAdmin()) return;
+  state.flags = state.flags || {};
+  if (state.flags.adminEnergizante30) return;
+  state.inventory.energizante = (Number(state.inventory.energizante) || 0) + 30;
+  state.flags.adminEnergizante30 = true;
+  trySave(state);
+  refreshInventory?.();
+}
+
 // ---------- Beber / Limpiar (bañar) ----------
 
 function doBeber() {
@@ -2918,17 +3102,35 @@ function doBañar() {
 
 // ---------- Dormir / despertar ----------
 
+/** v4.6.4: transición al dormirse (cierra los ojos despacio y se acomoda)
+ *  y al despertarse (abre los ojos despacio, se estira y las Z se van).
+ *  Ver .is-falling-asleep / .is-waking en style.css. */
+function playSleepTransition(stage, asleep) {
+  if (!stage) return;
+  clearTimeout(stage._sleepFxTimer);
+  stage.classList.remove("is-waking");
+  if (asleep) {
+    stage.classList.add("is-falling-asleep");
+  } else {
+    stage.classList.remove("is-falling-asleep");
+    stage.classList.add("is-waking");
+    stage._sleepFxTimer = setTimeout(() => stage.classList.remove("is-waking"), 1000);
+  }
+}
+
 function toggleSueño() {
   if (navLock) return;
   registerInteraction();
   if (state.sleep.dormida) {
     state.sleep.dormida = false;
     state.sleep.since = null;
+    playSleepTransition(el.gameStage, false);
     showBubble("¡Buenos días!");
     emitRealtimeAction("wake");
   } else {
     state.sleep.dormida = true;
     state.sleep.since = Date.now();
+    playSleepTransition(el.gameStage, true);
     startIdle(200, 400);
     resetPupils(el.gameStage);
     stopMouthAnim(el.gameStage);
@@ -3358,7 +3560,7 @@ function refreshDebugValues() {
     ensureDailyProgress();
     const plays = state.daily?.fishingPlays || 0;
     const wait = isOnCooldown("jugar") ? ` · Penales en ${formatCooldownPhrase(state.cooldowns.jugar - Date.now())}` : " · Penales listo";
-    gamesStatus.textContent = `Pesca hoy: ${plays}/${GAME_LIMITS.pescaPorDia}${wait}`;
+    gamesStatus.textContent = `Pesca hoy: ${plays}/${GAME_LIMITS.pescaPorDia}${wait} · Ruleta ${state.daily?.rouletteSpun ? "ya girada hoy" : "disponible"}`;
   }
   el.debugPanel.querySelectorAll("input[data-need]").forEach((input) => {
     const key = input.dataset.need;
@@ -3574,8 +3776,36 @@ document.addEventListener("keydown", ev => {
 });
 // ---------- Arranque ----------
 
+// ---------- v4.6.5: celular horizontal ----------
+// El escenario se arma a 640 px de alto «lógico» (como en la compu) y se
+// achica con transform: scale para entrar en el alto real (ver el bloque
+// v4.6.5 al final de style.css). Acá sólo se calcula ese factor.
+const MOBILE_LANDSCAPE = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
+function stageScale() {
+  const rect = el.stageFloor?.getBoundingClientRect();
+  return rect && el.stageFloor.offsetWidth ? rect.width / el.stageFloor.offsetWidth || 1 : 1;
+}
+function syncMobileLandscape() {
+  const root = document.documentElement;
+  if (!MOBILE_LANDSCAPE.matches) { root.style.removeProperty("--mh-s"); return; }
+  const header = document.getElementById("app-header");
+  const headH = header && !header.hidden ? header.getBoundingClientRect().height : 0;
+  const avail = Math.max(200, window.innerHeight - headH - 4);
+  root.style.setProperty("--mh-s", (avail / 640).toFixed(4));
+  requestAnimationFrame(() => { computeWalkBounds(); syncHudLayout(); });
+}
+function setupMobileLandscape() {
+  syncMobileLandscape();
+  window.addEventListener("resize", syncMobileLandscape);
+  window.visualViewport?.addEventListener("resize", syncMobileLandscape);
+  MOBILE_LANDSCAPE.addEventListener?.("change", syncMobileLandscape);
+  // El encabezado aparece/desaparece (crear mascota vs. jugar).
+  const header = document.getElementById("app-header");
+  if (header) new MutationObserver(syncMobileLandscape).observe(header, { attributes: true, attributeFilter: ["hidden"] });
+}
+
 function setupStageModals() {
-  ["friends-overlay", "inventory-overlay", "wardrobe-overlay", "shop-overlay"].forEach((id) => {
+  ["friends-overlay", "inventory-overlay", "wardrobe-overlay", "shop-overlay", "roulette-overlay"].forEach((id) => {
     const modal = document.getElementById(id);
     if (modal) el.stageFloor.appendChild(modal);
   });
@@ -3602,6 +3832,9 @@ function setupStageModals() {
   setupWalking();
   setupGameChatKeyboard();
   setupPetFx();
+  setupArtWindows();
+  setupMobileLandscape();
+  setupRoulette();
   setupMinigames();
   setupGameSelector();
   setupVisibilityRecalc();
@@ -5008,11 +5241,13 @@ function replayRemoteAction(event, allowQueue = true) {
       showRemoteBubble(walker, "¡Qué fresquito!");
       break;
     case "sleep":
+      playSleepTransition(stage, true);
       walker.classList.add("is-sleeping");
       stage?.classList.add("sleeping");
       stage?.style.setProperty("--eye-scale", 0.04);
       break;
     case "wake":
+      playSleepTransition(stage, false);
       walker.classList.remove("is-sleeping");
       stage?.classList.remove("sleeping");
       stage?.style.setProperty("--eye-scale", 1);

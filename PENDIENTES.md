@@ -2,9 +2,9 @@
 
 ## Estado y forma de trabajo
 
-- Base actual: Beta v4.6.3. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
+- Base actual: Beta v4.6.5. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
 - Trabajar por etapas, revisando con el usuario cada cambio de diseño. Entregar capturas cuando se cambie la interfaz.
-- Priorizar escritorio. La experiencia móvil y sus funciones limitadas se decidirán en una versión dedicada; no ampliar ese alcance ahora.
+- Priorizar escritorio. v4.6.5: el celular apaisado (ref. iPhone 11) ya se ve entero escalando el escenario de escritorio; el vertical pide girar el teléfono. Una versión móvil dedicada (controles táctiles propios, textos más grandes) queda para más adelante.
 - Mantener el ánimo, las expresiones y el aro de color. Se retira acariciar y sus recompensas de felicidad/XP, no el sistema general de felicidad.
 - Los subrayados y guiones inferiores no se usarán como indicadores de selección. Recordar los pendientes de cada sección al comenzar su rediseño.
 
@@ -14,7 +14,9 @@
 - [x] Revisar el sistema de juego: acceso, instrucciones, interacción y pantalla de resultado. Las recompensas mantienen el cálculo anterior hasta la economía de v4.7.
 - [x] Definir con el usuario qué juegos se mantienen, cambian o incorporan: Pesca (rehecha) y Penales (nuevo); se retiró Caza de luciérnagas.
 - [x] v4.6.2: ventana de juegos de feria con dos paneles, viaje a cada juego con pantalla de carga (la mascota sale de la sala), Penales rediseñado (click + potencia, arquero de guantes con IA fácil), botones de minijuegos en el modo prueba, moscas según higiene y arreglos de bañar y dormir.
-- [ ] Si se suman más juegos, la ventana de feria tiene lugar para dos: habrá que definir cómo crecer (páginas, flechas o volver a cuatro paneles).
+- [x] v4.6.4: ruleta diaria (tercer recuadro de Minijuegos), lata energizante, cursores propios, transición de dormir/despertar y seguimiento de ojos.
+- [ ] Si se suman más juegos, la ventana-tablet tiene lugar para tres: habrá que definir cómo crecer (páginas o flechas).
+- [ ] Revisar en v4.7 (economía) los montos de monedas de la ruleta junto con los precios de la Tienda.
 
 ## Beta v4.7 — Tienda y economía
 

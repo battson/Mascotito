@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mascotito — Beta v4.6.3</title>
+  <title>Mascotito — Beta v4.6.5</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="image" href="assets/brand/logo-load.png" />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=4.6.3-1" />
-  <link rel="stylesheet" href="css/game-interactions.css?v=4.6.3" />
-  <link rel="stylesheet" href="css/games.css?v=4.6.3-1" />
+  <link rel="stylesheet" href="css/style.css?v=4.6.5" />
+  <link rel="stylesheet" href="css/game-interactions.css?v=4.6.5" />
+  <link rel="stylesheet" href="css/games.css?v=4.6.5" />
 </head>
 <body>
 
@@ -39,7 +39,7 @@
       <img src="assets/brand/logo-symbol.png" alt="" class="brand-symbol" width="80" height="50" />
       <img src="assets/brand/logo-name.png" alt="" aria-hidden="true" class="brand-name-img" width="170" height="24" />
       <span class="sr-only">Mascotito</span>
-      <span class="badge" id="app-version-badge">Beta v4.6.3</span>
+      <span class="badge" id="app-version-badge">Beta v4.6.5</span>
     </div>
     <!-- v2.5: se sacó el reloj del encabezado (pedido explícito) — el
          cálculo de día/noche (updateClock() en js/app.js) sigue vivo, sólo
@@ -118,6 +118,9 @@
        no hay nube configurada, esta pantalla queda oculta para siempre y
        la app se comporta exactamente igual que en v3.2 (ver boot() en
        js/app.js). -->
+  <!-- v4.6.5: en el celular vertical se pide girarlo (el juego está pensado apaisado). -->
+  <div class="rotate-hint" aria-live="polite"><img src="assets/brand/logo-symbol.png" alt="" /><p>Girá el celular para jugar a Mascotito</p></div>
+
   <main id="login-screen" class="screen login-screen" hidden>
     <img src="assets/brand/logo-full.svg" alt="Mascotito" class="brand-emblem" width="140" height="140" />
     <h2>¿Quién sos?</h2>
@@ -191,6 +194,13 @@
           </span>
           <span id="inventory-water-count">∞</span>
         </button>
+        <!-- Beta v4.6.5: lata energizante (+60 energía, −30 sed). -->
+        <button id="inventory-energy" class="inventory-item" type="button" aria-label="Lata energizante" title="Lata energizante: +60 de energía, −30 de sed." data-empty="1" hidden>
+          <span class="inventory-item-visual">
+            <img src="assets/ui/inventory/cofre/energizante.svg" alt="" />
+          </span>
+          <span id="inventory-energy-count">0</span>
+        </button>
         <!-- Beta v4.6.1: latas de Pesca (chatarra; se venderán más adelante). -->
         <button id="inventory-can" class="inventory-item" type="button" aria-label="Latas" title="Latas: chatarra de pesca. Más adelante se van a poder vender." data-empty="1" hidden>
           <span class="inventory-item-visual">
@@ -205,6 +215,18 @@
         <button id="inventory-next" type="button" aria-label="Página siguiente"><img src="assets/ui/inventory/arrow-right.svg" alt="" /></button>
       </nav>
       <p id="inventory-status" class="inventory-status" role="status"></p>
+    </section>
+  </div>
+
+  <!-- Beta v4.6.5: ruleta diaria (se abre desde Minijuegos, encima de la casa). -->
+  <div id="roulette-overlay" class="modal-overlay roulette-overlay" hidden>
+    <section class="modal-window roulette-window" role="dialog" aria-modal="true" aria-label="Ruleta diaria">
+      <h2 class="sr-only">Ruleta diaria</h2>
+      <button id="roulette-close" type="button" class="roulette-close" aria-label="Cerrar ruleta"><img src="assets/ui/games/close.svg" alt="" draggable="false" /></button>
+      <div id="roulette-wheel" class="roulette-wheel" aria-hidden="true"></div>
+      <button id="roulette-spin" type="button" class="games-btn roulette-spin">¡Girar!</button>
+      <p id="roulette-status" class="roulette-status" role="status"></p>
+      <div id="roulette-result" class="roulette-result" hidden></div>
     </section>
   </div>
 
@@ -660,7 +682,7 @@
   </main>
 
   <footer class="app-footer">
-    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.6.3 · guardado localmente en este navegador</p>
+    <p id="footer-text">Hecho por Jony · Mascotito Beta v4.6.5 · guardado localmente en este navegador</p>
     <!-- Herramienta de validación (sección 7/14), desactivada/oculta por
          defecto, fuera del flujo normal — se activa desde el menú de
          Opciones del encabezado ("Modo prueba"), no pensada para jugar
@@ -668,20 +690,21 @@
     <div id="debug-panel" class="debug-panel" hidden></div>
   </footer>
 
-  <script src="js/firebase-config.js?v=4.6.3"></script>
-  <script src="js/config.js?v=4.6.3"></script>
-  <script src="js/icons.js?v=4.6.3"></script>
-  <script src="js/manifest.js?v=4.6.3"></script>
-  <script src="js/clothing-manifest.js?v=4.6.3"></script>
-  <script src="js/housing.js?v=4.6.3"></script>
-  <script src="js/shop.js?v=4.6.3"></script>
-  <script src="js/state.js?v=4.6.3"></script>
-  <script src="js/world.js?v=4.6.3"></script>
-  <script type="module" src="js/cloud.js?v=4.6.3"></script>
-  <script type="module" src="js/multiplayer.js?v=4.6.3"></script>
-  <script src="js/shop-ui.js?v=4.6.3"></script>
-  <script src="js/game-interactions.js?v=4.6.3"></script>
-  <script src="js/games.js?v=4.6.3-1"></script>
-  <script src="js/app.js?v=4.6.3"></script>
+  <script src="js/firebase-config.js?v=4.6.5"></script>
+  <script src="js/config.js?v=4.6.5"></script>
+  <script src="js/icons.js?v=4.6.5"></script>
+  <script src="js/manifest.js?v=4.6.5"></script>
+  <script src="js/clothing-manifest.js?v=4.6.5"></script>
+  <script src="js/housing.js?v=4.6.5"></script>
+  <script src="js/shop.js?v=4.6.5"></script>
+  <script src="js/state.js?v=4.6.5"></script>
+  <script src="js/world.js?v=4.6.5"></script>
+  <script type="module" src="js/cloud.js?v=4.6.5"></script>
+  <script type="module" src="js/multiplayer.js?v=4.6.5"></script>
+  <script src="js/shop-ui.js?v=4.6.5"></script>
+  <script src="js/game-interactions.js?v=4.6.5"></script>
+  <script src="js/games.js?v=4.6.5"></script>
+  <script src="js/roulette.js?v=4.6.5"></script>
+  <script src="js/app.js?v=4.6.5"></script>
 </body>
 </html>

@@ -58,7 +58,7 @@
   padding: 0;
   border: 0;
   background: none;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   transition: transform .15s ease;
 }
 #stage-floor .games-close img { display: block; width: 100%; height: 100%; pointer-events: none; }
@@ -94,13 +94,13 @@
   box-shadow: inset 0 -4px 0 #e5ab25, inset 0 3px 0 rgba(255, 255, 255, .55), 0 3px 0 #a8740f;
   color: #4b331d;
   font: 800 18px/1.1 "Baloo 2", sans-serif;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
 }
 #stage-floor .games-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
 #stage-floor .games-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 -2px 0 #e5ab25, 0 1px 0 #a8740f; }
 #stage-floor .games-btn:focus-visible { outline: 3px solid #6f9340; outline-offset: 2px; }
-#stage-floor .games-btn:disabled { filter: grayscale(.85); opacity: .55; cursor: not-allowed; }
+#stage-floor .games-btn:disabled { filter: grayscale(.85); opacity: .55; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 #stage-floor .games-btn-soft {
   border-color: #8fae5a;
   background: linear-gradient(#fbfdf1, #e7f0cc);
@@ -121,7 +121,7 @@
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: url("../assets/ui/games/window-v2.svg") center / 100% 100% no-repeat;
+  background: url("../assets/ui/games/window-v3.svg") center / 100% 100% no-repeat;
   box-shadow: none;
   filter: drop-shadow(0 14px 22px rgba(20, 60, 80, .28));
 }
@@ -136,11 +136,12 @@
 }
 #stage-floor .games-picker .games-close img { object-fit: contain; }
 #stage-floor .games-panels { position: absolute; inset: 0; }
+/* v4.6.4: tres recuadros (Pesca, Penales y Ruleta) — window-v3.svg. */
 #stage-floor .game-panel {
   position: absolute;
-  top: 31.5%;
-  width: 27.3%;
-  height: 38.3%;
+  top: 35.3%;
+  width: 21.85%;
+  height: 30.6%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,15 +151,17 @@
   border: 0;
   border-radius: 7% / 6%;
   background: transparent;
-  cursor: pointer;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
   transition: transform .16s ease, background-color .16s ease;
 }
-#stage-floor .game-panel[data-play="pesca"] { left: 17.85%; }
-#stage-floor .game-panel[data-play="penales"] { left: 54.35%; }
+#stage-floor .game-panel[data-play="pesca"] { left: 11.96%; }
+#stage-floor .game-panel[data-play="penales"] { left: 38.83%; }
+#stage-floor .game-panel[data-play="ruleta"] { left: 65.69%; }
+#stage-floor .game-panel[data-play="ruleta"] .game-panel-icon { width: 74%; height: 74%; }
 #stage-floor .game-panel:hover:not(.is-blocked) { transform: scale(1.04); background-color: rgba(255, 233, 184, .45); }
 #stage-floor .game-panel:active:not(.is-blocked) { transform: scale(.97); }
 #stage-floor .game-panel:focus-visible { outline: 4px solid #3fb6d9; outline-offset: 3px; }
-#stage-floor .game-panel.is-blocked { cursor: not-allowed; }
+#stage-floor .game-panel.is-blocked { cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 #stage-floor .game-panel.is-blocked .game-panel-icon { filter: grayscale(.85); opacity: .45; }
 #stage-floor .game-panel-icon {
   width: 62%;
@@ -511,7 +514,7 @@
    Cancha 1254 × 706 apoyada abajo (recorta cielo si sobra alto). */
 #stage-floor .penalty-scene { position: absolute; inset: 0; outline: none; cursor: crosshair; touch-action: none; }
 #stage-floor .penalty-scene:focus-visible { box-shadow: inset 0 0 0 4px #ffe052; }
-#stage-floor [data-phase="shot"] .penalty-scene { cursor: default; }
+#stage-floor [data-phase="shot"] .penalty-scene { cursor: url("../assets/ui/cursors/default.png") 2 1, default; cursor: -webkit-image-set(url("../assets/ui/cursors/default.png") 1x, url("../assets/ui/cursors/default@2x.png") 2x) 2 1, default; }
 #stage-floor .pk-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #stage-floor .pk-ball-shadow { fill: #1f4d12; }
 #stage-floor .pk-glove image { filter: drop-shadow(0 6px 4px rgba(20, 40, 10, .28)); }
@@ -591,4 +594,136 @@
   #stage-floor .games-title { font-size: 26px; -webkit-text-stroke-width: 2px; }
   #stage-floor .games-window { padding: 12px 14px 14px; }
   #stage-floor .games-action { min-width: 140px; font-size: 18px; }
+}
+
+/* ------------------------------------------------------ Ruleta (v4.6.4)
+   Se abre encima de la casa. Capas (todas del mismo tamaño): la ruleta
+   entera quieta, el disco que gira (con los íconos de premios), y encima
+   otra vez el puntero y el botón central recortados del dibujo quieto. */
+#stage-floor > .roulette-overlay .roulette-window {
+  position: relative;
+  width: min(460px, 92%);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+.roulette-close {
+  position: absolute;
+  top: 0;
+  right: -6%;
+  z-index: 3;
+  width: 13%;
+  aspect-ratio: 150 / 158;
+  padding: 0;
+  border: 0;
+  background: none;
+  transition: transform .15s ease;
+}
+.roulette-close img { display: block; width: 100%; height: 100%; }
+.roulette-close:hover { transform: scale(1.08); }
+.roulette-close:active { transform: scale(.94); }
+.roulette-wheel {
+  position: relative;
+  width: min(100%, calc(100dvh - 260px));
+  aspect-ratio: 1;
+  filter: drop-shadow(0 14px 18px rgba(20, 20, 40, .35));
+}
+.roulette-wheel .rw-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; user-select: none; }
+.roulette-wheel .rw-disc {
+  transform-origin: 49.88% 50.96%;
+  will-change: transform;
+}
+.roulette-wheel .rw-pointer {
+  clip-path: polygon(40.27% 1.59%, 59.81% 1.59%, 60.61% 5.58%, 51.04% 18.98%, 48.8% 18.98%, 39.47% 5.58%);
+}
+.roulette-wheel .rw-hub { clip-path: circle(6.7% at 49.88% 50.96%); }
+.roulette-wheel .rw-prize {
+  position: absolute;
+  width: 11%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -50%) rotate(var(--a));
+  pointer-events: none;
+}
+.roulette-wheel .rw-prize img,
+.roulette-wheel .rw-prize svg { width: 100%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 2px 0 rgba(40, 20, 10, .3)); }
+.roulette-wheel .rw-prize b {
+  margin-top: -6%;
+  font: 900 clamp(13px, 3.4vw, 20px)/1 "Baloo 2", sans-serif;
+  color: #fff;
+  -webkit-text-stroke: 3px #4a2c17;
+  paint-order: stroke fill;
+}
+.roulette-wheel .rw-prize.is-small { width: 7.5%; }
+.roulette-spin.games-btn {
+  min-width: 170px;
+  padding: 9px 30px 10px;
+  border: 3px solid #c98f14;
+  border-radius: 16px;
+  background: linear-gradient(#ffe27a, #f7c843);
+  box-shadow: inset 0 -4px 0 #e5ab25, inset 0 3px 0 rgba(255, 255, 255, .55), 0 3px 0 #a8740f;
+  color: #4b331d;
+  font: 900 22px/1.1 "Baloo 2", sans-serif;
+}
+.roulette-spin.games-btn:disabled { filter: grayscale(.85); opacity: .6; }
+.roulette-status {
+  margin: 0;
+  padding: 4px 16px 5px;
+  border-radius: 999px;
+  background: rgba(255, 253, 243, .94);
+  color: #4a2c17;
+  font: 800 15px/1.3 "Baloo 2", sans-serif;
+  text-align: center;
+}
+.roulette-status:empty { display: none; }
+.roulette-result {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+}
+.roulette-result[hidden] { display: none; }
+.roulette-result-card {
+  width: min(320px, 90%);
+  padding: 16px 22px 18px;
+  border: 5px solid #3fb6d9;
+  border-radius: 26px;
+  background: #fffbf0;
+  box-shadow: inset 0 0 0 6px #d9f3fb, 0 14px 30px rgba(20, 30, 50, .35);
+  text-align: center;
+  animation: rouletteWin .45s cubic-bezier(.2, 1.4, .4, 1);
+}
+.roulette-result-icon { display: inline-flex; flex-direction: column; align-items: center; width: 96px; }
+.roulette-result-icon img, .roulette-result-icon svg { width: 96px; height: 96px; object-fit: contain; }
+.roulette-result-icon b { margin-top: -10px; font: 900 24px/1 "Baloo 2", sans-serif; color: #fff; -webkit-text-stroke: 3px #4a2c17; paint-order: stroke fill; }
+.roulette-result-card h3 {
+  margin: 6px 0 4px;
+  font: 900 26px/1.1 "Baloo 2", sans-serif;
+  color: #ffe052;
+  -webkit-text-stroke: 3px #78410d;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #512a0c;
+}
+.roulette-result-card p { margin: 0 0 10px; font: 700 15px/1.35 "Baloo 2", sans-serif; color: #7a5a3a; }
+.roulette-result-card .games-btn {
+  padding: 8px 26px 9px;
+  border: 3px solid #c98f14;
+  border-radius: 16px;
+  background: linear-gradient(#ffe27a, #f7c843);
+  box-shadow: inset 0 -4px 0 #e5ab25, 0 3px 0 #a8740f;
+  color: #4b331d;
+  font: 800 18px/1.1 "Baloo 2", sans-serif;
+}
+@keyframes rouletteWin { from { opacity: 0; transform: scale(.7); } }
+@media (prefers-reduced-motion: reduce) {
+  .roulette-result-card { animation: none; }
 }

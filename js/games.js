@@ -33,6 +33,13 @@ const GAMES = {
     shots: 5,
     goal: 3,
   },
+  // v4.6.4: ruleta diaria. No se viaja: se abre encima de la casa, como el
+  // inventario (ver js/roulette.js).
+  ruleta: {
+    id: "ruleta",
+    title: "Ruleta diaria",
+    overlay: true,
+  },
 };
 
 const GAME_ICON = {
@@ -57,7 +64,7 @@ const PENALTY_ART = {
   gloveL: "assets/games/penalty/glove-left.svg",
   gloveR: "assets/games/penalty/glove-right.svg",
 };
-const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball };
+const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, ruleta: "assets/games/roulette/wheel.svg" };
 const GAME_PRELOAD = {
   pesca: [FISHING_ART.lake, FISHING_ART.rod, FISHING_ART.bobber],
   penales: [PENALTY_ART.field, PENALTY_ART.ball, PENALTY_ART.gloveL, PENALTY_ART.gloveR],
@@ -236,6 +243,7 @@ function resetMinigameCounters(target = state) {
   if (!target) return;
   target.daily = target.daily || {};
   target.daily.fishingPlays = 0;
+  target.daily.rouletteSpun = false;
   if (target.cooldowns) target.cooldowns.jugar = 0;
 }
 
@@ -246,6 +254,10 @@ function fishingPlaysRemaining() {
 
 /** ¿Se puede empezar este juego ahora? Devuelve el motivo si no. */
 function gameBlockReason(id) {
+  if (id === "ruleta") {
+    ensureDailyProgress();
+    return !gamesUnlimited() && state.daily.rouletteSpun ? "Ya giraste la ruleta hoy. Volvé mañana." : "";
+  }
   if (state.sleep.dormida) return "Despertá a tu mascota para jugar.";
   if (gamesUnlimited()) return "";
   if (state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar) return "Está muy cansada: necesita descansar antes de jugar.";
@@ -256,6 +268,7 @@ function gameBlockReason(id) {
 
 function gameStatusText(id) {
   if (gamesUnlimited()) return "Sin límite (modo prueba)";
+  if (id === "ruleta") return "Una tirada por día: disponible";
   if (id === "pesca") {
     const left = fishingPlaysRemaining();
     return left ? `Te quedan ${left} de ${GAME_LIMITS.pescaPorDia} partidas hoy` : "Sin partidas hasta mañana";
@@ -370,6 +383,12 @@ function launchGame(id) {
     const note = $g("game-selector-note");
     if (note && !$g("game-selector").hidden) { note.textContent = reason; note.dataset.sticky = "1"; }
     else notifySystem(reason);
+    return;
+  }
+  if (game.overlay) {
+    // La ruleta no viaja: se abre encima, como el inventario.
+    closeGameSelector(false);
+    openRoulette();
     return;
   }
   if (!gamesUnlimited()) {
