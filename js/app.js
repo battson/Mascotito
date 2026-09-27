@@ -729,7 +729,7 @@ const LEG_SWING_MAX_DEG = 28;
 // opuestos a las piernas, rebote por paso, leve inclinación hacia adelante
 // y balanceo de cabeza. La mascota mira hacia donde camina.
 const GAIT_PERIOD_S = 0.42;   // v4.6.11: paso un poco más ágil para la velocidad nueva (antes 0.5)
-const ARM_SWING_MAX_DEG = 36;
+const ARM_SWING_MAX_DEG = 7;   // v4.6.12: antes 36 — los brazos casi no se mueven al caminar
 const GAIT_BOUNCE_PCT = 3;
 const GAIT_LEAN_DEG = 5;
 const GAIT_HEAD_TILT_DEG = 3;
@@ -5431,7 +5431,7 @@ function replayRemoteAction(event, allowQueue = true) {
   }
   const { walker, stage } = target;
   const fx = walker.querySelector(".remote-bath-fx");
-  const gameNames = { pesca: "la pesca", penales: "los penales" };
+  const gameNames = { pesca: "la pesca", penales: "los penales", trotito: "las carreras" };
   switch (event.type) {
     case "eat":
       playMouthAnim(stage, "comer", 900);

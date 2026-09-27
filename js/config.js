@@ -9,7 +9,7 @@
  * página) se pinta solo desde acá (ver applyAppVersion() en js/app.js).
  */
 const APP_CHANNEL = "Beta";
-const APP_VERSION = "4.6.11";
+const APP_VERSION = "4.6.12";
 
 /**
  * Configuración de la jugabilidad. TODO lo que se puede ajustar para
@@ -284,6 +284,8 @@ const LITE_ART = new Set([
   "assets/games/penalty/field.svg",
   "assets/games/penalty/glove-left.svg",
   "assets/games/penalty/glove-right.svg",
+  "assets/games/trotito/escenario.svg",
+  "assets/games/trotito/podio.svg",
   "assets/games/roulette/icon.svg",
   "assets/games/roulette/pointer.svg",
   "assets/games/roulette/wheel-v2.svg",

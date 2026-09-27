@@ -1,5 +1,25 @@
 # Mascotito Beta
 
+## Beta v4.6.12 — Trotito (carreras con apuestas)
+
+- **Minijuego nuevo: Trotito.** En Minijuegos aparece su recuadro con el ícono de `Trotito_icon.ai`. Se viaja a la pista («Viajando a la pista...») y:
+  1. **Apuesta:** se elige uno de los **4 trotitos** — Nº1 Pompón (azul, **×2**), Nº2 Rayo (rojo, **×3**), Nº3 Trébol (verde, **×4**) y Nº4 Canela (amarillo, **×6**) — y cuánto apostar: **10, 25, 50 o 100 monedas** (los montos que no alcanzan quedan apagados). Abajo dice cuánto cobrarías. Se cobra **sólo si sale 1º** (apuesta × cuota).
+  2. **Carrera:** cuenta regresiva 3-2-1-¡YA!, los cuatro corren por su carril con la animación del sprite (6 cuadros, más rápidos cuanto más rápido van) y hay adelantos y remontadas hasta la meta. El tuyo lleva un cartelito «VOS».
+  3. **¡Alentar!:** botón abajo, del color de tu trotito («¡Vamos, Rayo!»). Es **sólo festejo**: tu trotito da un saltito y salen corazones y un «¡Vamos!/¡Dale!/¡Corré!». No cambia el resultado.
+  4. **Podio:** fondo liso (sin el estadio), confeti animado cayendo y los tres primeros sobre su escalón — 1º y 2º contentos (saltando), 3º triste (boca para abajo, ceja caída y una lágrima). Tarjeta con el resultado (premio o apuesta perdida, +2 de experiencia) y «Otra carrera» / «Volver a casa».
+- **Reglas:** hasta **5 carreras por día** (se cuenta al largar, no al entrar). Hace falta tener al menos 10 monedas. La mascota mira, así que no gasta energía; sólo bloquea estar dormida. Probabilidad real de ganar: 42 % / 28 % / 20 % / 10 %. Todo en `TROTITO_RUNNERS`, `TROTITO_BETS`, `TROTITO_LIMITS` y `TROTITO_REWARDS` (`js/trotito.js`), para ajustarlo con la economía de v4.7.
+- **Sin trampas:** el resultado se sortea y se paga al largar (como la ruleta). Salir a mitad de carrera o recargar no cambia nada; el saldo de arriba no muestra el premio hasta el podio.
+- **Arte** (`scripts/export-trotito-v4612.py`, en `assets/games/trotito/`):
+  - `run.svg`: los 6 cuadros de `sprites_trotito.png` vectorizados, sin contorno como el sprite, alineados por la nariz, como `<symbol>` (`trot-f1`…`trot-f6`) + `trot-sad` para el 3º. La manta toma el color de cada corredor (`--manta`) y lleva su número.
+  - `escenario.svg`: `escenario_carreras.png` pasado a vector (las banderas de la meta, trazadas aparte con más detalle).
+  - `podio.svg`: sólo el podio de `endscreen_trotito.png`, sin estadio, pista, pasto ni el confeti estático (el confeti ahora es animado).
+  - `icon.svg`: `Trotito_icon.ai` directo (ya era vectorial). En celulares el escenario y el podio usan copias WebP (`assets/lite/games/trotito/`).
+- **Globo de charla:** mismo diseño, ahora **crema casi blanco con los detalles en marrón clarito** (antes verde oliva).
+- **Caminar:** los brazos **casi no se mueven** (giro máximo 7°, antes 36°).
+- **Dormir/despertar:** los ojos se cierran y se abren **el doble de rápido** (0,45 s, antes 0,9 s).
+- **Sin el cartel de indicaciones** (`#minigame-instructions`) en Pesca y Trotito: repetía lo que ya dice el botón. Queda sólo para lectores de pantalla. En **Penales** se dejó, porque ahí no hay botón y es lo único que explica cómo patear.
+- Pruebas: `tests/trotito.test.js` (probabilidades, pagos y orden de llegada). Versión en `?v=4.6.12`.
+
 ## Beta v4.6.11 — Ruleta paga, pesca más clara y caminar sincronizado
 
 - **Ruleta con costo:** la primera tirada del día sigue gratis («¡Girar gratis!»); las siguientes cuestan **25 monedas** (`ROULETTE_EXTRA_COST` en `js/games.js`). El botón muestra el precio con la moneda, antes de cobrar pide confirmación dentro de la misma ventana («¿Otra tirada?», con cuánto te quedaría) y, si no alcanzan las monedas, queda bloqueado y dice cuántas faltan. La ruleta ya no se apaga en Minijuegos después de la tirada gratis.

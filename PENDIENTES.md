@@ -2,7 +2,7 @@
 
 ## Estado y forma de trabajo
 
-- Base actual: Beta v4.6.11. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
+- Base actual: Beta v4.6.12. Barra de acciones, inventario cofre, vestidor, Contactos en el celular, ficha plegable y chat de sala ya rediseñados.
 - Trabajar por etapas, revisando con el usuario cada cambio de diseño. Entregar capturas cuando se cambie la interfaz.
 - Priorizar escritorio. v4.6.5: el celular apaisado (ref. iPhone 11) ya se ve entero escalando el escenario de escritorio; el vertical pide girar el teléfono. v4.6.6: en celulares y tablets se aliviana lo que se dibuja (modo liviano, `?lite=1` para probarlo en la compu); si al agregar arte nuevo pesado (SVG de más de ~40 KB) se nota lento en el celular, sumarlo a `scripts/export-lite-v466.py` y a `LITE_ART`. Una versión móvil dedicada (controles táctiles propios, textos más grandes) queda para más adelante.
 - Mantener el ánimo, las expresiones y el aro de color. Se retira acariciar y sus recompensas de felicidad/XP, no el sistema general de felicidad.
@@ -19,15 +19,15 @@
 - [x] v4.6.11: Pesca — la mascota vuelve a moverse al pescar (también con «movimiento reducido»), botón distinto para esperar / tantean / picó (+ «!» sobre la bocha) y chance chica (5 %) de pescar una lata energizante. La lata energizante tomada queda como lata vacía (chatarra).
 - [x] v4.6.11: Caminar — se quitó correr; caminar va a la velocidad que tenía correr y pata, pantalón y calzado se mueven sincronizados.
 - [x] v4.6.11: nombres sobre los íconos al pasar el mouse (Inventario, Ropa, Tienda, Dormir/Despertar, Jugar, Limpiar, Contactos), círculo central de la ruleta rehecho y globo de charla rediseñado (dura según el largo del texto).
-- [ ] **v4.6.12: minijuego de carreras** (próxima entrega).
-- [ ] Minijuegos de apuestas con monedas: carrera de caballos (elegir caballo y apostar) y blackjack (contra la banca). Definir apuesta mínima/máxima, pagos y un límite diario.
+- [x] v4.6.12: **Trotito**, carreras de 4 conejos con apuestas (10/25/50/100 monedas, cuotas ×2/×3/×4/×6, paga sólo el 1º, 5 carreras por día), botón «¡Alentar!» (sólo festejo) y podio con confeti. Además: globo de charla crema con detalles marrón clarito, brazos casi quietos al caminar, ojos más rápidos al dormir/despertar y sin el cartel de indicaciones en Pesca/Trotito.
+- [ ] Minijuegos de apuestas con monedas: ~~carrera de caballos~~ (hecha como Trotito en v4.6.12) y blackjack (contra la banca). Definir apuesta mínima/máxima, pagos y un límite diario.
 - [ ] Juego de reflejos inspirado en Splat A Sloth (tocar rápido lo que aparece antes de que se esconda, sin tocar lo que no hay que tocar). Mecánica propia, con arte y nombre propios (no copiar personajes, dibujos ni marca del original).
 - [ ] Kass Basher (estilo Neopets): golpear con un mazo en el momento justo para lanzar a un personaje lo más lejos posible; puntaje por distancia.
 - [ ] Test Your Strength (martillo de feria): cargar la fuerza y golpear para que la pesa suba y toque la campana; premio según la altura.
 - [ ] Tómbola: sacar un número al azar por día y ganar el premio que le toque (o nada), como la tómbola de feria.
 - [ ] Para estos tres, igual que con el juego de reflejos: mecánica tomada como idea, con personajes, arte y nombres propios (no copiar los de Neopets).
 - [x] v4.6.10: ventana de Minijuegos con páginas de 8 recuadros (4 × 2), flechas y puntitos cuando hay más de 8.
-- [ ] Revisar en v4.7 (economía) los montos de monedas de la ruleta junto con los precios de la Tienda.
+- [ ] Revisar en v4.7 (economía) los montos de monedas de la ruleta y las apuestas/cuotas de Trotito junto con los precios de la Tienda.
 - [ ] Hotfix final de la versión: optimizar el código antes de la próxima actualización grande (ver «Consolidación técnica gradual»).
 
 ## Beta v4.7 — Tienda y economía

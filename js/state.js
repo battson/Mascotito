@@ -219,7 +219,7 @@ function localDateKey(date = new Date()) {
 // Progreso del día: hoy sólo cuenta las partidas de Pesca (el sistema de
 // Objetivos que también vivía acá se retiró en v4.5.1).
 function defaultDailyProgress() {
-  return { date: localDateKey(), fishingPlays: 0, rouletteSpun: false };
+  return { date: localDateKey(), fishingPlays: 0, rouletteSpun: false, trotitoRaces: 0 };
 }
 
 function normalizeDailyProgress(raw) {
@@ -230,6 +230,8 @@ function normalizeDailyProgress(raw) {
     fishingPlays: Number.isFinite(raw.fishingPlays) ? Math.max(0, Math.min(3, Math.floor(raw.fishingPlays))) : 0,
     // Beta v4.6.4: ruleta diaria — una tirada por día (se reinicia con la fecha).
     rouletteSpun: raw.rouletteSpun === true,
+    // Beta v4.6.12: carreras de Trotito del día (máximo 5).
+    trotitoRaces: Number.isFinite(raw.trotitoRaces) ? Math.max(0, Math.min(99, Math.floor(raw.trotitoRaces))) : 0,
   };
 }
 

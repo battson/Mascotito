@@ -5294,7 +5294,7 @@ button:disabled, [aria-disabled="true"], input:disabled, select:disabled { curso
    cierra los ojos despacio y se acomoda; al despertarse abre los ojos
    despacio, se estira y las «Z» se desvanecen. */
 .game-stage.is-falling-asleep .ojo,
-.game-stage.is-waking .ojo { transition-duration: .9s; }
+.game-stage.is-waking .ojo { transition-duration: .45s; } /* v4.6.12: antes .9s — pedido: abrir/cerrar los ojos un poco más rápido */
 .game-stage.sleeping.is-falling-asleep { animation: sleep-enter .9s ease-out both, sleep-breathe 4.4s ease-in-out .9s infinite; }
 .game-stage.is-waking { animation: sleep-exit 1s ease-out both; }
 .game-stage.is-waking .brazo { animation: none; }
@@ -5486,14 +5486,16 @@ html.is-lite .wardrobe-window { background-image: url("../assets/lite/ui/wardrob
 @media (prefers-reduced-motion: reduce) { .hover-tip.is-on { animation: none; } }
 
 /* ===== Beta v4.6.11: globo de charla rediseñado =====
-   Mismo lenguaje que la ficha y las notificaciones (.nb): relleno crema
-   verdoso, borde interno más claro, trazo verde oliva, brillito arriba a
+   Mismo lenguaje que la ficha y las notificaciones (.nb): relleno crema,
+   borde interno más claro, trazo (v4.6.12: marrón clarito), brillito arriba a
    la izquierda y una colita con el mismo borde. Reemplaza la elipse de
    borde marrón fino (v4.5.3/v4.5.4). Vale para la mascota propia y para
    las de la sala (.remote-action-bubble). */
 #stage-floor .speech-bubble,
 #stage-floor .remote-action-bubble {
-  --sb-fill: #f4f3d8; --sb-rim: #e5edc2; --sb-stroke: #76925c;
+  /* v4.6.12: mismo diseño, pero crema casi blanco con detalles en marrón
+     clarito (antes verde oliva, como la ficha). */
+  --sb-fill: #fffdf7; --sb-rim: #f7efe2; --sb-stroke: #dcc3a1;
   width: max-content;
   min-width: 64px;
   max-width: min(300px, 78vw);
@@ -5503,8 +5505,8 @@ html.is-lite .wardrobe-window { background-image: url("../assets/lite/ui/wardrob
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 12'%3E%3Cpath d='M3 10 Q6 3 16 2' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 10px 6px / 26px 11px,
     var(--sb-fill);
-  box-shadow: inset 0 0 0 4px var(--sb-rim), 0 4px 0 rgba(84, 110, 60, .28), 0 10px 18px rgba(40, 50, 20, .14);
-  color: #3f4a2b;
+  box-shadow: inset 0 0 0 4px var(--sb-rim), 0 4px 0 rgba(150, 110, 70, .22), 0 10px 18px rgba(70, 45, 20, .12);
+  color: #5a3e28;
   font: 700 1rem/1.3 "Baloo 2", sans-serif;
   text-align: center;
   overflow-wrap: anywhere;

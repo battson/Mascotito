@@ -38,6 +38,12 @@ const GAMES = {
     shots: 5,
     goal: 3,
   },
+  // v4.6.12: carreras de trotitos con apuestas (ver js/trotito.js).
+  trotito: {
+    id: "trotito",
+    title: "Trotito",
+    travel: "Viajando a la pista...",
+  },
   // v4.6.4: ruleta diaria. No se viaja: se abre encima de la casa, como el
   // inventario (ver js/roulette.js).
   ruleta: {
@@ -70,10 +76,11 @@ const PENALTY_ART = {
   gloveL: liteArt("assets/games/penalty/glove-left.svg"),
   gloveR: liteArt("assets/games/penalty/glove-right.svg"),
 };
-const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, ruleta: liteArt("assets/games/roulette/icon.svg") };
+const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, trotito: "assets/games/trotito/icon.svg", ruleta: liteArt("assets/games/roulette/icon.svg") };
 const GAME_PRELOAD = {
   pesca: [FISHING_ART.lake, FISHING_ART.rod, FISHING_ART.bobber],
   penales: [PENALTY_ART.field, PENALTY_ART.ball, PENALTY_ART.gloveL, PENALTY_ART.gloveR],
+  trotito: [liteArt("assets/games/trotito/escenario.svg"), liteArt("assets/games/trotito/podio.svg")],
 };
 
 const SVG_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.8 8.2 3 4.5 6.6 4.5c2.2 0 3.6 1.3 5.4 3.3 1.8-2 3.2-3.3 5.4-3.3 3.6 0 5.8 3.7 4.2 7.3C19.5 16.4 12 21 12 21z" fill="#f06a8a" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';
@@ -264,6 +271,7 @@ function resetMinigameCounters(target = state) {
   target.daily = target.daily || {};
   target.daily.fishingPlays = 0;
   target.daily.rouletteSpun = false;
+  target.daily.trotitoRaces = 0;
   if (target.cooldowns) target.cooldowns.jugar = 0;
 }
 
@@ -285,6 +293,9 @@ function gameBlockReason(id) {
   // siguientes se pagan); el saldo se revisa dentro de la ruleta.
   if (id === "ruleta") return "";
   if (state.sleep.dormida) return "Despertá a tu mascota para jugar.";
+  // v4.6.12: en Trotito la mascota mira (no gasta energía): sólo cuentan
+  // las carreras del día y tener monedas para apostar.
+  if (id === "trotito") return trotitoBlockReason();
   if (gamesUnlimited()) return "";
   if (state.stats.energia < PET_CONFIG.play.energiaMinimaParaJugar) return "Está muy cansada: necesita descansar antes de jugar.";
   if (id === "pesca" && !fishingPlaysRemaining()) return "Ya usaste las 3 partidas de pesca de hoy. Volvé mañana.";
@@ -295,6 +306,7 @@ function gameBlockReason(id) {
 function gameStatusText(id) {
   if (gamesUnlimited()) return "Sin límite (modo prueba)";
   if (id === "ruleta") return rouletteFreeAvailable() ? "Tirada gratis de hoy: disponible" : `Otra tirada: ${ROULETTE_EXTRA_COST} monedas`;
+  if (id === "trotito") return trotitoStatusText();
   if (id === "pesca") {
     const left = fishingPlaysRemaining();
     return left ? `Te quedan ${left} de ${GAME_LIMITS.pescaPorDia} partidas hoy` : "Sin partidas hasta mañana";
@@ -414,7 +426,7 @@ async function travelToGame(id) {
   startMinigame(id);
   await Promise.race([gamesPreload(GAME_PRELOAD[id] || []), gamesWait(4000)]);
   await endStageTransition(seq);
-  if (minigame && gameTrip?.id === id) gamesQ(minigame.type.id === "pesca" ? ".games-action" : ".penalty-scene")?.focus();
+  if (minigame && gameTrip?.id === id) gamesQ(GAME_FOCUS[minigame.type.id] || ".penalty-scene")?.focus();
 }
 
 /** Sale del juego (si hay partida, se cancela) y vuelve a casa. */
@@ -453,9 +465,10 @@ function launchGame(id) {
       // Cada inicio cuenta (aunque se cancele); se guarda enseguida.
       state.daily.fishingPlays = (state.daily.fishingPlays || 0) + 1;
       trySave(state);
-    } else {
+    } else if (id === "penales") {
       startCooldown("jugar");
     }
+    // Trotito: la carrera se cuenta recién al apostar (ver trotitoGo).
   }
   registerInteraction();
   updateCooldownButtons();
@@ -464,11 +477,14 @@ function launchGame(id) {
   if (gameTrip?.id === id) {
     // «Otra vez» desde el resultado: ya estamos ahí, sin viajar de nuevo.
     startMinigame(id);
-    gamesQ(id === "pesca" ? ".games-action" : ".penalty-scene")?.focus();
+    gamesQ(GAME_FOCUS[id] || ".penalty-scene")?.focus();
   } else {
     travelToGame(id);
   }
 }
+
+// Qué se enfoca al entrar a cada juego.
+const GAME_FOCUS = { pesca: ".games-action", penales: ".penalty-scene", trotito: ".trot-pick" };
 
 function startMinigame(id) {
   const game = GAMES[id];
@@ -491,11 +507,13 @@ function startMinigame(id) {
     <div class="games-controls">
       <button type="button" class="games-btn games-action"></button>
     </div>`
-    : penaltySceneHtml();
+    : id === "trotito" ? trotitoSceneHtml() : penaltySceneHtml();
   panel.hidden = false;
   const action = arena.querySelector(".games-action");
   action?.addEventListener("click", (ev) => { ev.stopPropagation(); gameAction(); });
-  if (id === "pesca") startFishing(); else startPenalties();
+  if (id === "pesca") startFishing();
+  else if (id === "trotito") startTrotito();
+  else startPenalties();
 }
 
 function gameAction() {
@@ -508,6 +526,16 @@ function updateGameChips() {
   const g = minigame.type;
   const score = $g("minigame-score");
   const time = $g("minigame-time");
+  if (g.id === "trotito") {
+    const t = minigame.trot || {};
+    const r = TROTITO_RUNNERS.find((x) => x.n === t.pick);
+    // El premio ya está cobrado desde la largada: no se muestra hasta el podio.
+    const hidden = t.phase === "countdown" || t.phase === "race" ? t.payout || 0 : 0;
+    score.innerHTML = `<img src="${GAME_ICON.coin}" alt="Monedas" /> ${Math.max(0, (state.economy?.coins || 0) - hidden)}`
+      + (r && t.phase !== "bet" ? ` · ${t.bet} a Nº${r.n} ${r.name}` : "");
+    time.textContent = gamesUnlimited() ? "Carreras sin límite" : `Carrera ${Math.min((state.daily?.trotitoRaces || 0) + (t.phase === "bet" ? 1 : 0), TROTITO_LIMITS.carrerasPorDia)}/${TROTITO_LIMITS.carrerasPorDia}`;
+    return;
+  }
   if (g.id === "pesca") {
     score.innerHTML = `<img src="${GAME_ICON.fish}" alt="Pescados" /> ${minigame.score} <img src="${GAME_ICON.can}" alt="Latas" /> ${minigame.cans}`
       + (minigame.energy ? ` <img src="${GAME_ICON.energizante}" alt="Energizantes" /> ${minigame.energy}` : "");
