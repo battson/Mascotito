@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="image" href="assets/brand/logo-load.png" />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=4.6.9" />
-  <link rel="stylesheet" href="css/game-interactions.css?v=4.6.9" />
-  <link rel="stylesheet" href="css/games.css?v=4.6.9" />
+  <link rel="stylesheet" href="css/style.css?v=4.6.11" />
+  <link rel="stylesheet" href="css/game-interactions.css?v=4.6.11" />
+  <link rel="stylesheet" href="css/games.css?v=4.6.11" />
 </head>
 <body>
 
@@ -202,7 +202,7 @@
           <span id="inventory-energy-count">0</span>
         </button>
         <!-- Beta v4.6.1: latas de Pesca (chatarra; se venderán más adelante). -->
-        <button id="inventory-can" class="inventory-item" type="button" aria-label="Latas" title="Latas: chatarra de pesca. Más adelante se van a poder vender." data-empty="1" hidden>
+        <button id="inventory-can" class="inventory-item" type="button" aria-label="Latas" title="Latas vacías: chatarra (de Pesca o de energizantes ya tomados). Más adelante se van a poder vender." data-empty="1" hidden>
           <span class="inventory-item-visual">
             <img src="assets/games/fishing/can.svg" alt="" />
           </span>
@@ -226,6 +226,7 @@
       <div id="roulette-wheel" class="roulette-wheel" aria-hidden="true"></div>
       <button id="roulette-spin" type="button" class="games-btn roulette-spin">¡Girar!</button>
       <p id="roulette-status" class="roulette-status" role="status"></p>
+      <div id="roulette-confirm" class="roulette-result roulette-confirm" hidden></div>
       <div id="roulette-result" class="roulette-result" hidden></div>
     </section>
   </div>
@@ -346,7 +347,7 @@
                participantes e indicador efímero de escritura. -->
           <!-- Beta v4.3: botón Contactos (ex Amigos) — ícono SVG del globo,
                sin texto visible; el nombre y el estado quedan accesibles. -->
-          <button id="room-chat-toggle" class="room-chat-toggle play-only" type="button" hidden aria-controls="room-chat-panel" aria-expanded="false">
+          <button id="room-chat-toggle" class="room-chat-toggle play-only" type="button" hidden aria-controls="room-chat-panel" aria-expanded="false" data-tip="Contactos">
             <img class="room-chat-toggle-art" src="assets/ui/phone/contacts.svg" alt="" draggable="false" />
             <span class="room-chat-contact-dot" aria-hidden="true"></span>
             <span class="room-chat-contact-copy sr-only">
@@ -472,6 +473,13 @@
             <img src="assets/shop/moneda.svg" alt="" aria-hidden="true" />
             <strong id="coin-count">0</strong>
           </div>
+          <!-- v4.6.11: recordatorio del giro diario de la ruleta, debajo de
+               las monedas; se ve sólo mientras la tirada gratis de hoy siga
+               sin usarse, y al tocarlo abre la ruleta. -->
+          <button id="roulette-reminder" class="roulette-reminder play-only" type="button" hidden title="Abrir la ruleta diaria">
+            <img class="roulette-reminder-icon" alt="" aria-hidden="true" draggable="false" />
+            <span><b>¡Giro diario!</b> Tenés una tirada gratis</span>
+          </button>
 
           <!-- v3.5: pedido explícito — "quitar cartel de reloj y que las
                notificaciones ocupen ese lugar". #time-card (arriba, con la
@@ -572,6 +580,12 @@
           <section id="game-selector" class="games-window games-picker play-only" hidden aria-label="Juegos">
             <button id="game-selector-close" class="games-close" type="button" aria-label="Cerrar juegos"><img src="assets/ui/games/close.svg" alt="" draggable="false" /></button>
             <div id="game-choices" class="games-panels"></div>
+            <div id="game-pager" class="games-pager" hidden>
+              <button id="game-page-prev" class="games-page-btn" type="button" aria-label="Página anterior de juegos"><img src="assets/ui/inventory/arrow-left.svg" alt="" draggable="false" /></button>
+              <span id="game-page-dots" class="games-page-dots" aria-hidden="true"></span>
+              <span id="game-page-label" class="sr-only" aria-live="polite"></span>
+              <button id="game-page-next" class="games-page-btn" type="button" aria-label="Página siguiente de juegos"><img src="assets/ui/inventory/arrow-right.svg" alt="" draggable="false" /></button>
+            </div>
             <p id="game-selector-note" class="games-note" role="status"></p>
           </section>
           <section id="minigame-panel" class="games-window games-play play-only" hidden aria-labelledby="minigame-title">
@@ -690,21 +704,21 @@
     <div id="debug-panel" class="debug-panel" hidden></div>
   </footer>
 
-  <script src="js/firebase-config.js?v=4.6.9"></script>
-  <script src="js/config.js?v=4.6.9"></script>
-  <script src="js/icons.js?v=4.6.9"></script>
-  <script src="js/manifest.js?v=4.6.9"></script>
-  <script src="js/clothing-manifest.js?v=4.6.9"></script>
-  <script src="js/housing.js?v=4.6.9"></script>
-  <script src="js/shop.js?v=4.6.9"></script>
-  <script src="js/state.js?v=4.6.9"></script>
-  <script src="js/world.js?v=4.6.9"></script>
-  <script type="module" src="js/cloud.js?v=4.6.9"></script>
-  <script type="module" src="js/multiplayer.js?v=4.6.9"></script>
-  <script src="js/shop-ui.js?v=4.6.9"></script>
-  <script src="js/game-interactions.js?v=4.6.9"></script>
-  <script src="js/games.js?v=4.6.9"></script>
-  <script src="js/roulette.js?v=4.6.9"></script>
-  <script src="js/app.js?v=4.6.9"></script>
+  <script src="js/firebase-config.js?v=4.6.11"></script>
+  <script src="js/config.js?v=4.6.11"></script>
+  <script src="js/icons.js?v=4.6.11"></script>
+  <script src="js/manifest.js?v=4.6.11"></script>
+  <script src="js/clothing-manifest.js?v=4.6.11"></script>
+  <script src="js/housing.js?v=4.6.11"></script>
+  <script src="js/shop.js?v=4.6.11"></script>
+  <script src="js/state.js?v=4.6.11"></script>
+  <script src="js/world.js?v=4.6.11"></script>
+  <script type="module" src="js/cloud.js?v=4.6.11"></script>
+  <script type="module" src="js/multiplayer.js?v=4.6.11"></script>
+  <script src="js/shop-ui.js?v=4.6.11"></script>
+  <script src="js/game-interactions.js?v=4.6.11"></script>
+  <script src="js/games.js?v=4.6.11"></script>
+  <script src="js/roulette.js?v=4.6.11"></script>
+  <script src="js/app.js?v=4.6.11"></script>
 </body>
 </html>

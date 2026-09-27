@@ -719,17 +719,16 @@ let walkStridePhase = 0;
 let walkLastTs = null;
 let walkDirection = "right";
 const WALK_PAD = 16;
-const WALK_SPEED_MIN = 38;
-const WALK_SPEED_MAX = 82;
-const RUN_SPEED_MIN = 130;
-const RUN_SPEED_MAX = 170;
-const RUN_HOLD_MS = 180;
+// v4.6.11: se quitó correr (mantener apretado para seguir al puntero); la
+// caminata pasó a la velocidad que tenía correr (antes 38–82 px/s).
+const WALK_SPEED_MIN = 130;
+const WALK_SPEED_MAX = 170;
 const LEG_SWING_MAX_DEG = 28;
 // v4.7: ciclo de paso único para caminar y correr (sólo cambia la
 // velocidad de desplazamiento). Zancada completa cada GAIT_PERIOD_S, brazos
 // opuestos a las piernas, rebote por paso, leve inclinación hacia adelante
 // y balanceo de cabeza. La mascota mira hacia donde camina.
-const GAIT_PERIOD_S = 0.5;
+const GAIT_PERIOD_S = 0.42;   // v4.6.11: paso un poco más ágil para la velocidad nueva (antes 0.5)
 const ARM_SWING_MAX_DEG = 36;
 const GAIT_BOUNCE_PCT = 3;
 const GAIT_LEAN_DEG = 5;
@@ -825,13 +824,9 @@ function startIdle(minMs, maxMs) {
 
 /** ¿Puede caminar sola / responder al click-to-walk ahora mismo? No,
  * mientras duerme, ni mientras está en medio de un cambio de lugar
- * (navLock — ver goToLocation). Tampoco corre si está muy cansada —
- * sigue pudiendo caminar despacio, pero no acelerar. */
+ * (navLock — ver goToLocation). */
 function canWalk() {
   return !!state && !state.sleep.dormida && !navLock && !el.walker?.classList.contains("is-bathing");
-}
-function canRun() {
-  return canWalk() && state.stats.energia > PET_CONFIG.energiaMuyCansadaUmbral;
 }
 
 function pickNewWalkTarget() {
@@ -855,7 +850,7 @@ function publishLocalMovement(animationOverride) {
   const animation = animationOverride || (state.sleep.dormida
     ? "sleeping"
     : walkState === "walking"
-      ? (isRunning ? "running" : "walking")
+      ? "walking"
       : "idle");
   Multiplayer.publishMovement({ xPct, direction: walkDirection, animation });
 }
@@ -950,9 +945,6 @@ function setPointerWalkTarget(clientX) {
   walkTarget = clamp(desired, 0, walkMax);
 }
 
-let isRunning = false;
-let runHoldTimer = null;
-
 function setupClickToWalk() {
   el.stageFloor.addEventListener("pointerdown", (event) => {
     // Los elementos de la escena no deben activar movimiento de fondo.
@@ -962,27 +954,7 @@ function setupClickToWalk() {
     setPointerWalkTarget(event.clientX);
     walkSpeed = WALK_SPEED_MIN + Math.random() * (WALK_SPEED_MAX - WALK_SPEED_MIN);
     walkState = "walking";
-    isRunning = false;
-    clearTimeout(runHoldTimer);
-    runHoldTimer = setTimeout(() => {
-      if (!canRun()) return;
-      isRunning = true;
-      walkSpeed = RUN_SPEED_MIN + Math.random() * (RUN_SPEED_MAX - RUN_SPEED_MIN);
-    }, RUN_HOLD_MS);
   });
-
-  el.stageFloor.addEventListener("pointermove", (event) => {
-    if (!isRunning) return;
-    setPointerWalkTarget(event.clientX);
-  });
-
-  function endHold() {
-    clearTimeout(runHoldTimer);
-    isRunning = false;
-  }
-  el.stageFloor.addEventListener("pointerup", endHold);
-  el.stageFloor.addEventListener("pointercancel", endHold);
-  el.stageFloor.addEventListener("pointerleave", endHold);
 }
 
 // v4.7: saludo ocasional mientras está quieta (ver .is-waving en style.css).
@@ -1856,6 +1828,15 @@ function updateCoinCount() {
   if (!state) return;
   ensureDailyProgress();
   if (el.coinCount) el.coinCount.textContent = String(state.economy.coins || 0);
+  updateRouletteReminder();
+}
+
+/** v4.6.11: aviso debajo de las monedas mientras quede la tirada gratis. */
+function updateRouletteReminder() {
+  const btn = document.getElementById("roulette-reminder");
+  if (!btn || !state) return;
+  const show = !state.daily?.rouletteSpun;
+  if (btn.hidden === show) btn.hidden = !show;
 }
 
 function addBond(amount) {
@@ -2210,6 +2191,19 @@ function stopMouthAnim(stageEl) {
 // (con la clase "speech-bubble-hide" puesta) recién ahí se oculta de
 // verdad, para no cortar la animación a mitad de camino.
 const BUBBLE_FADE_OUT_MS = 420;
+/* v4.6.11: el globo dura según cuánto texto tiene (antes 2,6 s fijos, que
+   no alcanzaban para leer las frases largas). ~15 letras por segundo más
+   un margen para ubicar el globo; nunca menos de lo que pida quien lo
+   muestra ni más de 12 s. */
+const BUBBLE_MIN_MS = 2600;
+const BUBBLE_MS_PER_CHAR = 65;
+const BUBBLE_BASE_MS = 1400;
+const BUBBLE_MAX_MS = 12000;
+function bubbleDuration(text, ms = 0) {
+  const chars = String(text || "").replace(/\s+/g, " ").trim().length;
+  const reading = BUBBLE_BASE_MS + chars * BUBBLE_MS_PER_CHAR;
+  return Math.round(Math.min(BUBBLE_MAX_MS, Math.max(BUBBLE_MIN_MS, ms || 0, reading)));
+}
 let bubbleHideTimer = null;
 let bubbleRemoveTimer = null;
 function showBubble(text, ms) {
@@ -2233,7 +2227,7 @@ function showBubble(text, ms) {
       el.speechBubble.hidden = true;
       el.speechBubble.classList.remove("speech-bubble-hide");
     }, prefersReducedMotion() ? 0 : BUBBLE_FADE_OUT_MS);
-  }, ms || 2600);
+  }, bubbleDuration(text, ms));
 }
 
 function maybeGreet(info) {
@@ -2459,7 +2453,9 @@ function createActionButton({ key, icon, label, id, visualClass }) {
   btn.className = "action-circle action-circle-" + (visualClass || key);
   btn.id = id;
   btn.setAttribute("aria-label", label);
-  btn.title = label;
+  // v4.6.11: nombre visible al pasar el mouse con el cartelito propio
+  // (setupHoverTips), en vez del «title» del navegador.
+  btn.dataset.tip = label;
   btn.innerHTML = actionIconMarkup(icon);
   ring.appendChild(btn);
   wrap.appendChild(ring);
@@ -2501,7 +2497,7 @@ function buildActionsDock() {
     const { wrap, ring, btn, cd, caption } = createActionButton({ key: def.key, icon: def.icon, label: def.label, id: "btn-" + def.key, visualClass: def.visualClass });
     btn.addEventListener("click", def.handler);
     btn.disabled = !!def.disabled;
-    if (def.disabled) { wrap.classList.add("is-disabled"); wrap.title = def.label; }
+    if (def.disabled) { wrap.classList.add("is-disabled"); wrap.dataset.tip = def.label; }
     groups[index < 3 ? 0 : 1].appendChild(wrap);
     if (!def.noCooldown) {
       actionRegistry[def.key] = { btnEl: btn, ringEl: ring, labelEl: cd, captionEl: caption, isFull: def.isFull };
@@ -2607,7 +2603,7 @@ function refreshInventory() {
   if (el.inventoryCan) {
     // Sin latas no ocupa lugar en el cofre (ver renderInventoryPage).
     if (canStock > 0) delete el.inventoryCan.dataset.empty; else el.inventoryCan.dataset.empty = "1";
-    el.inventoryCan.setAttribute("aria-label", `Latas: ${canStock}. Chatarra de pesca; más adelante se va a poder vender.`);
+    el.inventoryCan.setAttribute("aria-label", `Latas vacías: ${canStock}. Chatarra; más adelante se va a poder vender.`);
     document.getElementById("inventory-can-count").textContent = String(canStock);
   }
   const energyStock = Math.max(0, Number(state.inventory?.energizante) || 0);
@@ -3095,8 +3091,81 @@ function updateSleepToggle() {
   }
   const label = dormida ? "Despertar" : "Dormir";
   reg.btnEl.setAttribute("aria-label", label);
-  reg.btnEl.title = label;
+  reg.btnEl.dataset.tip = label;
   if (reg.captionEl) reg.captionEl.textContent = label;
+  refreshHoverTip(reg.btnEl);
+}
+
+// ---------- v4.6.11: nombres sobre los íconos al pasar el mouse ----------
+// Inventario, Ropa, Tienda, Dormir/Despertar, Jugar, Limpiar y Contactos
+// muestran su nombre en un cartelito encima (data-tip). Va en <body> con
+// position: fixed, así no lo recorta la barra de acciones (que en pantallas
+// angostas tiene scroll) ni lo deforma el escenario achicado del celular.
+// Con teclado aparece al enfocar; en pantallas táctiles no se usa.
+let hoverTipEl = null;
+let hoverTipTarget = null;
+function hoverTipFor(node) {
+  return node?.closest?.("[data-tip]") || null;
+}
+function showHoverTip(target) {
+  const text = target?.dataset.tip;
+  if (!text || !target.isConnected || target.closest("[hidden]")) { hideHoverTip(); return; }
+  if (!hoverTipEl) {
+    hoverTipEl = document.createElement("div");
+    hoverTipEl.className = "hover-tip";
+    hoverTipEl.setAttribute("aria-hidden", "true");
+    document.body.appendChild(hoverTipEl);
+  }
+  hoverTipTarget = target;
+  hoverTipEl.textContent = text;
+  const r = target.getBoundingClientRect();
+  if (!r.width) { hideHoverTip(); return; }
+  hoverTipEl.classList.remove("is-below");
+  hoverTipEl.style.left = "0px";
+  hoverTipEl.style.top = "0px";
+  hoverTipEl.hidden = false;
+  const tw = hoverTipEl.offsetWidth;
+  const th = hoverTipEl.offsetHeight;
+  const gap = 8;
+  let top = r.top - th - gap;
+  if (top < 4) { top = r.bottom + gap; hoverTipEl.classList.add("is-below"); }
+  const cx = r.left + r.width / 2;
+  const left = clamp(cx - tw / 2, 4, window.innerWidth - tw - 4);
+  hoverTipEl.style.setProperty("--tip-arrow-x", `${(cx - left).toFixed(1)}px`);
+  hoverTipEl.style.left = `${left.toFixed(1)}px`;
+  hoverTipEl.style.top = `${top.toFixed(1)}px`;
+  hoverTipEl.classList.remove("is-on");
+  void hoverTipEl.offsetWidth;
+  hoverTipEl.classList.add("is-on");
+}
+function hideHoverTip() {
+  hoverTipTarget = null;
+  if (hoverTipEl) { hoverTipEl.hidden = true; hoverTipEl.classList.remove("is-on"); }
+}
+/** Si el cartel está mostrando este botón, actualiza el texto (p. ej. Dormir → Despertar). */
+function refreshHoverTip(target) {
+  if (hoverTipTarget && hoverTipTarget === target && hoverTipEl && !hoverTipEl.hidden) showHoverTip(target);
+}
+function setupHoverTips() {
+  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
+  document.addEventListener("pointerover", (ev) => {
+    if (ev.pointerType === "touch" || !canHover.matches) return;
+    const t = hoverTipFor(ev.target);
+    if (t && t !== hoverTipTarget) showHoverTip(t);
+  });
+  document.addEventListener("pointerout", (ev) => {
+    if (!hoverTipTarget) return;
+    const to = hoverTipFor(ev.relatedTarget);
+    if (to !== hoverTipTarget) hideHoverTip();
+  });
+  document.addEventListener("focusin", (ev) => {
+    const t = hoverTipFor(ev.target);
+    if (t && t.matches(":focus-visible")) showHoverTip(t); else if (!t) hideHoverTip();
+  });
+  document.addEventListener("focusout", () => { if (hoverTipTarget && !hoverTipTarget.matches(":hover")) hideHoverTip(); });
+  document.addEventListener("pointerdown", hideHoverTip, true);
+  window.addEventListener("scroll", hideHoverTip, true);
+  window.addEventListener("resize", hideHoverTip);
 }
 
 // ---------- Alimentar ----------
@@ -3131,7 +3200,8 @@ function doComer(key) {
 
 // ---------- v4.6.4: lata energizante ----------
 // Sube la energía (hasta el tope) y baja la sed. Sin espera entre latas
-// (pedido explícito); se consume del inventario.
+// (pedido explícito); se consume del inventario. v4.6.11: deja una lata
+// vacía (chatarra) en su lugar.
 function doEnergizante() {
   if (!state || state.sleep.dormida) return;
   const stock = Math.max(0, Number(state.inventory?.energizante) || 0);
@@ -3143,12 +3213,16 @@ function doEnergizante() {
   const fx = PET_CONFIG.energizante;
   registerInteraction();
   state.inventory.energizante = stock - 1;
+  // v4.6.11: la lata tomada queda vacía en el cofre, como chatarra (la
+  // misma "lata" que sale en Pesca y en la ruleta).
+  state.inventory.lata = Math.max(0, Number(state.inventory.lata) || 0) + 1;
   playMouthAnim(el.gameStage, "beber", 550);
   state.stats.energia = clamp(state.stats.energia + fx.energia, 0, 100);
   state.stats.hidratacion = clamp(state.stats.hidratacion - fx.sed, 0, 100);
   addBond(1);
   emitRealtimeAction("drink", { item: "energizante" });
   showBubble("¡Pila cargada!");
+  notifySystem("La lata vacía quedó en el cofre como chatarra.");
   trySave(state);
   refreshUI();
   updateCooldownButtons();
@@ -3670,7 +3744,7 @@ function refreshDebugValues() {
     ensureDailyProgress();
     const plays = state.daily?.fishingPlays || 0;
     const wait = isOnCooldown("jugar") ? ` · Penales en ${formatCooldownPhrase(state.cooldowns.jugar - Date.now())}` : " · Penales listo";
-    gamesStatus.textContent = `Pesca hoy: ${plays}/${GAME_LIMITS.pescaPorDia}${wait} · Ruleta ${state.daily?.rouletteSpun ? "ya girada hoy" : "disponible"}`;
+    gamesStatus.textContent = `Pesca hoy: ${plays}/${GAME_LIMITS.pescaPorDia}${wait} · Ruleta ${state.daily?.rouletteSpun ? `gratis ya usada (siguientes: ${ROULETTE_EXTRA_COST})` : "gratis disponible"}`;
   }
   el.debugPanel.querySelectorAll("input[data-need]").forEach((input) => {
     const key = input.dataset.need;
@@ -3969,6 +4043,7 @@ function setupLiteArt() {
   setupArtWindows();
   setupMobileLandscape();
   setupRoulette();
+  setupHoverTips();
   setupMinigames();
   setupGameSelector();
   setupVisibilityRecalc();
@@ -4758,7 +4833,7 @@ function resetRoomChat(room) {
   if (el.roomChatToggle) {
     const contactName = roomChatContactLabel(room);
     el.roomChatToggle.setAttribute("aria-label", `Abrir contactos, mensajes y sala: ${contactName}`);
-    el.roomChatToggle.title = "Contactos";
+    el.roomChatToggle.removeAttribute("title"); // v4.6.11: nombre en el cartelito propio (data-tip)
   }
   if (el.roomChatMessages) el.roomChatMessages.innerHTML = "";
   if (el.roomChatEmpty) { el.roomChatEmpty.textContent = "Todavía no hay mensajes en esta casa."; el.roomChatEmpty.hidden = false; }
@@ -5181,7 +5256,7 @@ function startDirectInboxWatch() {
 function showOwnRoomChatBubble(text) {
   if (!text || state?.sleep?.dormida) return;
   showBubble(text, 3400);
-  playMouthAnim(el.gameStage, "hablar", 3400);
+  playMouthAnim(el.gameStage, "hablar", Math.min(bubbleDuration(text, 3400), 6000));
 }
 
 async function sendCurrentRoomMessage(text) {
@@ -5330,7 +5405,7 @@ function showRemoteBubble(walker, text, ms = 2200) {
       bubble.hidden = true;
       bubble.classList.remove("speech-bubble-hide");
     }, prefersReducedMotion() ? 0 : BUBBLE_FADE_OUT_MS);
-  }, ms);
+  }, bubbleDuration(bubble.textContent, ms));
 }
 
 function scheduleRemoteEffect(walker, key, callback, delay) {

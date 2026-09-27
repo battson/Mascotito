@@ -1,6 +1,7 @@
 /* ==========================================================================
    Beta v4.6.4 — Ruleta diaria
-   Una tirada por día (state.daily.rouletteSpun, se reinicia con la fecha).
+   Una tirada gratis por día (state.daily.rouletteSpun, se reinicia con la
+   fecha); v4.6.11: las siguientes cuestan ROULETTE_EXTRA_COST monedas.
    No se viaja: se abre encima de la casa, como el inventario. Se entra
    desde el tercer recuadro de Minijuegos.
 
@@ -73,6 +74,7 @@ function buildRoulette() {
       <img class="rw-layer rw-disc-art" src="${ROULETTE_ART.wheel}" alt="" draggable="false" />
       ${icons}
     </div>
+    <span class="rw-hub-ring"></span>
     <img class="rw-layer rw-hub" src="${ROULETTE_ART.wheel}" alt="" draggable="false" />
     <img class="rw-pointer" src="${ROULETTE_ART.pointer}" alt="" draggable="false" />`;
   wheel.dataset.ready = "1";
@@ -82,13 +84,37 @@ function rouletteBlockReason() {
   return typeof gameBlockReason === "function" ? gameBlockReason("ruleta") : "";
 }
 
+const ROULETTE_COIN_IMG = '<img class="roulette-coin" src="assets/shop/moneda.svg" alt="" draggable="false" />';
+
+/** v4.6.11: precio de la próxima tirada (0 = la gratis del día). */
+function rouletteNextCost() {
+  return typeof rouletteFreeAvailable === "function" && rouletteFreeAvailable() ? 0 : ROULETTE_EXTRA_COST;
+}
+
+function rouletteCoins() {
+  return Math.max(0, state?.economy?.coins || 0);
+}
+
 function updateRouletteUI() {
   const btn = document.getElementById("roulette-spin");
   const status = document.getElementById("roulette-status");
   if (!btn || !state) return;
   const why = rouletteBlockReason();
-  btn.disabled = rouletteSpinning || !!why;
-  if (status && !rouletteSpinning) status.textContent = why || "Una tirada gratis por día. ¡Suerte!";
+  const cost = rouletteNextCost();
+  const short = cost > 0 && rouletteCoins() < cost;
+  const confirming = !document.getElementById("roulette-confirm")?.hidden;
+  btn.disabled = rouletteSpinning || confirming || !!why || short;
+  btn.classList.toggle("is-paid", cost > 0);
+  btn.innerHTML = cost > 0
+    ? `<span>Girar</span><span class="roulette-price">${ROULETTE_COIN_IMG}<b>${cost}</b></span>`
+    : "<span>¡Girar gratis!</span>";
+  btn.setAttribute("aria-label", cost > 0 ? `Girar la ruleta por ${cost} monedas` : "Girar la ruleta gratis");
+  if (status && !rouletteSpinning) {
+    if (why) status.textContent = why;
+    else if (cost === 0) status.textContent = "La primera tirada del día es gratis. ¡Suerte!";
+    else if (short) status.textContent = `Te faltan ${cost - rouletteCoins()} monedas para otra tirada (cuesta ${cost}).`;
+    else status.textContent = `Ya usaste la tirada gratis de hoy. Cada tirada extra cuesta ${cost} monedas.`;
+  }
 }
 
 function openRoulette() {
@@ -97,6 +123,7 @@ function openRoulette() {
   closeAllMenus?.();
   const overlay = document.getElementById("roulette-overlay");
   document.getElementById("roulette-result").hidden = true;
+  hideRouletteConfirm(false);
   overlay.hidden = false;
   updateRouletteUI();
   (document.getElementById("roulette-spin").disabled ? document.getElementById("roulette-close") : document.getElementById("roulette-spin")).focus();
@@ -106,6 +133,7 @@ function closeRoulette() {
   if (rouletteSpinning) return;          // que termine de girar
   const overlay = document.getElementById("roulette-overlay");
   if (!overlay || overlay.hidden) return;
+  if (!document.getElementById("roulette-confirm")?.hidden) { hideRouletteConfirm(); return; }
   overlay.hidden = true;
   document.getElementById("btn-jugar")?.focus();
 }
@@ -147,15 +175,57 @@ function applyRoulettePrize(prize) {
   return { title: `¡Ganaste ${prize.label}!`, text: prize.id === "lata" ? "Chatarra… pero algún día se va a poder vender." : "" };
 }
 
-function spinRoulette() {
+/* v4.6.11: tiradas pagas. El botón muestra el precio; antes de cobrar se
+   pide confirmación dentro de la misma ventana, y si no alcanzan las
+   monedas el botón queda bloqueado (ver updateRouletteUI). */
+function showRouletteConfirm(cost) {
+  const box = document.getElementById("roulette-confirm");
+  if (!box) return;
+  box.innerHTML = `
+    <div class="roulette-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="roulette-confirm-title" aria-describedby="roulette-confirm-text">
+      <h3 id="roulette-confirm-title">¿Otra tirada?</h3>
+      <p id="roulette-confirm-text">Cuesta <span class="roulette-price">${ROULETTE_COIN_IMG}<b>${cost}</b></span> monedas. Te quedarían ${rouletteCoins() - cost}.</p>
+      <div class="roulette-confirm-actions">
+        <button type="button" class="games-btn roulette-confirm-no" data-roulette-no>No, gracias</button>
+        <button type="button" class="games-btn roulette-confirm-yes" data-roulette-yes>¡Sí, girar!</button>
+      </div>
+    </div>`;
+  box.hidden = false;
+  box.querySelector("[data-roulette-no]").addEventListener("click", () => hideRouletteConfirm());
+  box.querySelector("[data-roulette-yes]").addEventListener("click", () => { hideRouletteConfirm(false); spinRoulette(true); });
+  updateRouletteUI();
+  box.querySelector("[data-roulette-yes]").focus();
+}
+
+function hideRouletteConfirm(refocus = true) {
+  const box = document.getElementById("roulette-confirm");
+  if (!box || box.hidden) return;
+  box.hidden = true;
+  box.innerHTML = "";
+  updateRouletteUI();
+  if (refocus) {
+    const spin = document.getElementById("roulette-spin");
+    (spin && !spin.disabled ? spin : document.getElementById("roulette-close"))?.focus();
+  }
+}
+
+function spinRoulette(confirmed = false) {
   if (rouletteSpinning || !state) return;
   const why = rouletteBlockReason();
   if (why) { updateRouletteUI(); return; }
-  const prize = pickRoulettePrize();
-  // La tirada del día se gasta y el premio se guarda al girar (así no se
-  // puede repetir recargando la página a mitad de la animación).
   ensureDailyProgress();
+  const cost = rouletteNextCost();
+  if (cost > 0) {
+    if (rouletteCoins() < cost) { updateRouletteUI(); return; }
+    if (confirmed !== true) { showRouletteConfirm(cost); return; }
+    state.economy.coins = rouletteCoins() - cost;
+  }
+  const prize = pickRoulettePrize();
+  // La tirada gratis del día (o las monedas) se gastan y el premio se
+  // guarda al girar (así no se puede repetir recargando a mitad de la
+  // animación).
   if (!gamesUnlimited()) state.daily.rouletteSpun = true;
+  updateCoinCount?.();
   const result = applyRoulettePrize(prize);
   trySave(state);
   registerInteraction?.();
@@ -197,8 +267,15 @@ function finishRouletteSpin(prize, result) {
 }
 
 function setupRoulette() {
-  document.getElementById("roulette-spin")?.addEventListener("click", spinRoulette);
+  document.getElementById("roulette-spin")?.addEventListener("click", () => spinRoulette());
   document.getElementById("roulette-close")?.addEventListener("click", closeRoulette);
+  const reminderIcon = document.querySelector("#roulette-reminder .roulette-reminder-icon");
+  if (reminderIcon) reminderIcon.src = liteArt("assets/games/roulette/icon.svg");
+  document.getElementById("roulette-reminder")?.addEventListener("click", () => {
+    if (typeof minigame !== "undefined" && minigame) return;
+    if (typeof gameTrip !== "undefined" && gameTrip) return;
+    openRoulette();
+  });
   const overlay = document.getElementById("roulette-overlay");
   overlay?.addEventListener("click", (ev) => { if (ev.target === overlay) closeRoulette(); });
   document.addEventListener("keydown", (ev) => {

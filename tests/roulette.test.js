@@ -11,10 +11,12 @@ const context = vm.createContext({
   document: { getElementById: () => null, addEventListener() {} },
   addBond: (n) => { bond.xp += n; },
   liteArt: (src) => src,
+  ROULETTE_EXTRA_COST: 25,
+  freeLeft: true,
   console, Math,
 });
-vm.runInContext(`${read("js/roulette.js")}\nthis.api = { ROULETTE_PRIZES, pickRoulettePrize, applyRoulettePrize, setState: (s) => { state = s; } };`.replace("const ROULETTE_ART", "var state;\nconst ROULETTE_ART"), context);
-const { ROULETTE_PRIZES, pickRoulettePrize, applyRoulettePrize, setState } = context.api;
+vm.runInContext(`${read("js/roulette.js")}\nfunction rouletteFreeAvailable() { return freeLeft; }\nthis.api = { ROULETTE_PRIZES, pickRoulettePrize, applyRoulettePrize, rouletteNextCost, setState: (s) => { state = s; } };`.replace("const ROULETTE_ART", "var state;\nconst ROULETTE_ART"), context);
+const { ROULETTE_PRIZES, pickRoulettePrize, applyRoulettePrize, rouletteNextCost, setState } = context.api;
 
 // Probabilidades pedidas: suman 100 y respetan el orden de la tabla.
 assert.equal(ROULETTE_PRIZES.reduce((s, p) => s + p.weight, 0), 100);
@@ -42,4 +44,8 @@ applyRoulettePrize(byId("xp30")); assert.equal(bond.xp, 30);
 applyRoulettePrize(byId("corona")); assert.equal(s.wardrobe.owned.accesorios.corona_1, true); assert.equal(s.economy.coins, 100);
 applyRoulettePrize(byId("corona")); assert.equal(s.economy.coins, 200);
 
-console.log("Ruleta: probabilidades, gajos y premios (incluida la corona repetida) correctos.");
+// v4.6.11: la primera tirada del día es gratis; las siguientes cuestan 25.
+context.freeLeft = true; assert.equal(rouletteNextCost(), 0);
+context.freeLeft = false; assert.equal(rouletteNextCost(), 25);
+
+console.log("Ruleta: probabilidades, gajos, premios (incluida la corona repetida) y precio de las tiradas extra correctos.");

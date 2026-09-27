@@ -34,7 +34,6 @@ ICON = 256
 LITE = {
     "assets/ui/inventory/title-tab.svg": 1136,
     "assets/ui/ficha/ficha.svg": 1100,
-    "assets/ui/games/window-v3.svg": 1396,
     "assets/ui/wardrobe/armario.svg": 1032,
     "assets/games/penalty/field.svg": 1600,
     "assets/games/fishing/lake.svg": 1672,

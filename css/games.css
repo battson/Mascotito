@@ -108,11 +108,13 @@
 }
 
 /* ---------------------------------------------------------------- Selector
-   v4.6.3: ventana-tablet celeste de minijuegos_v2.ai (assets/ui/games/
-   window-v2.svg, 1396 × 1038) con dos recuadros y sólo el ícono de cada
-   juego, sin nombres. La ✕ roja es su propio SVG (close.svg) encima del
-   mismo lugar del dibujo, para poder animarla. Porcentajes medidos sobre
-   el .ai original. */
+   v4.6.10: la ventana-tablet de minijuegos_v2.ai sin recuadros
+   (assets/ui/games/window-v4.svg, 1396 × 1038) y una grilla de 4 × 2
+   recuadros por página (cada uno es el recuadro original del .ai,
+   slot.svg), con flechas y puntitos abajo cuando hay más de 8 juegos
+   (scripts/export-games-v4610.py). Sólo el ícono de cada juego, sin
+   nombres. La ✕ roja es su propio SVG (close.svg). Porcentajes medidos
+   sobre el .ai: la pantalla crema va de x 168 a 1276 y de y 191 a 904. */
 #stage-floor .games-window.games-picker {
   width: min(760px, calc(100% - 48px));
   max-height: none;
@@ -121,7 +123,7 @@
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: url("../assets/ui/games/window-v3.svg") center / 100% 100% no-repeat;
+  background: url("../assets/ui/games/window-v4.svg") center / 100% 100% no-repeat;
   box-shadow: none;
   filter: drop-shadow(0 14px 22px rgba(20, 60, 80, .28));
 }
@@ -135,46 +137,81 @@
   aspect-ratio: auto;
 }
 #stage-floor .games-picker .games-close img { object-fit: contain; }
-#stage-floor .games-panels { position: absolute; inset: 0; }
-/* v4.6.4: tres recuadros (Pesca, Penales y Ruleta) — window-v3.svg. */
-#stage-floor .game-panel {
+/* Grilla: recuadros de 240 × 250 unidades, separados 28 × 24. */
+#stage-floor .games-panels {
   position: absolute;
-  top: 35.3%;
-  width: 21.85%;
-  height: 30.6%;
+  left: 12.32%;
+  top: 19.75%;
+  width: 75.36%;
+  height: 50.48%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 4.58% 2.66%;
+}
+#stage-floor .game-panel {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   padding: 0;
   border: 0;
-  border-radius: 7% / 6%;
-  background: transparent;
+  border-radius: 9% / 8%;
+  background: url("../assets/ui/games/slot.svg") center / 100% 100% no-repeat;
   cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
-  transition: transform .16s ease, background-color .16s ease;
+  transition: transform .16s ease, filter .16s ease;
 }
-#stage-floor .game-panel[data-play="pesca"] { left: 11.96%; }
-#stage-floor .game-panel[data-play="penales"] { left: 38.83%; }
-#stage-floor .game-panel[data-play="ruleta"] { left: 65.69%; }
-#stage-floor .game-panel[data-play="ruleta"] .game-panel-icon { width: 74%; height: 74%; }
-#stage-floor .game-panel:hover:not(.is-blocked) { transform: scale(1.04); background-color: rgba(255, 233, 184, .45); }
+#stage-floor .game-panel-empty { background: url("../assets/ui/games/slot.svg") center / 100% 100% no-repeat; opacity: .45; }
+#stage-floor .game-panel:hover:not(.is-blocked) { transform: scale(1.05); filter: brightness(1.04) drop-shadow(0 4px 0 rgba(90, 58, 34, .18)); }
 #stage-floor .game-panel:active:not(.is-blocked) { transform: scale(.97); }
 #stage-floor .game-panel:focus-visible { outline: 4px solid #3fb6d9; outline-offset: 3px; }
 #stage-floor .game-panel.is-blocked { cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
 #stage-floor .game-panel.is-blocked .game-panel-icon { filter: grayscale(.85); opacity: .45; }
 #stage-floor .game-panel-icon {
-  width: 62%;
-  height: 62%;
+  width: 70%;
+  height: 70%;
   object-fit: contain;
   pointer-events: none;
   transition: transform .2s ease;
 }
+#stage-floor .game-panel[data-play="ruleta"] .game-panel-icon { width: 78%; height: 78%; }
 #stage-floor .game-panel:hover:not(.is-blocked) .game-panel-icon { transform: rotate(-6deg) scale(1.06); }
+/* Páginas: flechas del inventario y un puntito por página. */
+#stage-floor .games-pager {
+  position: absolute;
+  left: 50%;
+  top: 71.6%;
+  height: 7.5%;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  transform: translateX(-50%);
+}
+#stage-floor .games-pager[hidden] { display: none; }
+#stage-floor .games-page-btn {
+  height: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: url("../assets/ui/cursors/pointer.png") 8 1, pointer; cursor: -webkit-image-set(url("../assets/ui/cursors/pointer.png") 1x, url("../assets/ui/cursors/pointer@2x.png") 2x) 8 1, pointer;
+  transition: transform .15s ease;
+}
+#stage-floor .games-page-btn img { width: 100%; height: 100%; object-fit: contain; display: block; }
+#stage-floor .games-page-btn:hover:not(:disabled) { transform: scale(1.1); }
+#stage-floor .games-page-btn:disabled { opacity: .3; cursor: url("../assets/ui/cursors/not-allowed.png") 2 1, not-allowed; cursor: -webkit-image-set(url("../assets/ui/cursors/not-allowed.png") 1x, url("../assets/ui/cursors/not-allowed@2x.png") 2x) 2 1, not-allowed; }
+#stage-floor .games-page-btn:focus-visible { outline: 3px solid #3fb6d9; outline-offset: 2px; border-radius: 8px; }
+#stage-floor .games-page-dots { display: flex; gap: 8px; }
+#stage-floor .games-page-dots i { width: 11px; height: 11px; border-radius: 50%; background: #e2cfa6; box-shadow: inset 0 0 0 2px #c9a86a; }
+#stage-floor .games-page-dots i.is-current { background: #3fb6d9; box-shadow: inset 0 0 0 2px #1f86a6; }
 #stage-floor .games-picker .games-note {
   position: absolute;
   left: 50%;
-  bottom: 17%;
+  bottom: 12.5%;
   width: 70%;
   margin: 0;
   min-height: 0;
@@ -221,6 +258,49 @@
 #stage-floor .games-action.is-hot { animation: gamesHot .7s ease-in-out infinite alternate; }
 @keyframes gamesHot { to { box-shadow: inset 0 -4px 0 #e5ab25, 0 3px 0 #a8740f, 0 0 0 6px rgba(255, 224, 82, .45); } }
 
+/* v4.6.11: el botón de Pesca cambia de aspecto según el momento, para que
+   «tantean» y «picó» se distingan de un vistazo (sin leer la indicación). */
+#stage-floor .games-action[data-mode] { transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease; }
+#stage-floor .games-action[data-mode="wait"] {
+  border-color: #3a8fb5;
+  background: linear-gradient(#eef9fd, #bfe4f3);
+  box-shadow: inset 0 -4px 0 #97cfe6, inset 0 3px 0 rgba(255, 255, 255, .7), 0 3px 0 #2c7597;
+  color: #22546b;
+}
+#stage-floor .games-action[data-mode="nibble"] {
+  border-color: #d9822b;
+  background: linear-gradient(#ffe7bf, #ffbe6e);
+  box-shadow: inset 0 -4px 0 #f0a14a, inset 0 3px 0 rgba(255, 255, 255, .6), 0 3px 0 #a85d17;
+  color: #6a3510;
+  animation: fsBtnNibble .65s ease-in-out;
+}
+#stage-floor .games-action[data-mode="bite"] {
+  border-color: #2f8a1a;
+  background: linear-gradient(#c9f78f, #6fd13f);
+  box-shadow: inset 0 -4px 0 #4fae27, inset 0 3px 0 rgba(255, 255, 255, .6), 0 3px 0 #276f14, 0 0 0 6px rgba(126, 224, 74, .45);
+  color: #173f08;
+  font-weight: 900;
+  letter-spacing: .02em;
+  animation: fsBtnBite .38s ease-in-out infinite alternate;
+}
+@keyframes fsBtnNibble {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-5px) rotate(-2deg); }
+  45% { transform: translateX(4px) rotate(1.5deg); }
+  70% { transform: translateX(-3px) rotate(-1deg); }
+}
+@keyframes fsBtnBite {
+  from { transform: scale(1.08); box-shadow: inset 0 -4px 0 #4fae27, inset 0 3px 0 rgba(255, 255, 255, .6), 0 3px 0 #276f14, 0 0 0 4px rgba(126, 224, 74, .35); }
+  to { transform: scale(1.18); box-shadow: inset 0 -4px 0 #4fae27, inset 0 3px 0 rgba(255, 255, 255, .6), 0 3px 0 #276f14, 0 0 0 12px rgba(126, 224, 74, .5); }
+}
+/* «!» sobre la bocha cuando pica de verdad. */
+#stage-floor .fs-alert { opacity: 0; pointer-events: none; }
+#stage-floor [data-phase="bite"] .fs-alert { opacity: 1; }
+#stage-floor .fs-alert-pop { transform-box: fill-box; transform-origin: 50% 100%; }
+#stage-floor [data-phase="bite"] .fs-alert-pop { animation: fsAlertPop .3s cubic-bezier(.3, 1.8, .5, 1) both, fsAlertWiggle .5s ease-in-out .3s infinite alternate; }
+@keyframes fsAlertPop { from { transform: scale(.2); } to { transform: scale(1); } }
+@keyframes fsAlertWiggle { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+
 /* ----------------------------------------------------------- Pesca (v4.6.1)
    El lago mide 1672 × 941; todo lo de la escena se ubica en % de ese lienzo. */
 /* El área de juego sigue en 2:1 (entra en pantallas bajas): el lago, más
@@ -263,6 +343,10 @@
 /* El brazo derecho sostiene la caña: brazo, manga y caña giran juntos desde el hombro. */
 #stage-floor .fs-pet #brazo-der { animation: none; transform: rotate(-55deg); }
 #stage-floor .fs-pet .ropa-brazo-der { animation: none; transform: rotate(-55deg) scale(1.14); }
+/* v4.6.11: el brazo libre también lo mueve js/games.js (fishingApplyPose),
+   así se anima igual con «movimiento reducido» o en el modo liviano. */
+#stage-floor .fs-pet #brazo-izq { animation: none !important; }
+#stage-floor .fs-pet .ropa-brazo-izq { animation: none !important; }
 #stage-floor .fs-rod-arm { transform-origin: 221.2px 198.8px; }
 #stage-floor .fs-paw { fill: var(--pet-body-color, #6cb9dd); stroke: rgba(0, 0, 0, .08); stroke-width: 3; }
 
@@ -539,6 +623,8 @@
   #stage-floor .fs-ripple,
   #stage-floor .fs-catch,
   #stage-floor .games-action.is-hot,
+  #stage-floor .games-action[data-mode],
+  #stage-floor [data-phase="bite"] .fs-alert-pop,
   #stage-floor .pk-aim .pk-aim-ring { animation: none; }
 }
 
@@ -604,7 +690,28 @@
   will-change: transform;
 }
 .roulette-wheel .rw-disc-art { clip-path: circle(39.55% at 50% 49.88%); }
-.roulette-wheel .rw-hub { clip-path: circle(7.3% at 49.97% 50.11%); }
+/* v4.6.11: el botón central del dibujo no es concéntrico con el disco (su
+   centro está ~5 px más abajo, medido sobre los 1254 px de ruleta.ai), así
+   que el recorte viejo (circle 7.3%) cortaba el aro oscuro de un lado y
+   dejaba ver un filo de gajo del otro, y al girar asomaba la copia del aro
+   que lleva el disco. Ahora: un aro liso (.rw-hub-ring) centrado en el eje
+   de giro, que tapa esa copia, y encima la moneda recortada dentro de su
+   propio aro (centro 627.4, 630.5 · radio 84) y corrida al eje de giro. */
+.roulette-wheel .rw-hub-ring {
+  position: absolute;
+  left: 50%;
+  top: 49.88%;
+  width: 15.5%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #040a2e;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.roulette-wheel .rw-hub {
+  clip-path: circle(6.7% at 50.03% 50.28%);
+  transform: translate(-.03%, -.4%);
+}
 .roulette-wheel .rw-pointer {
   position: absolute;
   left: 41%;
@@ -700,8 +807,60 @@
   .roulette-result-card { animation: none; }
 }
 
-/* v4.6.6: en celulares y tablets, la ventana de minijuegos en su copia WebP. */
-html.is-lite #stage-floor .games-window.games-picker { background-image: url("../assets/lite/ui/games/window-v3.webp"); }
+/* v4.6.11: tiradas pagas — precio en el botón y confirmación. */
+.roulette-spin.games-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.roulette-price { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.roulette-price .roulette-coin { width: 1.15em; height: 1.15em; object-fit: contain; filter: drop-shadow(0 1px 0 rgba(90, 50, 10, .35)); }
+.roulette-spin .roulette-price {
+  padding: 1px 10px 2px 6px;
+  border-radius: 999px;
+  background: rgba(120, 65, 13, .16);
+  box-shadow: inset 0 1px 2px rgba(80, 40, 10, .25);
+}
+.roulette-confirm { background: none; }
+.roulette-confirm-card {
+  width: min(370px, 94%);
+  padding: 16px 20px 18px;
+  border: 5px solid #c98f14;
+  border-radius: 26px;
+  background: #fffbf0;
+  box-shadow: inset 0 0 0 6px #fbe7a6, 0 14px 30px rgba(20, 30, 50, .35);
+  text-align: center;
+  animation: rouletteWin .35s cubic-bezier(.2, 1.4, .4, 1);
+}
+.roulette-confirm-card h3 {
+  margin: 2px 0 6px;
+  font: 900 26px/1.1 "Baloo 2", sans-serif;
+  color: #ffe052;
+  -webkit-text-stroke: 3px #78410d;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #512a0c;
+}
+.roulette-confirm-card p { margin: 0 0 12px; font: 700 16px/1.4 "Baloo 2", sans-serif; color: #7a5a3a; }
+.roulette-confirm-card p .roulette-price b { color: #4b331d; font-weight: 900; }
+.roulette-confirm-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.roulette-confirm-card p .roulette-price { vertical-align: -3px; }
+.roulette-confirm-card .games-btn {
+  padding: 8px 14px 9px;
+  white-space: nowrap;
+  border-radius: 16px;
+  font: 800 17px/1.1 "Baloo 2", sans-serif;
+}
+.roulette-confirm-card .roulette-confirm-yes {
+  border: 3px solid #c98f14;
+  background: linear-gradient(#ffe27a, #f7c843);
+  box-shadow: inset 0 -4px 0 #e5ab25, 0 3px 0 #a8740f;
+  color: #4b331d;
+}
+.roulette-confirm-card .roulette-confirm-no {
+  border: 3px solid #b99a74;
+  background: linear-gradient(#fffaf0, #efe3cf);
+  box-shadow: inset 0 -4px 0 #dccbb0, 0 3px 0 #9c7d58;
+  color: #6b4a2a;
+}
+@media (prefers-reduced-motion: reduce) { .roulette-confirm-card { animation: none; } }
+
+/* v4.6.10: la ventana de minijuegos nueva (window-v4.svg, 42 KB) ya es liviana: no lleva copia WebP. */
 /* v4.6.6: en celulares, cada parte de la Pesca en su propia capa: el lago
    no se repinta cuando se mueven la mascota, la caña o el hilo. */
 html.is-lite #stage-floor .fs-lake,

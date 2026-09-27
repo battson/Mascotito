@@ -12,8 +12,8 @@ const context = vm.createContext({
   clamp: (v, a, b) => Math.min(b, Math.max(a, v)),
   console,
 });
-vm.runInContext(`${read("js/config.js")}\n${read("js/games.js")}\nthis.api = { PET_CONFIG, PENALTY_SCENE, PK_POWER, penaltyTarget, keeperPlan, resetMinigameCounters, gamesUnlimited };`, context);
-const { PET_CONFIG, PENALTY_SCENE: S, PK_POWER, penaltyTarget, keeperPlan, resetMinigameCounters, gamesUnlimited } = context.api;
+vm.runInContext(`${read("js/config.js")}\n${read("js/games.js")}\nthis.api = { PET_CONFIG, PENALTY_SCENE, PK_POWER, penaltyTarget, keeperPlan, resetMinigameCounters, gamesUnlimited, GAMES, fishingPickCatch, gameBlockReason, ROULETTE_EXTRA_COST };`, context);
+const { PET_CONFIG, PENALTY_SCENE: S, PK_POWER, penaltyTarget, keeperPlan, resetMinigameCounters, gamesUnlimited, GAMES, fishingPickCatch, gameBlockReason, ROULETTE_EXTRA_COST } = context.api;
 
 // Moscas: 4 / 3 / 2 / 1 / 0 según la higiene.
 const flies = (h) => { for (const t of PET_CONFIG.moscas.tramos) if (h < t.hasta) return t.moscas; return 0; };
@@ -48,4 +48,14 @@ assert.equal(fake.daily.fishingPlays, 0);
 assert.equal(fake.cooldowns.jugar, 0);
 assert.equal(gamesUnlimited(), false);
 
-console.log("Juegos: moscas por higiene, puntería/potencia de Penales, IA fácil y modo prueba correctos.");
+// v4.6.11: Pesca — 78 % pescado, 17 % lata, 5 % energizante (±0,6 %).
+const odds = GAMES.pesca.catchOdds;
+assert.ok(Math.abs(Object.values(odds).reduce((a, b) => a + b, 0) - 1) < 1e-9);
+const caught = {};
+for (let i = 0; i < 100000; i++) { const it = fishingPickCatch(odds); caught[it] = (caught[it] || 0) + 1; }
+for (const [id, w] of Object.entries(odds)) assert.ok(Math.abs(caught[id] / 1000 - w * 100) < 0.6, `${id}: ${caught[id] / 1000}`);
+// v4.6.11: la ruleta ya no se bloquea tras la tirada gratis (las demás se pagan).
+assert.equal(gameBlockReason("ruleta"), "");
+assert.equal(ROULETTE_EXTRA_COST, 25);
+
+console.log("Juegos: moscas por higiene, puntería/potencia de Penales, IA fácil, modo prueba, pesca con energizante y ruleta paga correctos.");

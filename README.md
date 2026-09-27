@@ -1,5 +1,29 @@
 # Mascotito Beta
 
+## Beta v4.6.11 — Ruleta paga, pesca más clara y caminar sincronizado
+
+- **Ruleta con costo:** la primera tirada del día sigue gratis («¡Girar gratis!»); las siguientes cuestan **25 monedas** (`ROULETTE_EXTRA_COST` en `js/games.js`). El botón muestra el precio con la moneda, antes de cobrar pide confirmación dentro de la misma ventana («¿Otra tirada?», con cuánto te quedaría) y, si no alcanzan las monedas, queda bloqueado y dice cuántas faltan. La ruleta ya no se apaga en Minijuegos después de la tirada gratis.
+- **Aviso del giro diario:** mientras no hayas usado la tirada gratis del día aparece un cartelito «¡Giro diario! Tenés una tirada gratis» debajo de las monedas; al tocarlo abre la ruleta. Se va solo cuando girás y vuelve al día siguiente. No se muestra de visita ni durante un minijuego.
+- **Círculo central de la ruleta:** el botón del dibujo no está centrado con el disco (queda ~5 px más abajo sobre los 1254 px de `ruleta.ai`), así que el recorte circular viejo cortaba el aro oscuro de un lado y dejaba ver un filo de gajo del otro (y al girar asomaba la copia del aro que lleva el disco). Ahora hay un aro liso centrado en el eje de giro y encima la moneda recortada dentro de su propio aro (medido sobre el dibujo) y corrida al eje.
+- **Lata energizante → chatarra:** al tomar una lata energizante queda una **lata vacía** en el cofre (la misma chatarra que sale en Pesca y en la ruleta).
+- **Pesca:**
+  - **La mascota se volvió a mover.** Con «movimiento reducido» activo (en Windows: «Efectos de animación» apagados) la pose se quedaba fija toda la partida, incluso al lanzar y recoger. Lanzar, picar y recoger ahora se animan siempre (con movimiento reducido sólo se suaviza el vaivén de reposo), el vaivén de reposo es un poco más marcado y el brazo libre también se mueve (se mece en reposo, contrapesa al lanzar/recoger y se agita cuando pica).
+  - **Tantean vs. picó, de un vistazo:** el botón cambia según el momento — celeste «Esperá…» mientras flota, ámbar «¡Todavía no!» con un temblor cuando tantean, y verde, grande y latiendo «¡PESCÁ YA!» cuando pica, con un **«!»** sobre la bocha. Las indicaciones son más cortas («Tantean… ¡todavía no!», «¡Picó! ¡Ahora!»).
+  - **Chance chica de pescar una lata energizante** (5 %): lo que sale al enganchar es 78 % pescado, 17 % lata y 5 % energizante (`catchOdds` en `GAMES.pesca`). Se ve en el contador de la partida, en el cartel («¡Un energizante!») y en el resultado, y va al inventario.
+- **Caminar:** se quitó **correr** (mantener apretado para que siga al puntero). Caminar va ahora a la velocidad que tenía correr (130–170 px/s, antes 38–82), con un paso un poco más ágil. **Patas, pantalón y calzado sincronizados:** las piernas se suavizaban con otra curva que la ropa y quedaban hasta ~7° desfasadas; mientras camina ya no llevan transición (JS las mueve cuadro a cuadro con el mismo ángulo) y al frenar vuelven juntas.
+- **Nombres sobre los íconos:** al pasar el mouse sobre Inventario, Ropa, Tienda, Dormir/Despertar, Jugar, Limpiar y Contactos aparece un cartelito con el nombre (crema con borde marrón y colita), en vez del título del navegador. Con teclado aparece al enfocar; en pantallas táctiles no. Para sumar otro alcanza con ponerle `data-tip="Nombre"` (`setupHoverTips` en `js/app.js`).
+- **Globo de charla rediseñado:** mismo lenguaje que la ficha y las notificaciones (relleno crema verdoso, borde interno claro, trazo verde oliva, brillito y colita con borde) en vez de la elipse de borde fino; aparece con un saltito. **Dura según el texto:** ~1,4 s + 65 ms por letra, entre 2,6 y 12 s (`bubbleDuration`), también en los globos de los demás jugadores y en el chat.
+- **Pendientes:** v4.6.12 = minijuego de carreras; en v4.7 se suma «Comidas y bebidas: frutas y más latas con efectos».
+- Pruebas: `tests/games.test.js` (probabilidades de la pesca, ruleta sin bloqueo) y `tests/roulette.test.js` (precio de la tirada extra). Versión en `?v=4.6.11`.
+
+## Beta v4.6.10 — Ventana de Minijuegos con páginas
+
+- La ventana-tablet de Minijuegos ahora tiene **recuadros más chicos: 8 por página (4 × 2)**. Cuando haya más de 8 juegos aparecen abajo las flechas (las mismas del inventario) y un puntito por página; con una sola página no se muestran. También se puede pasar de página con RePág/AvPág.
+- Los lugares libres de la página se ven como recuadros vacíos, más tenues, para que la grilla quede completa.
+- Arte: la tablet sin recuadros (`assets/ui/games/window-v4.svg`) y el recuadro original del .ai, solo (`assets/ui/games/slot.svg`), que cada juego usa de fondo; ambos pasados directo desde `minijuegos_v2.ai` con `scripts/export-games-v4610.py`. `window-v3.svg` (la de tres recuadros) ya no se usa.
+- Para sumar un juego alcanza con agregarlo a `GAMES` y a `GAME_PANEL_ICON` en `js/games.js`: entra solo en el próximo lugar libre.
+- Versión en `?v=4.6.10`.
+
 ## Beta v4.6.9 — Ruleta nueva (hotfix)
 
 - **Ruleta rediseñada** con `ruleta.ai` (la ruleta vacía) y `puntero_ruleta.ai` (la flecha). Los .ai son vectoriales: se pasaron directo a SVG, sin trazar (`scripts/export-roulette-v469.py`; se sacó una imagen suelta de 1 px que traían escondida y se redondearon coordenadas para que pesen menos): `assets/games/roulette/wheel-v2.svg`, `pointer.svg` e `icon.svg` (ruleta + flecha, para el recuadro de Minijuegos).
