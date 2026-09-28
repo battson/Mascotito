@@ -1,12 +1,24 @@
 # Mascotito Beta
 
+## Beta v4.6.12 — Hotfix 1
+
+- **Ojos 5 y 6:** al seguir el mouse se movía el ojo entero (estaban marcados como «sin pupila», igual que el 2). Ahora cada uno tiene su pupila (`#pupila-izq/der`) y es la que sigue al mouse: en el 6 se mueve el iris completo; en el 5, como el iris ocupa casi todo el ojo, se mueve la pupila con sus brillos, un poco menos (`PET_EYE_CENTERS_BY_OJOS` en `js/manifest.js`).
+- **Ventana:** las nubes quedan quietas y ya no hay diferencia de día/noche (la escena queda siempre de día; `isNightNow` sigue en el código por si se quiere volver).
+- **Minijuegos:** cada recuadro muestra su nombre al pasar el mouse (Pesca, Penales, Trotito, Ruleta diaria), con el mismo cartelito que Inventario, Ropa, Jugar, etc.
+- **Trotito:**
+  - **Pista nueva dibujada a mano en vectores** (`scripts/draw-trotito-track-v4612.py`): cielo con nubes, árboles, tribuna de techos celestes con **público de conejitos**, banderines con huellita, cerca, arbustos y flores, carriles numerados, salida blanca y meta a cuadros con sus banderas. **Sin los carteles de SALIDA y META.** Pesa 118 KB (la trazada pesaba 745 KB).
+  - **Corredores distintos:** Pompón queda igual (blanco); **Rayo** gris perla, **Canela** color canela clarito y **Trébol** con manchas marrones (cabeza y lomo). Se hizo en el mismo `run.svg`: el pelaje usa `--fur` y las manchas `--spots`.
+  - **Sombra** justo donde terminan las patas en la pose parada (antes quedaba más abajo); también en el podio.
+  - **Podio:** corredores más grandes y apoyados sobre su escalón, **los tres contentos** (se sacó la cara triste del 3º) y fondo **crema con rayos suaves y sombras** en vez del celeste liso.
+- Versión en `?v=4.6.12-h1`.
+
 ## Beta v4.6.12 — Trotito (carreras con apuestas)
 
 - **Minijuego nuevo: Trotito.** En Minijuegos aparece su recuadro con el ícono de `Trotito_icon.ai`. Se viaja a la pista («Viajando a la pista...») y:
   1. **Apuesta:** se elige uno de los **4 trotitos** — Nº1 Pompón (azul, **×2**), Nº2 Rayo (rojo, **×3**), Nº3 Trébol (verde, **×4**) y Nº4 Canela (amarillo, **×6**) — y cuánto apostar: **10, 25, 50 o 100 monedas** (los montos que no alcanzan quedan apagados). Abajo dice cuánto cobrarías. Se cobra **sólo si sale 1º** (apuesta × cuota).
   2. **Carrera:** cuenta regresiva 3-2-1-¡YA!, los cuatro corren por su carril con la animación del sprite (6 cuadros, más rápidos cuanto más rápido van) y hay adelantos y remontadas hasta la meta. El tuyo lleva un cartelito «VOS».
   3. **¡Alentar!:** botón abajo, del color de tu trotito («¡Vamos, Rayo!»). Es **sólo festejo**: tu trotito da un saltito y salen corazones y un «¡Vamos!/¡Dale!/¡Corré!». No cambia el resultado.
-  4. **Podio:** fondo liso (sin el estadio), confeti animado cayendo y los tres primeros sobre su escalón — 1º y 2º contentos (saltando), 3º triste (boca para abajo, ceja caída y una lágrima). Tarjeta con el resultado (premio o apuesta perdida, +2 de experiencia) y «Otra carrera» / «Volver a casa».
+  4. **Podio:** fondo liso (sin el estadio), confeti animado cayendo y los tres primeros sobre su escalón — 1º y 2º contentos (saltando), 3º triste (boca para abajo, ceja caída y una lágrima; se sacó en el hotfix 1). Tarjeta con el resultado (premio o apuesta perdida, +2 de experiencia) y «Otra carrera» / «Volver a casa».
 - **Reglas:** hasta **5 carreras por día** (se cuenta al largar, no al entrar). Hace falta tener al menos 10 monedas. La mascota mira, así que no gasta energía; sólo bloquea estar dormida. Probabilidad real de ganar: 42 % / 28 % / 20 % / 10 %. Todo en `TROTITO_RUNNERS`, `TROTITO_BETS`, `TROTITO_LIMITS` y `TROTITO_REWARDS` (`js/trotito.js`), para ajustarlo con la economía de v4.7.
 - **Sin trampas:** el resultado se sortea y se paga al largar (como la ruleta). Salir a mitad de carrera o recargar no cambia nada; el saldo de arriba no muestra el premio hasta el podio.
 - **Arte** (`scripts/export-trotito-v4612.py`, en `assets/games/trotito/`):

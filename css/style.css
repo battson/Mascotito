@@ -3810,8 +3810,9 @@ body:has(#game:not([hidden])) .app-footer { display:none; }
 .housing-cloud-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .housing-window-clouds { position: absolute; overflow: hidden; pointer-events: none; }
 .housing-window-cloud-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
-.housing-window-cloud-layer.cloud-one { animation: windowCloudDriftOne 14s ease-in-out infinite alternate; }
-.housing-window-cloud-layer.cloud-two { animation: windowCloudDriftTwo 19s ease-in-out infinite alternate; }
+/* v4.6.12 hotfix 1 (pedido): la ventana ya no se anima — nubes quietas. */
+.housing-window-cloud-layer.cloud-one,
+.housing-window-cloud-layer.cloud-two { animation: none; will-change: auto; }
 .stage-floor.is-night .housing-window-sky { fill: #1a3458; }
 .stage-floor.is-night .housing-window-horizon { fill: #294e73; }
 .stage-floor.is-night .housing-window-cloud { fill: #bacde4; opacity: .72; }

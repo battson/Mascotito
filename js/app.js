@@ -1933,7 +1933,10 @@ function updateClock() {
   // hora + Mañana/Tarde/Noche); sólo queda el cálculo de día/noche para
   // la escena (.is-night sobre #stage-floor sigue vivo). El reloj del
   // encabezado (#header-clock) también ya no existe.
-  if (el.stageFloor) el.stageFloor.classList.toggle("is-night", isNightNow(now));
+  // v4.6.12 hotfix 1 (pedido): sin diferencia día/noche — la escena queda
+  // siempre de día (isNightNow queda por si se quiere volver a usar).
+  void now;
+  if (el.stageFloor) el.stageFloor.classList.remove("is-night");
 }
 
 function setupClock() {

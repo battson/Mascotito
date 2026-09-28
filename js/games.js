@@ -341,7 +341,7 @@ function renderGameCards() {
   gamesPage = Math.min(Math.max(0, gamesPage), pages - 1);
   const list = Object.values(GAMES).slice(gamesPage * GAMES_PER_PAGE, (gamesPage + 1) * GAMES_PER_PAGE);
   box.innerHTML = list.map((g) => `
-    <button type="button" class="game-panel" data-play="${g.id}">
+    <button type="button" class="game-panel" data-play="${g.id}" data-tip="${g.title}">
       <img class="game-panel-icon" src="${GAME_PANEL_ICON[g.id] || ""}" alt="" draggable="false" />
       <span class="sr-only">${g.title}</span>
     </button>`).join("")
@@ -376,7 +376,7 @@ function updateGameCards() {
     const status = why || gameStatusText(id);
     btn.classList.toggle("is-blocked", !!why);
     btn.setAttribute("aria-disabled", String(!!why));
-    btn.title = status;
+    // v4.6.12 hotfix 1: el nombre va en el cartelito propio (data-tip).
     btn.setAttribute("aria-label", `${GAMES[id].title}. ${status}`);
   });
   const note = $g("game-selector-note");

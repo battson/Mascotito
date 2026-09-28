@@ -1002,32 +1002,41 @@ html.is-lite #stage-floor .fs-fx { will-change: transform; }
 #stage-floor .trot-podium {
   position: absolute; inset: 0; z-index: 6;
   overflow: hidden;
-  background: #cdebf8;
+  /* Hotfix 1: fondo crema con sombras (antes celeste liso): rayos suaves
+     desde arriba, viñeta cálida en los bordes y una sombra en el piso. */
+  background:
+    radial-gradient(ellipse 46% 9% at 50% 97%, rgba(120, 80, 30, .22), transparent 70%),
+    radial-gradient(ellipse 80% 70% at 50% 42%, rgba(255, 252, 240, 0) 55%, rgba(196, 150, 90, .28) 100%),
+    repeating-conic-gradient(from 0deg at 50% 18%, rgba(255, 255, 255, .45) 0deg 7deg, rgba(255, 255, 255, 0) 7deg 16deg),
+    linear-gradient(#fff6e2, #f7e6c4 70%, #efd7aa);
   animation: gamesIn2 .3s ease-out;
 }
 #stage-floor .trot-podium[hidden] { display: none; }
 #stage-floor .trot-podium-stage {
-  position: absolute; left: 50%; bottom: 3%;
-  width: min(760px, 62%);
+  position: absolute; left: 50%; bottom: 1.5%;
+  width: min(720px, 56%);
   aspect-ratio: 1400 / 343;
   transform: translateX(-50%);
+  filter: drop-shadow(0 10px 14px rgba(110, 70, 25, .25));
 }
 #stage-floor .trot-podium-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Corredores más grandes, apoyados sobre la cara de arriba de su escalón
+   (las patas del cuadro parado terminan en y 368 de 385: el margen
+   negativo baja el dibujo para que pisen justo). */
 #stage-floor .trot-podium-runner {
-  position: absolute; bottom: 100%;
-  width: 21%;
+  position: absolute;
+  width: 29%;
   display: grid; justify-items: center;
   transform: translateX(-50%);
 }
-#stage-floor .trot-podium-runner svg { width: 100%; aspect-ratio: 472 / 385; overflow: visible; }
-/* Tope de cada escalón, en % del podio (1400 × 343): 2º 20 % / 18 %,
-   1º 50 % / 1 %, 3º 80 % / 36 %. */
-#stage-floor .trot-podium-runner[data-place="1"] { left: 50%; bottom: 96%; width: 23%; }
-#stage-floor .trot-podium-runner[data-place="2"] { left: 20.3%; bottom: 79%; }
-#stage-floor .trot-podium-runner[data-place="3"] { left: 79.7%; bottom: 61%; }
-#stage-floor .trot-podium-runner[data-place="1"] svg { animation: trotJoy .9s ease-in-out infinite; }
-#stage-floor .trot-podium-runner[data-place="2"] svg { animation: trotJoy 1.1s ease-in-out .2s infinite; }
-@keyframes trotJoy { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-12%); } 60% { transform: translateY(-9%); } }
+#stage-floor .trot-podium-runner svg { width: 100%; aspect-ratio: 472 / 385; overflow: visible; margin-bottom: -3.6%; }
+#stage-floor .trot-podium-runner[data-place="1"] { left: 49%; bottom: 94%; width: 32%; }
+#stage-floor .trot-podium-runner[data-place="2"] { left: 19.5%; bottom: 76%; }
+#stage-floor .trot-podium-runner[data-place="3"] { left: 79%; bottom: 58%; }
+#stage-floor .trot-podium-runner[data-place="1"] svg :is(use, .trot-num) { animation: trotJoy .9s ease-in-out infinite; }
+#stage-floor .trot-podium-runner[data-place="2"] svg :is(use, .trot-num) { animation: trotJoy 1.1s ease-in-out .2s infinite; }
+#stage-floor .trot-podium-runner[data-place="3"] svg :is(use, .trot-num) { animation: trotJoy 1.3s ease-in-out .45s infinite; }
+@keyframes trotJoy { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10%); } 60% { transform: translateY(-7%); } }
 #stage-floor .trot-podium-name {
   order: -1;
   margin-bottom: 2px; padding: 1px 12px 2px;
@@ -1038,9 +1047,9 @@ html.is-lite #stage-floor .fs-fx { will-change: transform; }
   box-shadow: 0 2px 0 rgba(0, 0, 0, .15);
 }
 #stage-floor .trot-podium-card {
-  position: absolute; left: 50%; top: 20px; z-index: 2;
-  width: min(420px, 88%);
-  padding: 10px 22px 12px;
+  position: absolute; left: 50%; top: 16px; z-index: 2;
+  width: min(400px, 88%);
+  padding: 8px 20px 10px;
   border: 4px solid var(--g-line);
   border-radius: 24px;
   background: #fffdf3;
@@ -1079,7 +1088,7 @@ html.is-lite #stage-floor .fs-fx { will-change: transform; }
 
 @media (prefers-reduced-motion: reduce) {
   #stage-floor .trot-countdown.is-on { animation-duration: .01ms; opacity: 1; }
-  #stage-floor .trot-podium-runner svg,
+  #stage-floor .trot-podium-runner svg :is(use, .trot-num),
   #stage-floor .trot-runner-body.is-cheered .trot-frame,
   #stage-floor .trot-cheer.is-pop { animation: none !important; }
 }

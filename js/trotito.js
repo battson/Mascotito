@@ -12,27 +12,37 @@
 
    Arte (ver scripts/export-trotito-v4612.py):
    - assets/games/trotito/run.svg — los 6 cuadros de la carrera (sprite
-     vectorizado) como <symbol> trot-f1…trot-f6, más trot-sad (el cuadro 4
-     con cara triste, para el 3º del podio). La manta usa var(--manta).
-   - escenario.svg (pista) y podio.svg (el podio sin estadio ni confeti).
+     vectorizado) como <symbol> trot-f1…trot-f6. La manta usa var(--manta),
+     el pelaje var(--fur) y las manchas var(--spots) (hotfix 1).
+   - escenario.svg (pista dibujada a mano en vectores, hotfix 1, ver
+     scripts/draw-trotito-track-v4612.py) y podio.svg (el podio sin
+     estadio ni confeti).
    - icon.svg (Trotito_icon.ai) para el recuadro de Minijuegos.
    ========================================================================== */
 
 const TROTITO_ART = {
-  track: liteArt("assets/games/trotito/escenario.svg"),
+  track: liteArt("assets/games/trotito/escenario.svg?v=4.6.12-h1"),
   podium: liteArt("assets/games/trotito/podio.svg"),
   icon: "assets/games/trotito/icon.svg",
-  sprites: "assets/games/trotito/run.svg",
+  sprites: "assets/games/trotito/run.svg?v=4.6.12-h1",
 };
 
 // Corredores: color de manta, nombre, cuota y probabilidad real de ganar
 // (suman 1). Todo acá para ajustarlo con la economía de v4.7.
+// Hotfix 1: para que no sean todos iguales, Pompón queda blanco como el
+// sprite, Rayo es gris perla, Canela color canela clarito (fur = tinte del
+// pelaje) y Trébol lleva manchas marrones (spots).
 const TROTITO_RUNNERS = [
   { n: 1, name: "Pompón", color: "#2f8fe0", odds: 2, chance: .42 },
-  { n: 2, name: "Rayo", color: "#e2463c", odds: 3, chance: .28 },
-  { n: 3, name: "Trébol", color: "#3cae4a", odds: 4, chance: .20 },
-  { n: 4, name: "Canela", color: "#f2b92c", odds: 6, chance: .10 },
+  { n: 2, name: "Rayo", color: "#e2463c", odds: 3, chance: .28, fur: "#aeb6c4" },
+  { n: 3, name: "Trébol", color: "#3cae4a", odds: 4, chance: .20, spots: "#9a6a45" },
+  { n: 4, name: "Canela", color: "#f2b92c", odds: 6, chance: .10, fur: "#e2b27c" },
 ];
+
+/** Variables CSS del corredor: manta, pelaje y manchas. */
+function trotitoLook(r) {
+  return `--manta:${r.color}` + (r.fur ? `;--fur:${r.fur}` : "") + (r.spots ? `;--spots:inline;--spot-color:${r.spots}` : "");
+}
 const TROTITO_BETS = [10, 25, 50, 100];
 const TROTITO_LIMITS = { carrerasPorDia: 5 };
 const TROTITO_REWARDS = { xp: 2, felicidadGana: 3, felicidadPierde: 1 };
@@ -46,16 +56,18 @@ const TROTITO_TRACK = {
   // Por carril: dónde pisan y qué tamaño tienen (un poco más grandes
   // adelante, como la pista).
   lanes: [
-    { feet: 612, scale: .21 },
-    { feet: 700, scale: .23 },
-    { feet: 800, scale: .25 },
+    { feet: 616, scale: .21 },
+    { feet: 704, scale: .23 },
+    { feet: 794, scale: .25 },
     { feet: 878, scale: .27 },
   ],
 };
 // Cuadro del sprite: 472 × 385; la nariz queda en x 468 en todos los
 // cuadros (se alinearon por la nariz). Centro de la manta por cuadro, para
 // el número.
-const TROTITO_SPRITE = { w: 472, h: 385, nose: 468, feet: 380 };
+// feet: donde terminan las patas en la pose parada (cuadro 4), así la
+// sombra y el piso coinciden con las patas (hotfix 1; antes 380).
+const TROTITO_SPRITE = { w: 472, h: 385, nose: 468, feet: 368 };
 const TROTITO_MANTA = [[198.5, 237.5], [201.5, 228.5], [195.5, 225.5], [195.5, 225.5], [212.5, 222.5], [197, 227.5]];
 
 let trotitoSpritesReady = null;
@@ -156,10 +168,10 @@ function trotitoProgress(p, tSec) {
 
 function trotitoRunnerSvg(r, lane) {
   const L = TROTITO_TRACK.lanes[lane];
-  return `<g class="trot-runner" data-n="${r.n}" style="--manta:${r.color}">
+  return `<g class="trot-runner" data-n="${r.n}" style="${trotitoLook(r)}">
       <g class="trot-runner-pos">
         <g class="trot-runner-body" transform="scale(${L.scale})">
-          <ellipse class="trot-shadow" cx="250" cy="382" rx="170" ry="16"/>
+          <ellipse class="trot-shadow" cx="262" cy="366" rx="150" ry="14"/>
           <use class="trot-frame" href="#trot-f1" width="472" height="385"/>
           <text class="trot-num" x="${TROTITO_MANTA[0][0]}" y="${TROTITO_MANTA[0][1] + 15}">${r.n}</text>
           <g class="trot-you" transform="translate(300 -30) scale(1.7)">
@@ -183,7 +195,7 @@ function trotitoSceneHtml() {
       <h3 id="trot-bet-title">¿A qué trotito le apostás?</h3>
       <div class="trot-picks" role="radiogroup" aria-label="Corredor">
         ${TROTITO_RUNNERS.map((r) => `
-        <button type="button" class="trot-pick" role="radio" aria-checked="false" data-pick="${r.n}" style="--manta:${r.color}"
+        <button type="button" class="trot-pick" role="radio" aria-checked="false" data-pick="${r.n}" style="${trotitoLook(r)}"
           aria-label="Número ${r.n}, ${r.name}. Paga por ${r.odds}.">
           <svg viewBox="0 0 472 385" aria-hidden="true"><use href="#trot-f4"/><text class="trot-num" x="${TROTITO_MANTA[3][0]}" y="${TROTITO_MANTA[3][1] + 15}">${r.n}</text></svg>
           <span class="trot-pick-name">${r.name}</span>
@@ -438,10 +450,11 @@ function trotitoConfetti(box) {
 
 function trotitoPodiumRunner(n, place) {
   const r = TROTITO_RUNNERS.find((x) => x.n === n);
-  const sad = place === 3;
   const [cx, cy] = TROTITO_MANTA[3];
-  return `<div class="trot-podium-runner" data-place="${place}" style="--manta:${r.color}">
-    <svg viewBox="0 0 472 385" aria-hidden="true"><use href="#${sad ? "trot-sad" : "trot-f4"}"/><text class="trot-num" x="${cx}" y="${cy + 15}">${r.n}</text></svg>
+  // Hotfix 1: los tres contentos (se sacó la cara triste del 3º), con su
+  // sombra justo bajo las patas.
+  return `<div class="trot-podium-runner" data-place="${place}" style="${trotitoLook(r)}">
+    <svg viewBox="0 0 472 385" aria-hidden="true"><ellipse class="trot-shadow" cx="262" cy="366" rx="150" ry="14"/><use href="#trot-f4"/><text class="trot-num" x="${cx}" y="${cy + 15}">${r.n}</text></svg>
     <span class="trot-podium-name">${r.name}</span>
   </div>`;
 }

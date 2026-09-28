@@ -5,13 +5,12 @@ Uso: python scripts/export-trotito-v4612.py <carpeta con sprites_trotito.png,
 
 Genera en assets/games/trotito/:
   run.svg        6 cuadros de la carrera (sprite vectorizado con vtracer),
-                 alineados por la nariz, como <symbol id="trot-f1…f6">, más
-                 "trot-sad" (el cuadro 4 con cara triste: sin sonrisa, boca
-                 hacia abajo, ceja caída y una lágrima) para el 3º del podio.
-                 La manta azul pasa a var(--manta) para recolorearla por
-                 corredor.
-  escenario.svg  la pista (vtracer), con las banderas a cuadros de la meta
-                 trazadas aparte con más detalle.
+                 alineados por la nariz, como <symbol id="trot-f1…f6">. La
+                 manta azul pasa a var(--manta), el pelaje se mezcla con
+                 var(--fur) y hay manchas opcionales (var(--spots)) para
+                 que cada corredor se vea distinto (hotfix 1).
+  escenario.svg  (v4.6.12, reemplazado en el hotfix 1 por el dibujo a mano
+                 de scripts/draw-trotito-track-v4612.py) la pista (vtracer).
   podio.svg      sólo el podio de endscreen_trotito.png (sin estadio, pista,
                  pasto ni confeti estático; recorte con GrabCut + retoques).
   icon.svg       Trotito_icon.ai pasado directo (es vectorial), recortado.
@@ -56,36 +55,58 @@ def frames():
     return paths, W, H
 
 
-def manta(tag):
+def recolor(tag):
+    """Manta azul → var(--manta). Pelaje (colores claros casi sin
+    saturación) → mezcla con var(--fur): sin --fur queda igual (se mezcla
+    consigo mismo); con --fur se tiñe un poco (hotfix 1: Rayo y Canela)."""
     m = re.search(r'fill="#([0-9A-Fa-f]{6})"', tag)
-    r, g, b = [int(m.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    hexc = m.group(1)
+    r, g, b = [int(hexc[i:i + 2], 16) / 255 for i in (0, 2, 4)]
     h, l, s = colorsys.rgb_to_hls(r, g, b)
-    if not (0.50 < h < 0.62 and s > 0.45 and l < 0.8):
-        return tag
-    base = 0.47
-    if l < base - .03: val = f"color-mix(in srgb, var(--manta, #15a0db) {round(100 - (base - l) * 180)}%, #000)"
-    elif l > base + .03: val = f"color-mix(in srgb, var(--manta, #15a0db) {max(20, round(100 - (l - base) * 180))}%, #fff)"
-    else: val = "var(--manta, #15a0db)"
-    return tag.replace(m.group(0), f'style="fill:{val}"')
+    if 0.50 < h < 0.62 and s > 0.45 and l < 0.8:
+        base = 0.47
+        if l < base - .03: val = f"color-mix(in srgb, var(--manta, #15a0db) {round(100 - (base - l) * 180)}%, #000)"
+        elif l > base + .03: val = f"color-mix(in srgb, var(--manta, #15a0db) {max(20, round(100 - (l - base) * 180))}%, #fff)"
+        else: val = "var(--manta, #15a0db)"
+        return tag.replace(m.group(0), f'style="fill:{val}"')
+    v = max(r, g, b); sat = (v - min(r, g, b)) / v if v else 0
+    if sat < .145 and v > .55:
+        return tag.replace(m.group(0), f'style="fill:color-mix(in srgb, #{hexc} 72%, var(--fur, #{hexc}))"')
+    return tag
+
+
+# Hotfix 1: manchas (Trébol) — se ven sólo si el corredor define --spots.
+# La cabeza queda en el mismo lugar en todos los cuadros (se alinearon por
+# la nariz); la mancha del lomo sigue a la manta de cada cuadro.
+MANTA = [(198.5, 237.5), (201.5, 228.5), (195.5, 225.5), (195.5, 225.5), (212.5, 222.5), (197, 227.5)]
+
+
+def spots(i, silhouette):
+    mx, my = MANTA[i - 1]
+    clip = silhouette.replace("<path", f'<path', 1)
+    return (f'<clipPath id="trot-clip-f{i}">{clip}</clipPath>'
+            f'<g clip-path="url(#trot-clip-f{i})" style="display:var(--spots, none)" fill="var(--spot-color, #9a6a45)" opacity=".85">'
+            f'<ellipse cx="318" cy="118" rx="40" ry="28" transform="rotate(-18 318 118)"/>'
+            f'<ellipse cx="292" cy="228" rx="30" ry="22"/>'
+            f'<ellipse cx="{mx - 78:.1f}" cy="{my + 4:.1f}" rx="30" ry="22"/>'
+            f'<ellipse cx="{mx + 70:.1f}" cy="{my + 40:.1f}" rx="20" ry="14"/></g>')
+
+
+def build_run(paths, W=472, H=385):
+    parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>']
+    for i, raw in enumerate(paths, 1):
+        ps = [recolor(p) for p in raw]
+        # Las manchas van arriba del pelaje pero abajo de la cara y la manta:
+        # se insertan después del último relleno de pelaje grande (índice 5).
+        body = ps[:6] + [spots(i, raw[0])] + ps[6:]
+        parts.append(f'<symbol id="trot-f{i}" viewBox="0 0 {W} {H}">{"".join(body)}</symbol>')
+    parts.append("</defs></svg>")
+    return "".join(parts)
 
 
 def run_svg():
     paths, W, H = frames()
-    parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>']
-    for i, ps in enumerate(paths, 1):
-        ps = [manta(p) for p in ps]
-        parts.append(f'<symbol id="trot-f{i}" viewBox="0 0 {W} {H}">{"".join(ps)}</symbol>')
-        if i == 4:
-            # Índices medidos con getBBox sobre el cuadro 4 del trazado:
-            # 34/62/68 = sonrisa, 19 = ceja.
-            sad = list(ps)
-            for k in (34, 62, 68): sad[k] = ""
-            sad[19] = f'<g transform="rotate(-11 383 127)">{sad[19]}</g>'
-            extra = ('<path d="M421 212 Q437 199 455 207" fill="none" stroke="#1b1b1e" stroke-width="6" stroke-linecap="round"/>'
-                     '<path d="M370 176 q-7 12 0 17 q7-5 0-17z" fill="#7fc8f0" stroke="#4a9fd6" stroke-width="1.5"/>')
-            parts.append(f'<symbol id="trot-sad" viewBox="0 0 {W} {H}">{"".join(sad)}{extra}</symbol>')
-    parts.append("</defs></svg>")
-    open(os.path.join(OUT, "run.svg"), "w").write("".join(parts))
+    open(os.path.join(OUT, "run.svg"), "w").write(build_run(paths, W, H))
 
 
 def escenario():
