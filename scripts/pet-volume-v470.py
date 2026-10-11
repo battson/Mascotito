@@ -1,7 +1,8 @@
 """Mascota estilo Pet Society (v4.7): cuerpo nuevo + volumen y contorno.
 
-Reescribe js/manifest.js una sola vez (si ya tiene "vol-cabeza", no hace nada):
-- Torso frijol, brazos y piernas cápsula con la articulación centrada en los
+Reescribe js/manifest.js. El cuerpo se rehace siempre (medidas en SHAPE); las
+cabezas y orejas, solo si todavía no tienen "vol-cabeza":
+- Torso pera, brazos y piernas cápsula con la articulación centrada en los
   mismos puntos de giro que usa el juego (hombros 178.1/221.2,198.8 y caderas
   175.3/224.0,264.1), con contorno abierto que no marca la unión al cuerpo.
 - Cabezas y orejas: se saca la capa negra al 6 % y se agrega encima de la
@@ -57,26 +58,48 @@ def limb(gid, cls, a, b, grad):
             '  </g>')
 
 
-BODY = ("M200,184 C226,184 238,198 245,222 C253,249 257,271 241,281 "
-        "C226,290 174,290 159,281 C143,271 147,249 155,222 C162,198 174,184 200,184 Z")
+def pear(top, bottom, wt, wb, cx=200):
+    """Torso pera: wt = medio ancho en los hombros, wb = medio ancho abajo."""
+    T, B = top, bottom
+    sh = (cx + wt + 0.15 * (wb - wt), T + 28)
+    hip = (cx + wb - 6, B - 6)
+    r = lambda x, y: f"{f(x)},{f(y)}"
+    m = lambda x: 2 * cx - x
+    return (f"M{r(cx, T)} C{r(cx + 0.62 * wt, T)} {r(cx + wt, T + 10)} {r(*sh)} "
+            f"C{r(cx + wt + 0.5 * (wb - wt), T + 52)} {r(cx + wb + 2, B - 18)} {r(*hip)} "
+            f"C{r(hip[0] - 10, B + 2)} {r(m(hip[0] - 10), B + 2)} {r(m(hip[0]), hip[1])} "
+            f"C{r(m(cx + wb + 2), B - 18)} {r(m(cx + wt + 0.5 * (wb - wt)), T + 52)} {r(m(sh[0]), sh[1])} "
+            f"C{r(m(cx + wt), T + 10)} {r(m(cx + 0.62 * wt), T)} {r(cx, T)} Z")
 
-TORSO = f"""
-  <defs>{gradient("vol-cuerpo")}<clipPath id="clip-cuerpo"><path d="{BODY}"/></clipPath></defs>
-  <path d="{BODY}" class="cuerpo-base" fill="#6fb8e0"/>
-  <path d="{BODY}" fill="url(#vol-cuerpo)"/>
-  <ellipse clip-path="url(#clip-cuerpo)" cx="205" cy="252" rx="27" ry="27" fill="#ffffff" fill-opacity="0.3"/>
-  <ellipse clip-path="url(#clip-cuerpo)" cx="202" cy="194" rx="50" ry="15" fill="#000000" fill-opacity="0.14"/>
-  <path d="{BODY}" {LINE} stroke-width="3.6"/>"""
 
-ARMS = "\n" + f"  <defs>{gradient('vol-brazo')}</defs>\n" + "\n".join([
-    limb("brazo-izq", "brazo", (178.1, 198.8, 10), (153, 245, 12), "vol-brazo"),
-    limb("brazo-der", "brazo", (221.2, 198.8, 10), (247.2, 245, 12), "vol-brazo"),
-])
+# Proporciones tipo Pet Society (v4.6.14): cabeza grande y cuerpo chico y angosto,
+# brazos y piernas finitos. Los puntos de giro no cambian.
+SHAPE = dict(top=188, bottom=280, wt=27, wb=40,
+             arm=(7, (167, 236), 8.5), leg=(9, (174, 302), 10.5))
 
-LEGS = "\n" + f"  <defs>{gradient('vol-pierna')}</defs>\n" + "\n".join([
-    limb("pierna-izq", "pierna", (175.3, 264.1, 13), (172, 300, 15), "vol-pierna"),
-    limb("pierna-der", "pierna", (224.0, 264.1, 13), (227.4, 300, 15), "vol-pierna"),
-])
+
+def body(shape):
+    top, bottom, wt, wb = shape["top"], shape["bottom"], shape["wt"], shape["wb"]
+    d = pear(top, bottom, wt, wb)
+    torso = f"""
+  <defs>{gradient("vol-cuerpo")}<clipPath id="clip-cuerpo"><path d="{d}"/></clipPath></defs>
+  <path d="{d}" class="cuerpo-base" fill="#6fb8e0"/>
+  <path d="{d}" fill="url(#vol-cuerpo)"/>
+  <ellipse clip-path="url(#clip-cuerpo)" cx="203" cy="{f((top + bottom) / 2 + 12)}" rx="{f(wb * 0.58)}" ry="{f((bottom - top) * 0.27)}" fill="#ffffff" fill-opacity="0.3"/>
+  <ellipse clip-path="url(#clip-cuerpo)" cx="202" cy="{f(top + 9)}" rx="{f(wt + 14)}" ry="14" fill="#000000" fill-opacity="0.14"/>
+  <path d="{d}" {LINE} stroke-width="3.4"/>"""
+    ar, (hx, hy), hr = shape["arm"]
+    lr, (fx, fy), fr = shape["leg"]
+    arms = "\n" + f"  <defs>{gradient('vol-brazo')}</defs>\n" + "\n".join([
+        limb("brazo-izq", "brazo", (178.1, 198.8, round(ar, 2)), (hx, hy, hr), "vol-brazo"),
+        limb("brazo-der", "brazo", (221.2, 198.8, round(ar, 2)), (round(399.3 - hx, 2), hy, hr), "vol-brazo"),
+    ])
+    legs = "\n" + f"  <defs>{gradient('vol-pierna')}</defs>\n" + "\n".join([
+        limb("pierna-izq", "pierna", (175.3, 264.1, lr), (fx, fy, fr), "vol-pierna"),
+        limb("pierna-der", "pierna", (224.0, 264.1, lr), (round(399.3 - fx, 2), fy, fr), "vol-pierna"),
+    ])
+    return torso, arms, legs
+
 
 MUZZLE = (f'<g class="hocico" transform="translate({FACE_SHIFT} 0)">'
           '<ellipse cx="200" cy="185" rx="28" ry="15.5" fill="#ffffff" fill-opacity="0.45"/>'
@@ -145,12 +168,14 @@ def shade_ears(src):
 
 def main():
     src = MANIFEST.read_text(encoding="utf-8")
+    torso, arms, legs = body(SHAPE)
+    src = replace_const(src, "PET_TORSO_INLINE", torso)
+    src = replace_const(src, "PET_ARMS_INLINE", arms)
+    src = replace_const(src, "PET_LEGS_INLINE", legs)
     if "vol-cabeza" in src:
-        print("manifest.js ya tiene el volumen nuevo; no se toca.")
+        MANIFEST.write_text(src, encoding="utf-8")
+        print("manifest.js: cuerpo actualizado (cabezas y orejas ya tenían volumen).")
         return 0
-    src = replace_const(src, "PET_TORSO_INLINE", TORSO)
-    src = replace_const(src, "PET_ARMS_INLINE", ARMS)
-    src = replace_const(src, "PET_LEGS_INLINE", LEGS)
     src = shade_heads(src)
     src = shade_ears(src)
     MANIFEST.write_text(src, encoding="utf-8")

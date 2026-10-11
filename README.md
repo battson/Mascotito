@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v4.6.14 — Mascota más flaquita
+
+- **Proporciones más parecidas a Pet Society:** el torso es una pera chica y angosta (54 de ancho en los hombros y 80 abajo; antes 90 y 110), los brazos y las piernas son más finitos (radio 7 a 8,5 en los brazos y 9 a 10,5 en las piernas) y los brazos cuelgan pegados al cuerpo. La cabeza queda igual, así que ahora domina más. Los puntos de giro no cambian.
+- `scripts/pet-volume-v470.py` ahora puede volver a correrse: si las cabezas ya tienen volumen, solo reescribe el cuerpo (medidas en `SHAPE`).
+- Versión en `?v=4.6.14`.
+
 ## Beta v4.6.13 — Mascota estilo Pet Society
 
 - **Cuerpo nuevo:** torso tipo frijol y brazos y piernas cortitos con mano y pie redondos. Cada brazo y cada pierna arranca con un círculo centrado justo en su punto de giro (los mismos de antes), así al girar ya no se despegan del cuerpo. El contorno no rodea el hombro ni la cadera, para que no quede una costura.

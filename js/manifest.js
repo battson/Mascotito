@@ -711,12 +711,12 @@ const PET_EYE_COLORS = [
  * cuerpo) y brazos/cabeza lo tapan a su vez por arriba/costados.
  */
 const PET_TORSO_INLINE = `
-  <defs><radialGradient id="vol-cuerpo" cx="0.3" cy="0.28" r="0.85"><stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/><stop offset="0.32" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.62" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></radialGradient><clipPath id="clip-cuerpo"><path d="M200,184 C226,184 238,198 245,222 C253,249 257,271 241,281 C226,290 174,290 159,281 C143,271 147,249 155,222 C162,198 174,184 200,184 Z"/></clipPath></defs>
-  <path d="M200,184 C226,184 238,198 245,222 C253,249 257,271 241,281 C226,290 174,290 159,281 C143,271 147,249 155,222 C162,198 174,184 200,184 Z" class="cuerpo-base" fill="#6fb8e0"/>
-  <path d="M200,184 C226,184 238,198 245,222 C253,249 257,271 241,281 C226,290 174,290 159,281 C143,271 147,249 155,222 C162,198 174,184 200,184 Z" fill="url(#vol-cuerpo)"/>
-  <ellipse clip-path="url(#clip-cuerpo)" cx="205" cy="252" rx="27" ry="27" fill="#ffffff" fill-opacity="0.3"/>
-  <ellipse clip-path="url(#clip-cuerpo)" cx="202" cy="194" rx="50" ry="15" fill="#000000" fill-opacity="0.14"/>
-  <path d="M200,184 C226,184 238,198 245,222 C253,249 257,271 241,281 C226,290 174,290 159,281 C143,271 147,249 155,222 C162,198 174,184 200,184 Z" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.6"/>`;
+  <defs><radialGradient id="vol-cuerpo" cx="0.3" cy="0.28" r="0.85"><stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/><stop offset="0.32" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.62" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></radialGradient><clipPath id="clip-cuerpo"><path d="M200.00,188.00 C216.74,188.00 227.00,198.00 228.95,216.00 C233.50,240.00 242.00,262.00 234.00,274.00 C224.00,282.00 176.00,282.00 166.00,274.00 C158.00,262.00 166.50,240.00 171.05,216.00 C173.00,198.00 183.26,188.00 200.00,188.00 Z"/></clipPath></defs>
+  <path d="M200.00,188.00 C216.74,188.00 227.00,198.00 228.95,216.00 C233.50,240.00 242.00,262.00 234.00,274.00 C224.00,282.00 176.00,282.00 166.00,274.00 C158.00,262.00 166.50,240.00 171.05,216.00 C173.00,198.00 183.26,188.00 200.00,188.00 Z" class="cuerpo-base" fill="#6fb8e0"/>
+  <path d="M200.00,188.00 C216.74,188.00 227.00,198.00 228.95,216.00 C233.50,240.00 242.00,262.00 234.00,274.00 C224.00,282.00 176.00,282.00 166.00,274.00 C158.00,262.00 166.50,240.00 171.05,216.00 C173.00,198.00 183.26,188.00 200.00,188.00 Z" fill="url(#vol-cuerpo)"/>
+  <ellipse clip-path="url(#clip-cuerpo)" cx="203" cy="246.00" rx="23.20" ry="24.84" fill="#ffffff" fill-opacity="0.3"/>
+  <ellipse clip-path="url(#clip-cuerpo)" cx="202" cy="197.00" rx="41.00" ry="14" fill="#000000" fill-opacity="0.14"/>
+  <path d="M200.00,188.00 C216.74,188.00 227.00,198.00 228.95,216.00 C233.50,240.00 242.00,262.00 234.00,274.00 C224.00,282.00 176.00,282.00 166.00,274.00 C158.00,262.00 166.50,240.00 171.05,216.00 C173.00,198.00 183.26,188.00 200.00,188.00 Z" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.4"/>`;
 
 /* La elipse de arriba es tu edición v1.1 del torso (cuerpo_v1.1.ai): un
  * brillito blanco suave para la panza. No lleva "cuerpo-base" porque va
@@ -735,27 +735,27 @@ const PET_TORSO_INLINE = `
 const PET_ARMS_INLINE = `
   <defs><radialGradient id="vol-brazo" cx="0.3" cy="0.28" r="0.85"><stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/><stop offset="0.32" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.62" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></radialGradient></defs>
   <g id="brazo-izq" class="brazo" style="transform-origin: 178.1px 198.8px;">
-    <path d="M169.50,193.70 L142.68,238.87 A12,12 0 1,0 163.75,250.32 L187.06,203.24 A10,10 0 0,0 169.50,193.70 Z" class="brazo-base" fill="#6fb8e0"/>
-    <path d="M169.50,193.70 L142.68,238.87 A12,12 0 1,0 163.75,250.32 L187.06,203.24 A10,10 0 0,0 169.50,193.70 Z" fill="url(#vol-brazo)"/>
-    <path d="M169.50,193.70 L142.68,238.87 A12,12 0 1,0 163.75,250.32 L187.06,203.24" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
+    <path d="M171.47,196.54 L158.95,233.26 A8.5,8.5 0 1,0 175.23,238.11 L184.88,200.54 A7,7 0 0,0 171.47,196.54 Z" class="brazo-base" fill="#6fb8e0"/>
+    <path d="M171.47,196.54 L158.95,233.26 A8.5,8.5 0 1,0 175.23,238.11 L184.88,200.54 A7,7 0 0,0 171.47,196.54 Z" fill="url(#vol-brazo)"/>
+    <path d="M171.47,196.54 L158.95,233.26 A8.5,8.5 0 1,0 175.23,238.11 L184.88,200.54" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
   </g>
   <g id="brazo-der" class="brazo" style="transform-origin: 221.2px 198.8px;">
-    <path d="M212.31,203.37 L236.53,250.49 A12,12 0 1,0 257.43,238.72 L229.72,193.57 A10,10 0 0,0 212.31,203.37 Z" class="brazo-base" fill="#6fb8e0"/>
-    <path d="M212.31,203.37 L236.53,250.49 A12,12 0 1,0 257.43,238.72 L229.72,193.57 A10,10 0 0,0 212.31,203.37 Z" fill="url(#vol-brazo)"/>
-    <path d="M212.31,203.37 L236.53,250.49 A12,12 0 1,0 257.43,238.72 L229.72,193.57" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
+    <path d="M214.42,200.54 L224.07,238.11 A8.5,8.5 0 1,0 240.35,233.26 L227.83,196.54 A7,7 0 0,0 214.42,200.54 Z" class="brazo-base" fill="#6fb8e0"/>
+    <path d="M214.42,200.54 L224.07,238.11 A8.5,8.5 0 1,0 240.35,233.26 L227.83,196.54 A7,7 0 0,0 214.42,200.54 Z" fill="url(#vol-brazo)"/>
+    <path d="M214.42,200.54 L224.07,238.11 A8.5,8.5 0 1,0 240.35,233.26 L227.83,196.54" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
   </g>`;
 
 const PET_LEGS_INLINE = `
   <defs><radialGradient id="vol-pierna" cx="0.3" cy="0.28" r="0.85"><stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/><stop offset="0.32" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.62" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></radialGradient></defs>
   <g id="pierna-izq" class="pierna" style="transform-origin: 175.3px 264.1px;">
-    <path d="M162.44,262.19 L157.16,297.80 A15,15 0 1,0 186.99,300.54 L188.29,264.57 A13,13 0 0,0 162.44,262.19 Z" class="pierna-base" fill="#6fb8e0"/>
-    <path d="M162.44,262.19 L157.16,297.80 A15,15 0 1,0 186.99,300.54 L188.29,264.57 A13,13 0 0,0 162.44,262.19 Z" fill="url(#vol-pierna)"/>
-    <path d="M162.44,262.19 L157.16,297.80 A15,15 0 1,0 186.99,300.54 L188.29,264.57" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
+    <path d="M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05 A9,9 0 0,0 166.32,263.44 Z" class="pierna-base" fill="#6fb8e0"/>
+    <path d="M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05 A9,9 0 0,0 166.32,263.44 Z" fill="url(#vol-pierna)"/>
+    <path d="M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
   </g>
   <g id="pierna-der" class="pierna" style="transform-origin: 224.0px 264.1px;">
-    <path d="M211.01,264.61 L212.41,300.58 A15,15 0 1,0 242.23,297.76 L236.85,262.16 A13,13 0 0,0 211.01,264.61 Z" class="pierna-base" fill="#6fb8e0"/>
-    <path d="M211.01,264.61 L212.41,300.58 A15,15 0 1,0 242.23,297.76 L236.85,262.16 A13,13 0 0,0 211.01,264.61 Z" fill="url(#vol-pierna)"/>
-    <path d="M211.01,264.61 L212.41,300.58 A15,15 0 1,0 242.23,297.76 L236.85,262.16" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
+    <path d="M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44 A9,9 0 0,0 215.00,264.05 Z" class="pierna-base" fill="#6fb8e0"/>
+    <path d="M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44 A9,9 0 0,0 215.00,264.05 Z" fill="url(#vol-pierna)"/>
+    <path d="M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
   </g>`;
 
 // Pedidos espontáneos (sección 8: "¿Jugamos?"; v2.5:
