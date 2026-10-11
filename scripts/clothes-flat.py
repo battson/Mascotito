@@ -9,6 +9,11 @@ lunares, bolsillo, pollera, botas...). Escribe:
   (recortado a la prenda, es el ícono de la tienda y el vestidor) y
   assets/clothes/<conjunto>-preview.svg (los dos conjuntos de bienvenida).
 
+v4.6.20: cada pieza lleva debajo un contorno del mismo color más oscuro
+(darker) y encima una sombra plana abajo a la derecha (pet.shadow), igual que
+la mascota. Mangas y piernas del pantalón tienen el contorno abierto del lado
+del hombro y la cadera, para no marcar una línea sobre el cuerpo de la prenda.
+
 Mangas, piernas y calzado se dibujan en su lugar exacto. El juego las agranda
 (scale 1.14 las mangas, 1.07 las piernas y 1.08 el calzado, en css/style.css y
 gaitNodes); por eso, dentro del juego, cada pieza va envuelta en un grupo que
@@ -34,6 +39,23 @@ SCALE = {"brazo": 1.14, "pierna": 1.07, "calzado": 1.08}
 
 def f(n):
     return f"{n:.2f}"
+
+
+def darker(color, k=0.72):
+    """El mismo color, más oscuro (para el contorno)."""
+    r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+    return "#" + "".join(f"{round(v * k):02x}" for v in (r, g, b))
+
+
+def outline(d, color, w=4):
+    """Contorno del tono de la pieza; va antes (debajo) del relleno."""
+    return (f'<path d="{d}" fill="none" stroke="{darker(color)}" stroke-width="{w}" '
+            'stroke-linecap="round" stroke-linejoin="round"/>')
+
+
+def ellipse_d(cx, cy, rx, ry):
+    return (f"M{f(cx - rx)},{f(cy)} A{f(rx)},{f(ry)} 0 1,0 {f(cx + rx)},{f(cy)} "
+            f"A{f(rx)},{f(ry)} 0 1,0 {f(cx - rx)},{f(cy)} Z")
 
 
 def torso_points(n=24):
@@ -132,6 +154,11 @@ def band(a, ra, b, rb):
     return poly(pts)
 
 
+def band_open(a, ra, b, rb):
+    """La misma franja sin el lado de a (contorno abierto en la unión)."""
+    return band(a, ra, b, rb).replace(" Z", "")
+
+
 def heart(cx, cy, r, color):
     return (f'<path d="M{f(cx)},{f(cy + r)} C{f(cx - 1.6 * r)},{f(cy)} {f(cx - 1.1 * r)},{f(cy - 1.1 * r)} {f(cx)},{f(cy - 0.45 * r)} '
             f'C{f(cx + 1.1 * r)},{f(cy - 1.1 * r)} {f(cx + 1.6 * r)},{f(cy)} {f(cx)},{f(cy + r)} Z" fill="{color}"/>')
@@ -168,7 +195,7 @@ def superior(cfg, game, uid):
     d, a, b = body_shape(cfg)
     hem_y = cfg["hem_y"]
     clip = f"{uid}-forma"
-    inner = [f'<path d="{d}" fill="{cfg["body"]}"/>']
+    inner = [outline(d, cfg["body"], 5), f'<path d="{d}" fill="{cfg["body"]}"/>']
     deco = []
     if cfg.get("stripes"):
         color, gap = cfg["stripes"]
@@ -196,13 +223,16 @@ def superior(cfg, game, uid):
     if deco:
         inner.append(f'<defs><clipPath id="{clip}"><path d="{d}"/></clipPath></defs>'
                      f'<g clip-path="url(#{clip})">' + "".join(deco) + "</g>")
+    inner.append(pet.shadow(d, f"{uid}-sombra", 4, 5))
     parts = ['<g id="ropa-cuerpo" class="ropa-cuerpo">' + "".join(inner) + "</g>"]
     if cfg.get("sleeve"):
         n = cfg["sleeve_len"]
         for side, sh, hand, _, _ in sides():
             end = lerp(sh, hand, n)
             r_end = ARM_R + (HAND_R - ARM_R) * n + 2.2
-            piece = f'<path d="{tube(sh, ARM_R, end, r_end)}" fill="{cfg["sleeve"]}"/>'
+            sleeve_d = tube(sh, ARM_R, end, r_end)
+            piece = (outline(band_open(sh, ARM_R, end, r_end), cfg["sleeve"])
+                     + f'<path d="{sleeve_d}" fill="{cfg["sleeve"]}"/>')
             if cfg.get("sleeve_stripes"):
                 for t in (0.3, 0.5):
                     c0, c1 = lerp(sh, hand, t), lerp(sh, hand, t + 0.07)
@@ -211,6 +241,7 @@ def superior(cfg, game, uid):
             if cfg.get("cuff"):
                 c0 = lerp(sh, hand, n - 0.1)
                 piece += f'<path d="{band(c0, r_end - 0.3, end, r_end)}" fill="{cfg["cuff"]}"/>'
+            piece += pet.shadow(sleeve_d, f"{uid}-sombra-{side}", 2, 2.5)
             parts.append(group(f"ropa-brazo-{side}", f"ropa-brazo ropa-brazo-{side}", sh, piece, SCALE["brazo"], game))
     return "".join(parts)
 
@@ -218,26 +249,32 @@ def superior(cfg, game, uid):
 def inferior(cfg, game, uid):
     color = cfg["color"]
     waist = cut(grow(torso_points(), 1.8), 252, keep_above=False)
-    hip = [f'<path d="{poly(waist)}" fill="{color}"/>']
+    hip_d = poly(waist)
+    hip = [outline(hip_d, color, 4.5), f'<path d="{hip_d}" fill="{color}"/>']
     if cfg.get("skirt"):
         xl = min(x for x, y in waist if abs(y - 252) < 1e-6)
         xr = max(x for x, y in waist if abs(y - 252) < 1e-6)
         half, hem = S["wb"] + 10, cfg["skirt"]
-        hip = [f'<path d="M{f(xl)},252 L{f(xr)},252 L{f(200 + half)},{f(hem)} Q200,{f(hem + 6)} {f(200 - half)},{f(hem)} Z" fill="{color}"/>']
+        hip_d = f"M{f(xl)},252 L{f(xr)},252 L{f(200 + half)},{f(hem)} Q200,{f(hem + 6)} {f(200 - half)},{f(hem)} Z"
+        hip = [outline(hip_d, color, 4.5), f'<path d="{hip_d}" fill="{color}"/>']
         for k in (-2, -1, 0, 1, 2):
             x0, x1 = 200 + k * 9, 200 + k * 15
             hip.append(f'<path d="M{f(x0 - 0.9)},258 L{f(x0 + 0.9)},258 L{f(x1 + 1.3)},{f(hem + 2)} L{f(x1 - 1.3)},{f(hem + 2)} Z" fill="{cfg["pleats"]}"/>')
         if cfg.get("waistband"):
             hip.append(f'<path d="M{f(xl)},252 L{f(xr)},252 L{f(xr + 0.6)},257 L{f(xl - 0.6)},257 Z" fill="{cfg["waistband"]}"/>')
+        hip.append(pet.shadow(hip_d, f"{uid}-sombra", 4, 5))
         return '<g class="ropa-cadera">' + "".join(hip) + "</g>"
     if cfg.get("drawstring"):
         hip.append(f'<path d="M197,254 L198.6,254 L197.6,263 L196,263 Z M201.4,254 L203,254 L204,263 L202.4,263 Z" fill="{cfg["drawstring"]}"/>')
+    hip.append(pet.shadow(hip_d, f"{uid}-sombra", 3, 4))
     parts = ['<g class="ropa-cadera">' + "".join(hip) + "</g>"]
     n = cfg["length"]
     for side, _, _, hip_c, foot in sides():
         end = lerp(hip_c, foot, n)
         r_end = LEG_R + (FOOT_R - LEG_R) * n + 1.8
-        piece = f'<path d="{tube(hip_c, LEG_R + 1.8, end, r_end)}" fill="{color}"/>'
+        leg_d = tube(hip_c, LEG_R + 1.8, end, r_end)
+        piece = (outline(band_open(hip_c, LEG_R + 1.8, end, r_end), color, 4.5)
+                 + f'<path d="{leg_d}" fill="{color}"/>')
         if cfg.get("cuff"):
             c0 = lerp(hip_c, foot, n - 0.09)
             piece += f'<path d="{band(c0, r_end - 0.2, end, r_end)}" fill="{cfg["cuff"]}"/>'
@@ -252,12 +289,14 @@ def inferior(cfg, game, uid):
             ra = LEG_R + 1.8
             piece += (f'<path d="M{f(a[0] + out * (ra - 2.6))},{f(a[1])} L{f(a[0] + out * (ra - 0.4))},{f(a[1])} '
                       f'L{f(b[0] + out * (r_end - 0.4))},{f(b[1])} L{f(b[0] + out * (r_end - 2.6))},{f(b[1])} Z" fill="{cfg["stripe"]}"/>')
+        piece += pet.shadow(leg_d, f"{uid}-sombra-{side}", 2, 2.5)
         parts.append(group(f"ropa-pierna-{side}", f"ropa-pierna ropa-pierna-{side}", hip_c, piece, SCALE["pierna"], game))
     return "".join(parts)
 
 
 def calzado(cfg, game, uid):
     kind = cfg.get("kind", "zapatilla")
+    color = cfg["color"]
     parts = []
     for side, _, _, hip, foot in sides():
         bottom = foot[1] + FOOT_R
@@ -265,26 +304,40 @@ def calzado(cfg, game, uid):
         if kind == "pantufla":
             rx, ry = FOOT_R + 4.5, FOOT_R + 0.5
         cx, cy = foot[0], bottom - ry
-        piece = ""
+        # primero todos los contornos (debajo), después los rellenos y la sombra
+        lines, piece, shades = [], "", []
         if kind == "bota":
             top = lerp(hip, foot, cfg["shaft"])
             r_top = LEG_R + (FOOT_R - LEG_R) * cfg["shaft"] + 2.2
-            piece += f'<path d="{band(top, r_top, (cx, cy), FOOT_R + 2.2)}" fill="{cfg["color"]}"/>'
+            shaft = band(top, r_top, (cx, cy), FOOT_R + 2.2)
+            lines.append(outline(shaft, color))
+            piece += f'<path d="{shaft}" fill="{color}"/>'
+            piece += pet.shadow(shaft, f"{uid}-sombra-cana-{side}", 2, 2.5)
             if cfg.get("rim"):
                 piece += f'<path d="{band(top, r_top + 0.6, lerp(top, (cx, cy), 0.22), r_top + 0.8)}" fill="{cfg["rim"]}"/>'
         if kind == "sandalia":
-            piece += f'<ellipse cx="{f(cx)}" cy="{f(bottom - 2.5)}" rx="{f(rx)}" ry="2.5" fill="{cfg["sole"]}"/>'
+            sole = ellipse_d(cx, bottom - 2.5, rx, 2.5)
+            lines.append(outline(sole, cfg["sole"], 3))
+            piece += f'<path d="{sole}" fill="{cfg["sole"]}"/>'
             for y0 in (cy - 2, cy + 4):
-                piece += f'<path d="{band((cx - 9.5, y0), 1.9, (cx + 10.5, y0), 1.9)}" fill="{cfg["color"]}"/>'
-            parts.append(group(f"ropa-calzado-{side}", f"ropa-calzado ropa-calzado-{side}", hip, piece, SCALE["calzado"], game))
+                strap = band((cx - 9.5, y0), 1.9, (cx + 10.5, y0), 1.9)
+                lines.append(outline(strap, color, 3))
+                piece += f'<path d="{strap}" fill="{color}"/>'
+            parts.append(group(f"ropa-calzado-{side}", f"ropa-calzado ropa-calzado-{side}", hip,
+                               "".join(lines) + piece, SCALE["calzado"], game))
             continue
         if kind == "pantufla" and cfg.get("ears"):
             for ex in (-5, 4):
-                piece += (f'<ellipse cx="{f(cx + ex)}" cy="{f(cy - ry - 2)}" rx="2.6" ry="6" '
-                          f'transform="rotate({ex * 3} {f(cx + ex)} {f(cy - ry + 3)})" fill="{cfg["color"]}"/>')
+                rot = f'transform="rotate({ex * 3} {f(cx + ex)} {f(cy - ry + 3)})"'
+                ear = ellipse_d(cx + ex, cy - ry - 2, 2.6, 6)
+                lines.append(outline(ear, color, 3).replace("/>", f" {rot}/>"))
+                piece += f'<path d="{ear}" {rot} fill="{color}"/>'
                 piece += (f'<ellipse cx="{f(cx + ex)}" cy="{f(cy - ry - 1.5)}" rx="1.2" ry="3.8" '
-                          f'transform="rotate({ex * 3} {f(cx + ex)} {f(cy - ry + 3)})" fill="{cfg["ears"]}"/>')
-        piece += f'<ellipse cx="{f(cx)}" cy="{f(cy)}" rx="{f(rx)}" ry="{f(ry)}" fill="{cfg["color"]}"/>'
+                          f'{rot} fill="{cfg["ears"]}"/>')
+        foot_d = ellipse_d(cx, cy, rx, ry)
+        # un poco más ancho que el contorno del pie, para taparlo
+        lines.append(outline(foot_d, color, 6))
+        piece += f'<path d="{foot_d}" fill="{color}"/>'
         if cfg.get("toe"):
             piece += f'<ellipse cx="{f(cx + rx * 0.55)}" cy="{f(cy + 1)}" rx="{f(rx * 0.42)}" ry="{f(ry * 0.72)}" fill="{cfg["toe"]}"/>'
         if cfg.get("laces"):
@@ -296,7 +349,9 @@ def calzado(cfg, game, uid):
             ys = cy + ry * 0.45
             dx = rx * math.sqrt(1 - 0.45 ** 2)
             piece += f'<path d="M{f(cx - dx)},{f(ys)} A{f(rx)},{f(ry)} 0 0,0 {f(cx + dx)},{f(ys)} Z" fill="{cfg["sole"]}"/>'
-        parts.append(group(f"ropa-calzado-{side}", f"ropa-calzado ropa-calzado-{side}", hip, piece, SCALE["calzado"], game))
+        shades.append(pet.shadow(foot_d, f"{uid}-sombra-{side}", 2, 2.5))
+        parts.append(group(f"ropa-calzado-{side}", f"ropa-calzado ropa-calzado-{side}", hip,
+                           "".join(lines) + piece + "".join(shades), SCALE["calzado"], game))
     return "".join(parts)
 
 

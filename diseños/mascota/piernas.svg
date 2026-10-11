@@ -1,9 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
 <title>Piernas</title>
   <g id="pierna-izq" class="pierna" style="transform-origin: 175.3px 264.1px;">
+    <path d="M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05" class="borde-color" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#6fb8e0" stroke-width="5"/><path d="M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05" class="borde-sombra" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#000000" stroke-opacity="0.3" stroke-width="5"/>
     <path d="M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05 A9,9 0 0,0 166.32,263.44 Z" class="pierna-base" fill="#6fb8e0"/>
+    <g class="sombra"><defs><clipPath id="sombra-pierna-izq"><path d="M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05 A9,9 0 0,0 166.32,263.44 Z"/></clipPath></defs><g clip-path="url(#sombra-pierna-izq)"><path d="M-400,-400 H800 V800 H-400 Z M166.32,263.44 L163.53,301.23 A10.5,10.5 0 1,0 184.50,301.94 L184.30,264.05 A9,9 0 0,0 166.32,263.44 Z" fill-rule="evenodd" fill="#000000" fill-opacity="0.12" transform="translate(-2.5 -3)"/></g></g>
   </g>
   <g id="pierna-der" class="pierna" style="transform-origin: 224.0px 264.1px;">
+    <path d="M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44" class="borde-color" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#6fb8e0" stroke-width="5"/><path d="M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44" class="borde-sombra" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#000000" stroke-opacity="0.3" stroke-width="5"/>
     <path d="M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44 A9,9 0 0,0 215.00,264.05 Z" class="pierna-base" fill="#6fb8e0"/>
+    <g class="sombra"><defs><clipPath id="sombra-pierna-der"><path d="M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44 A9,9 0 0,0 215.00,264.05 Z"/></clipPath></defs><g clip-path="url(#sombra-pierna-der)"><path d="M-400,-400 H800 V800 H-400 Z M215.00,264.05 L214.80,301.94 A10.5,10.5 0 1,0 235.77,301.23 L232.98,263.44 A9,9 0 0,0 215.00,264.05 Z" fill-rule="evenodd" fill="#000000" fill-opacity="0.12" transform="translate(-2.5 -3)"/></g></g>
   </g>
 </svg>

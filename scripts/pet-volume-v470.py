@@ -29,6 +29,28 @@ VOLUME = False
 LIGHT = "0.16"   # blanco del degradado (antes 0.34)
 GLOSS = "0.18"   # brillo de la frente (antes 0.38)
 BELLY = "0.16"   # panza (antes 0.3)
+# v4.6.20: Jony pidió una sombra leve y un contorno del mismo tono que cada
+# pieza. El contorno va DEBAJO de la forma (solo se ve la mitad de afuera):
+# un trazo del color del cuerpo (CSS .borde-color) y encima negro al 30 %, o
+# sea, el mismo color más oscuro. La sombra es una media luna plana abajo a la
+# derecha (luz arriba a la izquierda), negra al 12 %, recortada a la forma.
+BORDER = True
+SHADOW = "0.12"
+BIG = "M-400,-400 H800 V800 H-400 Z "
+
+
+def border(d, w):
+    """Contorno del tono de la pieza: va antes (debajo) de la forma base."""
+    j = 'fill="none" stroke-linecap="round" stroke-linejoin="round"'
+    return (f'<path d="{d}" class="borde-color" {j} stroke="#6fb8e0" stroke-width="{w}"/>'
+            f'<path d="{d}" class="borde-sombra" {j} stroke="#000000" stroke-opacity="0.3" stroke-width="{w}"/>')
+
+
+def shadow(d, cid, dx, dy):
+    """Media luna plana: la forma menos la misma forma corrida arriba a la izquierda."""
+    return (f'<g class="sombra"><defs><clipPath id="{cid}"><path d="{d}"/></clipPath></defs>'
+            f'<g clip-path="url(#{cid})"><path d="{BIG}{d}" fill-rule="evenodd" fill="#000000" '
+            f'fill-opacity="{SHADOW}" transform="translate({-dx} {-dy})"/></g></g>')
 
 
 def gradient(gid, cx=0.3):
@@ -59,7 +81,10 @@ def capsule(a, b, open_=False):
 def limb(gid, cls, a, b, grad):
     d = capsule(a, b)
     return (f'  <g id="{gid}" class="{cls}" style="transform-origin: {a[0]}px {a[1]}px;">\n'
-            f'    <path d="{d}" class="{cls}-base" fill="#6fb8e0"/>\n'
+            # contorno abierto: no marca la unión con el cuerpo
+            + (f'    {border(capsule(a, b, True), 5)}\n' if BORDER else "")
+            + f'    <path d="{d}" class="{cls}-base" fill="#6fb8e0"/>\n'
+            + (f'    {shadow(d, "sombra-" + gid, 2.5, 3)}\n' if BORDER else "")
             + (f'    <path d="{d}" fill="url(#{grad})"/>\n' if VOLUME else "")
             + (f'    <path d="{capsule(a, b, True)}" {LINE} stroke-width="3.2"/>\n' if OUTLINES else "")
             + '  </g>')
@@ -98,6 +123,9 @@ def body(shape):
     else:
         torso = f"""
   <path d="{d}" class="cuerpo-base" fill="#6fb8e0"/>"""
+    if BORDER:
+        torso = (f"\n  {border(d, 5.5)}" + torso
+                 + f"\n  {shadow(d, 'sombra-cuerpo', 4, 5)}")
     if OUTLINES:
         torso += f'\n  <path d="{d}" {LINE} stroke-width="3.4"/>'
     ar, (hx, hy), hr = shape["arm"]
@@ -186,6 +214,30 @@ def restyle(src):
     return src
 
 
+def outline_parts(src):
+    """Cabezas y orejas: contorno debajo y sombra encima de cada forma base."""
+    a, b = src.index("  cabeza: ["), src.index("  ojos: [")
+    part = re.sub(r'<path d="[^"]*" class="borde-(?:color|sombra)"[^>]*/>', "", src[a:b])
+    src = src[:a] + re.sub(r'<g class="sombra">.*?</g></g>', "", part, flags=re.S) + src[b:]
+    if not BORDER:
+        return src
+    for key, nxt, cls, w, dx, dy in (("cabeza", "orejas", "cabeza-base", 6, 6, 8),
+                                    ("orejas", "ojos", "oreja-base", 5, 3, 4)):
+        start = src.index(f"  {key}: [")
+        end = src.index(f"  {nxt}: [")
+        block = src[start:end]
+        n = [0]
+
+        def add(pm):
+            n[0] += 1
+            d = pm.group(1)
+            return border(d, w) + pm.group(0) + shadow(d, f"sombra-{key}-{n[0]}", dx, dy)
+
+        block = re.sub(r'<path d="([^"]*)" class="' + cls + r'" fill="[^"]*"/>', add, block)
+        src = src[:start] + block + src[end:]
+    return src
+
+
 def main():
     src = MANIFEST.read_text(encoding="utf-8")
     torso, arms, legs = body(SHAPE)
@@ -198,6 +250,7 @@ def main():
         src = shade_heads(src)
         src = shade_ears(src)
     src = restyle(src)
+    src = outline_parts(src)
     MANIFEST.write_text(src, encoding="utf-8")
     print("manifest.js actualizado: cuerpo, cabezas y orejas con el estilo actual.")
     return 0

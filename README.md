@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.6.20 — Contorno y sombra suave
+
+- **Mascota, ropa e íconos de la barra** dejan de ser del todo planos: cada pieza tiene un **contorno del mismo color, más oscuro**, y una **sombra plana leve** abajo a la derecha (negro al 12 %, recortada a la forma; la luz viene de arriba a la izquierda). Los colores no cambian.
+- En la mascota el contorno toma el color de cuerpo elegido (clase `borde-color` en `css/style.css`, con negro al 30 % encima). Brazos, piernas, mangas y piernas del pantalón tienen el contorno abierto del lado del hombro y la cadera, para que no marquen una línea sobre el cuerpo.
+- Lo generan `scripts/pet-volume-v470.py`, `scripts/clothes-flat.py` y `scripts/action-icons-flat.py`.
+- Versión en `?v=4.6.20`.
+
 ## Beta v4.6.19 — Íconos de acciones planos
 
 - **Barra de acciones redibujada** en el estilo plano de la mascota y la ropa (sin contorno, sin degradado ni brillo): cofre, remera, bolsa, luna, sol, pelota y jabón. Los mismos íconos se ven en la pestaña de torso del vestidor y en la ficha.

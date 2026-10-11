@@ -825,6 +825,7 @@ body {
 .pet-stage .cabeza-base, .creator-icon-svg .cabeza-base { fill: var(--pet-body-color, #6cb9dd); }
 .pet-stage .oreja-base, .creator-icon-svg .oreja-base { fill: var(--pet-body-color, #6cb9dd); }
 .pet-stage .cuerpo-base, .creator-icon-svg .cuerpo-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .borde-color, .creator-icon-svg .borde-color { stroke: var(--pet-body-color, #6cb9dd); }
 
 /* Color de ojos (pedido explícito) — mismo mecanismo que el color de
    cuerpo de arriba, pero sólo en las opciones de ojos con pupila propia.

@@ -4,6 +4,8 @@
 
 Esta guía reemplaza las reglas de luz de la guía de brillos anterior. La anatomía de la guía de anatomía se mantiene: cuerpo frijol, articulaciones redondas en los mismos puntos de giro.
 
+**Cambio del 11/10/2026 (v4.6.20), a pedido de Jony: contorno del tono de cada pieza y sombra leve.** Debajo de cada forma base va un trazo del color del cuerpo (clase `borde-color`) con negro al 30 % encima, así el contorno es el mismo color más oscuro; brazos y piernas lo tienen abierto en la unión. Encima va una media luna plana abajo a la derecha, negra al 12 %, recortada a la forma. Sigue sin degradados ni brillos.
+
 **Cambio del 11/10/2026 (v4.6.16), a pedido de Jony: personajes planos, como en Pet Society.** Cada pieza es un solo color, sin degradado, sin brillo en la frente, sin panza clara y sin sombra de la cabeza sobre el cuerpo. Tampoco hay contornos. Los brazos cuelgan un poco hacia afuera para que se distingan del torso por la silueta. Esto reemplaza todo lo de volumen de esta guía.
 
 **Cambio anterior (v4.6.15):** sin contornos, sin hocico blanco ni cachetes rosados, y brillos más suaves: el blanco del degradado baja a **16 %** (antes 34 %), el brillo de la frente a **18 %** (antes 38 %) y la panza a **16 %** (antes 30 %). Donde la tabla de abajo dice otra cosa, vale esto.
