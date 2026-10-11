@@ -36,7 +36,6 @@ BELLY = "0.16"   # panza (antes 0.3)
 # derecha (luz arriba a la izquierda), negra al 12 %, recortada a la forma.
 BORDER = True
 SHADOW = "0.12"
-BIG = "M-400,-400 H800 V800 H-400 Z "
 
 
 def border(d, w):
@@ -46,11 +45,106 @@ def border(d, w):
             f'<path d="{d}" class="borde-sombra" {j} stroke="#000000" stroke-opacity="0.3" stroke-width="{w}"/>')
 
 
+def path_bbox(d):
+    """Caja exacta de un trazado SVG (M L H V C Q A Z, absolutos o relativos)."""
+    toks = re.findall(r"[MLHVCSQTAZmlhvcsqtaz]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?", d)
+    pts, i, cmd = [], 0, None
+    x = y = sx = sy = 0.0
+    nargs = dict(M=2, L=2, H=1, V=1, C=6, S=4, Q=4, T=2, A=7, Z=0)
+
+    def bez(p0, *cs, n=24):
+        for k in range(n + 1):
+            t = k / n
+            if len(cs) == 2:
+                (x1, y1), (x2, y2) = cs
+                mt = 1 - t
+                pts.append((mt * mt * p0[0] + 2 * mt * t * x1 + t * t * x2, mt * mt * p0[1] + 2 * mt * t * y1 + t * t * y2))
+            else:
+                (x1, y1), (x2, y2), (x3, y3) = cs
+                mt = 1 - t
+                pts.append((mt ** 3 * p0[0] + 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t ** 3 * x3,
+                            mt ** 3 * p0[1] + 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t ** 3 * y3))
+
+    def arc(x1, y1, rx, ry, phi, fa, fs, x2, y2, n=48):
+        rx, ry = abs(rx), abs(ry)
+        if not rx or not ry:
+            pts.append((x2, y2))
+            return
+        c, s_ = math.cos(math.radians(phi)), math.sin(math.radians(phi))
+        dx2, dy2 = (x1 - x2) / 2, (y1 - y2) / 2
+        x1p, y1p = c * dx2 + s_ * dy2, -s_ * dx2 + c * dy2
+        lam = x1p ** 2 / rx ** 2 + y1p ** 2 / ry ** 2
+        if lam > 1:
+            rx, ry = rx * math.sqrt(lam), ry * math.sqrt(lam)
+        num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p
+        coef = math.sqrt(max(0, num / (rx * rx * y1p * y1p + ry * ry * x1p * x1p)))
+        if fa == fs:
+            coef = -coef
+        cxp, cyp = coef * rx * y1p / ry, -coef * ry * x1p / rx
+        cx, cy = c * cxp - s_ * cyp + (x1 + x2) / 2, s_ * cxp + c * cyp + (y1 + y2) / 2
+        ang = lambda ux, uy, vx, vy: math.atan2(ux * vy - uy * vx, ux * vx + uy * vy)
+        t1 = ang(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry)
+        dt = ang((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry)
+        if not fs and dt > 0:
+            dt -= 2 * math.pi
+        elif fs and dt < 0:
+            dt += 2 * math.pi
+        for k in range(n + 1):
+            t = t1 + dt * k / n
+            pts.append((cx + rx * math.cos(t) * c - ry * math.sin(t) * s_,
+                        cy + rx * math.cos(t) * s_ + ry * math.sin(t) * c))
+
+    while i < len(toks):
+        if toks[i].isalpha():
+            cmd = toks[i]
+            i += 1
+            if cmd in "Zz":
+                x, y = sx, sy
+                continue
+        up, rel = cmd.upper(), cmd.islower()
+        a = [float(v) for v in toks[i:i + nargs[up]]]
+        i += nargs[up]
+        ox, oy = (x, y) if rel else (0, 0)
+        if up in "ML":
+            x, y = a[0] + ox, a[1] + oy
+            pts.append((x, y))
+            if up == "M":
+                sx, sy = x, y
+                cmd = "l" if rel else "L"
+        elif up == "H":
+            x = a[0] + ox
+            pts.append((x, y))
+        elif up == "V":
+            y = a[0] + oy
+            pts.append((x, y))
+        elif up == "C":
+            bez((x, y), (a[0] + ox, a[1] + oy), (a[2] + ox, a[3] + oy), (a[4] + ox, a[5] + oy))
+            x, y = a[4] + ox, a[5] + oy
+        elif up == "Q":
+            bez((x, y), (a[0] + ox, a[1] + oy), (a[2] + ox, a[3] + oy))
+            x, y = a[2] + ox, a[3] + oy
+        elif up == "A":
+            arc(x, y, a[0], a[1], a[2], int(a[3]), int(a[4]), a[5] + ox, a[6] + oy)
+            x, y = a[5] + ox, a[6] + oy
+        else:
+            raise ValueError(f"comando {cmd} no soportado")
+    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
 def shadow(d, cid, dx, dy):
-    """Media luna plana: la forma menos la misma forma corrida arriba a la izquierda."""
-    return (f'<g class="sombra"><defs><clipPath id="{cid}"><path d="{d}"/></clipPath></defs>'
-            f'<g clip-path="url(#{cid})"><path d="{BIG}{d}" fill-rule="evenodd" fill="#000000" '
-            f'fill-opacity="{SHADOW}" transform="translate({-dx} {-dy})"/></g></g>')
+    """Media luna plana: la forma menos la misma forma corrida arriba a la izquierda.
+
+    Va con máscara (no con recorte de un rectángulo grande) para que la caja de
+    la pieza (getBBox, transform-box: fill-box) sea la de la forma: con el
+    rectángulo, las orejas giraban desde un punto lejano y salían volando.
+    """
+    x0, y0, x1, y1 = path_bbox(d)
+    return (f'<g class="sombra"><defs><mask id="{cid}" maskUnits="userSpaceOnUse" '
+            f'x="{f(x0 - 2)}" y="{f(y0 - 2)}" width="{f(x1 - x0 + 4)}" height="{f(y1 - y0 + 4)}">'
+            f'<rect x="{f(x0 - 2)}" y="{f(y0 - 2)}" width="{f(x1 - x0 + 4)}" height="{f(y1 - y0 + 4)}" fill="#ffffff"/>'
+            f'<path d="{d}" fill="#000000" transform="translate({-dx} {-dy})"/></mask></defs>'
+            f'<path d="{d}" fill="#000000" fill-opacity="{SHADOW}" mask="url(#{cid})"/></g>')
 
 
 def gradient(gid, cx=0.3):
@@ -218,7 +312,9 @@ def outline_parts(src):
     """Cabezas y orejas: contorno debajo y sombra encima de cada forma base."""
     a, b = src.index("  cabeza: ["), src.index("  ojos: [")
     part = re.sub(r'<path d="[^"]*" class="borde-(?:color|sombra)"[^>]*/>', "", src[a:b])
-    src = src[:a] + re.sub(r'<g class="sombra">.*?</g></g>', "", part, flags=re.S) + src[b:]
+    src = src[:a] + re.sub(
+        r'<g class="sombra"><defs>(?:<clipPath[^>]*>.*?</clipPath></defs><g clip-path="[^"]*"><path[^>]*/></g>'
+        r'|<mask[^>]*>.*?</mask></defs><path[^>]*/>)</g>', "", part, flags=re.S) + src[b:]
     if not BORDER:
         return src
     for key, nxt, cls, w, dx, dy in (("cabeza", "orejas", "cabeza-base", 6, 6, 8),

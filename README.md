@@ -4,6 +4,7 @@
 
 - **Mascota, ropa e íconos de la barra** dejan de ser del todo planos: cada pieza tiene un **contorno del mismo color, más oscuro**, y una **sombra plana leve** abajo a la derecha (negro al 12 %, recortada a la forma; la luz viene de arriba a la izquierda). Los colores no cambian.
 - En la mascota el contorno toma el color de cuerpo elegido (clase `borde-color` en `css/style.css`, con negro al 30 % encima). Brazos, piernas, mangas y piernas del pantalón tienen el contorno abierto del lado del hombro y la cadera, para que no marquen una línea sobre el cuerpo.
+- La sombra es una máscara sobre la forma (no un recorte de un rectángulo grande), así la caja de cada pieza no crece: con el rectángulo, las orejas giraban desde un punto lejano y en la demo salían volando.
 - Lo generan `scripts/pet-volume-v470.py`, `scripts/clothes-flat.py` y `scripts/action-icons-flat.py`.
 - Versión en `?v=4.6.20`.
 

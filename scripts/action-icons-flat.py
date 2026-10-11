@@ -6,10 +6,14 @@ plana abajo a la derecha. Cada ícono es un SVG chico (viewBox 0 0 100 100) que
 reemplaza al trazado con vtracer en assets/ui/actions/. Como pesan poco, ya no
 necesitan la copia WebP del modo liviano (LITE_ART en js/config.js).
 """
+import importlib.util
 import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+spec = importlib.util.spec_from_file_location("pet", ROOT / "scripts" / "pet-volume-v470.py")
+pet = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pet)
 OUT = ROOT / "assets" / "ui" / "actions"
 
 
@@ -54,10 +58,8 @@ def o(color, w=3.4):
 
 
 def shadow(d, cid, dx=3, dy=4):
-    """Sombra plana abajo a la derecha, recortada a la forma (como la mascota)."""
-    return (f'<defs><clipPath id="{cid}"><path d="{d}"/></clipPath></defs>'
-            f'<g clip-path="url(#{cid})"><path d="M-50,-50 H150 V150 H-50 Z {d}" fill-rule="evenodd" '
-            f'fill="#000000" fill-opacity="0.12" transform="translate({-dx} {-dy})"/></g>')
+    """Sombra plana abajo a la derecha (la misma de la mascota)."""
+    return pet.shadow(d, cid, dx, dy)
 
 
 def circle_d(cx, cy, r):
