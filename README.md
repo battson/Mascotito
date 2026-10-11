@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v4.6.17 — Ropa plana
+
+- **Los dos conjuntos redibujados** para el cuerpo nuevo, planos como la mascota (sin contorno ni volumen): conjunto 1 con remera blanca de mangas y ruedo oscuros, short celeste y zapatillas beige con suela clara; conjunto 2 con blusa crema, pantalón largo rosa y zapatillas grises.
+- El pantalón ahora tiene una pieza fija para la cadera (`ropa-cadera`) y una por pierna que gira con el paso.
+- Mangas, piernas y calzado se dibujan en su lugar exacto; dentro del juego van en un grupo que deshace la escala que les aplica el CSS (1,14, 1,07 y 1,08).
+- Lo genera `scripts/clothes-flat-v4617.py` (también los íconos de `assets/clothes/` y `assets/clothes/previews/`). `js/clothing-manifest.js` pasó de 98 KB a 10 KB.
+- Versión en `?v=4.6.17`.
+
 ## Beta v4.6.16 — Mascota plana
 
 - **Personajes planos, como en Pet Society:** cuerpo, brazos, piernas, cabezas y orejas son de un solo color, sin degradado de volumen, sin brillo en la frente, sin panza clara y sin sombra de la cabeza sobre el cuerpo.
@@ -33,7 +41,6 @@
   - el **saludo** es al costado, a la altura del hombro (más arriba la mano quedaba tapada por la cabeza).
 - **Arte editable** en `diseños/mascota/` (cuerpo, brazos, piernas, cabezas y orejas por separado, para abrir en Illustrator). El cambio en `js/manifest.js` lo hace `scripts/pet-volume-v470.py`.
 - Cada copia de cabeza, orejas y cuerpo usa ids propios para sus degradados (como la ropa desde v4.5.2).
-- **Pendiente:** la ropa sigue dibujada para el cuerpo anterior: se ve bien puesta, pero conviene redibujarla con el cuerpo y el estilo nuevos.
 - Versión en `?v=4.6.13`.
 
 ## Beta v4.6.12 — Hotfix 1
