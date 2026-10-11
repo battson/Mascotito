@@ -45,9 +45,9 @@ LITE = {
     **{p: ICON for p in [
         "assets/ui/phone/room.svg", "assets/ui/phone/add.svg", "assets/ui/phone/send.svg",
         "assets/ui/phone/search.svg", "assets/ui/phone/visit.svg", "assets/ui/phone/remove.svg",
-        "assets/ui/phone/check.svg", "assets/ui/actions/cerrar.svg", "assets/ui/actions/05-bolsa.svg",
-        "assets/ui/actions/01-remera.svg", "assets/ui/actions/06-jabon.svg", "assets/ui/actions/04-pelota.svg",
-        "assets/ui/actions/03-sol.svg", "assets/ui/inventory/cofre/energizante.svg",
+        "assets/ui/phone/check.svg", "assets/ui/actions/cerrar.svg",
+        # v4.6.19: los íconos de acciones ya son planos y livianos (scripts/action-icons-flat.py).
+        "assets/ui/inventory/cofre/energizante.svg",
         "assets/games/fishing/rod-icon.svg", "assets/games/fishing/can.svg",
         "assets/games/penalty/glove-left.svg", "assets/games/penalty/glove-right.svg",
         "assets/games/penalty/ball.svg", "assets/ui/ficha/luna.svg", "assets/ui/ficha/higiene.svg",

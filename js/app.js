@@ -401,7 +401,9 @@ function makeInlineLayer(innerMarkup, extraClass) {
   svg.setAttribute("viewBox", "0 0 400 400");
   svg.classList.add("pet-layer");
   String(extraClass || "").split(/\s+/).filter(Boolean).forEach((cls) => svg.classList.add(cls));
-  svg.innerHTML = innerMarkup;
+  // v4.7: cabeza, orejas y cuerpo traen degradados y recortes propios; cada
+  // copia usa ids únicos (mismo motivo que la ropa en v4.5.2).
+  svg.innerHTML = /url\(#/.test(innerMarkup) ? uniquifySvgIds(innerMarkup, `r${++clothingRenderId}`) : innerMarkup;
   return svg;
 }
 
@@ -699,7 +701,7 @@ function setupEyeTracking() {
     const rect = activeStage.getBoundingClientRect();
     if (!rect.width) return;
     const scale = rect.width / 400;
-    const flipped = activeStage === el.gameStage && el.gameStage.style.scale === "-1 1";
+    const flipped = activeStage === el.gameStage && parseFloat(el.gameStage.style.scale) < 0;
     const mxRaw = (event.clientX - rect.left) / scale;
     const mx = flipped ? 400 - mxRaw : mxRaw;
     const my = (event.clientY - rect.top) / scale;
@@ -729,8 +731,10 @@ const LEG_SWING_MAX_DEG = 28;
 // opuestos a las piernas, rebote por paso, leve inclinación hacia adelante
 // y balanceo de cabeza. La mascota mira hacia donde camina.
 const GAIT_PERIOD_S = 0.42;   // v4.6.11: paso un poco más ágil para la velocidad nueva (antes 0.5)
-const ARM_SWING_MAX_DEG = 7;   // v4.6.12: antes 36 — los brazos casi no se mueven al caminar
-const GAIT_BOUNCE_PCT = 3;
+const ARM_SWING_MAX_DEG = 20;  // v4.7: con hombros redondos ya no se despegan (v4.6.12 los había bajado a 7)
+const GAIT_BOUNCE_PCT = 5;   // v4.7: saltito estilo Pet Society (antes 3)
+const GAIT_SQUASH = 0.06;     // v4.7: aplaste al apoyar cada paso (6 % más bajo, 4 % más ancho)
+const GAIT_HEAD_LAG = 0.6;    // v4.7: la cabeza sigue el paso con este retraso (radianes de fase)
 const GAIT_LEAN_DEG = 5;
 const GAIT_HEAD_TILT_DEG = 3;
 
@@ -758,6 +762,8 @@ function computeWalkBounds() {
 function restLegs() {
   el.gameStage.classList.remove("is-walking");
   el.gameStage.style.translate = "";
+  // v4.7: se saca el aplaste del paso y queda mirando hacia donde iba.
+  if (el.gameStage.style.scale) el.gameStage.style.scale = parseFloat(el.gameStage.style.scale) < 0 ? "-1 1" : "";
   el.gameStage.style.rotate = "";
   el.gameStage.querySelectorAll(".pet-layer-cabeza, .pet-layer-orejas, .pet-layer-cejas, .pet-layer-ojos, .pet-layer-narices, .pet-layer-boca, .pet-layer-clothing-accessory").forEach((node) => { node.style.rotate = ""; });
   el.gameStage.querySelectorAll("#brazo-izq, #brazo-der, .ropa-brazo-izq, .ropa-brazo-der").forEach((node) => { node.style.rotate = ""; });
@@ -799,14 +805,18 @@ function applyLegSwing(stridePhase, intensity) {
   const stage = el.gameStage;
   stage.classList.add("is-walking");
   stage.classList.remove("is-waving");
-  stage.style.scale = walkDirection === "left" ? "-1 1" : "";
+  // v4.7: aplaste cuando el pie apoya (piernas abiertas) y estirón al pasar
+  // por el medio, con origen en los pies (.game-stage tiene origen 50% 100%).
+  const squash = Math.abs(s) * GAIT_SQUASH * intensity;
+  const sx = (1 + squash * 0.7) * (walkDirection === "left" ? -1 : 1);
+  stage.style.scale = `${sx.toFixed(3)} ${(1 - squash).toFixed(3)}`;
   const lift = Math.abs(Math.cos(stridePhase)) * GAIT_BOUNCE_PCT * intensity;
   stage.style.translate = `0 ${(-lift).toFixed(2)}%`;
   // v4.6.7: el espejado (scale -1 1) no invierte el giro del contenedor:
   // hacia la izquierda la inclinación va con signo contrario.
   const lean = GAIT_LEAN_DEG * intensity * (walkDirection === "left" ? -1 : 1);
   stage.style.rotate = `${lean.toFixed(1)}deg`;
-  const tilt = `${(s * GAIT_HEAD_TILT_DEG * intensity).toFixed(1)}deg`;
+  const tilt = `${(Math.sin(stridePhase - GAIT_HEAD_LAG) * GAIT_HEAD_TILT_DEG * intensity).toFixed(1)}deg`;
   const nodes = gaitNodes(stage);
   nodes.head.forEach((node) => { node.style.rotate = tilt; });
   const arm = s * ARM_SWING_MAX_DEG * intensity;
@@ -1548,7 +1558,7 @@ function renderCreatorPartIcons(category, label, options) {
       svg.style.setProperty("--pet-body-color", defaultBodyColor);
       svg.style.setProperty("--eye-color", defaultEyeColor);
       svg.style.setProperty("--eye-tint-filter", defaultEyeTint);
-      svg.innerHTML = opt.inline;
+      svg.innerHTML = /url\(#/.test(opt.inline) ? uniquifySvgIds(opt.inline, `r${++clothingRenderId}`) : opt.inline;
       btn.appendChild(svg);
     }
 
@@ -2657,7 +2667,7 @@ function renderWardrobe() {
     button.setAttribute("aria-label", item.label || `Prenda ${item.setId}`);
     button.setAttribute("aria-pressed", String(equipped === item.id));
     button.title = item.label || `Prenda ${item.setId}`;
-    const image = document.createElement("img"); image.src = /^conjunto[12]_(superior|inferior|calzado)$/.test(item.id) ? item.asset.replace("assets/clothes/", "assets/clothes/previews/") : item.asset; image.alt = "";
+    const image = document.createElement("img"); image.src = item.icon || item.asset; image.alt = "";
     button.append(image); el.wardrobeGrid.append(button);
   });
   el.wardrobeTabs.querySelectorAll('[data-slot]').forEach(button => {

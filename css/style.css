@@ -99,6 +99,8 @@ button, .swatch, input[type="text"], input[type="color"] {
   .game-stage,
   .brazo,
   .ropa-brazo,
+  .pet-stage .pet-layer-orejas #oreja-izq,
+  .pet-stage .pet-layer-orejas #oreja-der,
   .game-stage.mood-critico,
   .cloud {
     animation: none !important;
@@ -786,14 +788,17 @@ body {
 /* v4.7: saludo ocasional en idle (js/app.js, scheduleIdleWave). */
 @keyframes waveBody { 0%, 100% { rotate: 0deg; } 15%, 85% { rotate: -8deg; } }
 @keyframes waveHead { 0%, 100% { rotate: 0deg; } 18%, 82% { rotate: -10deg; } }
+/* v4.7: brazo cortito estilo Pet Society — se saluda al costado, a la
+   altura del hombro (más arriba la mano queda tapada por la cabeza). */
 @keyframes waveArm {
   0%, 100% { transform: rotate(0deg); }
-  20% { transform: rotate(-80deg); }
-  32% { transform: rotate(-58deg); }
-  44% { transform: rotate(-92deg); }
-  56% { transform: rotate(-58deg); }
-  68% { transform: rotate(-88deg); }
-  85% { transform: rotate(-80deg); }
+  18% { transform: rotate(-68deg); }
+  28% { transform: rotate(-50deg); }
+  38% { transform: rotate(-72deg); }
+  48% { transform: rotate(-50deg); }
+  58% { transform: rotate(-72deg); }
+  68% { transform: rotate(-50deg); }
+  85% { transform: rotate(-62deg); }
 }
 .game-stage.is-waving { animation: waveBody 2.3s ease-in-out; }
 .game-stage.is-waving .pet-layer-cabeza,
@@ -814,11 +819,13 @@ body {
    necesitar un SVG por color — sólo la capa base de cabeza/orejas
    (class="cabeza-base"/"oreja-base") toma este color; el contorno/
    sombreado y el interior rosado de las orejas quedan fijos. */
-.pet-stage .brazo path, .creator-icon-svg .brazo path { fill: var(--pet-body-color, #6cb9dd); }
-.pet-stage .pierna path, .creator-icon-svg .pierna path { fill: var(--pet-body-color, #6cb9dd); }
+/* v4.7: sólo la forma base; encima van el volumen y el contorno, que no toman color. */
+.pet-stage .brazo-base, .creator-icon-svg .brazo-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .pierna-base, .creator-icon-svg .pierna-base { fill: var(--pet-body-color, #6cb9dd); }
 .pet-stage .cabeza-base, .creator-icon-svg .cabeza-base { fill: var(--pet-body-color, #6cb9dd); }
 .pet-stage .oreja-base, .creator-icon-svg .oreja-base { fill: var(--pet-body-color, #6cb9dd); }
 .pet-stage .cuerpo-base, .creator-icon-svg .cuerpo-base { fill: var(--pet-body-color, #6cb9dd); }
+.pet-stage .borde-color, .creator-icon-svg .borde-color { stroke: var(--pet-body-color, #6cb9dd); }
 
 /* Color de ojos (pedido explícito) — mismo mecanismo que el color de
    cuerpo de arriba, pero sólo en las opciones de ojos con pupila propia.
@@ -857,9 +864,42 @@ body {
 .pet-stage .pet-layer-cejas,
 .pet-stage .pet-layer-ojos,
 .pet-stage .pet-layer-narices,
-.pet-stage .pet-layer-boca {
+.pet-stage .pet-layer-boca,
+.pet-stage .pet-layer-bath-face {
   transform: scale(1.22);
   transform-origin: 50% 54%;
+}
+/* v4.7: vista en tres cuartos (estilo Pet Society). La cara se corre hacia
+   la derecha 9 unidades del dibujo (11 ya escaladas = 2.75 %). Al caminar hacia la izquierda el
+   juego espeja la mascota entera, así siempre mira hacia donde va. Va en
+   transform (no en translate) porque los ojos 2 usan translate para mirar. */
+.pet-stage .pet-layer-cejas,
+.pet-stage .pet-layer-ojos,
+.pet-stage .pet-layer-narices,
+.pet-stage .pet-layer-boca,
+.pet-stage .pet-layer-bath-face {
+  transform: translate(2.75%, 0) scale(1.22);
+}
+/* La oreja de atrás queda un poco más chica y corrida hacia la cara. Las dos
+   orejas se mecen desde su base, con retraso respecto del cuerpo. */
+.pet-stage .pet-layer-orejas #oreja-izq,
+.pet-stage .pet-layer-orejas #oreja-der {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: earSway 2s ease-in-out infinite;
+  animation-delay: 0.45s;
+}
+.pet-stage .pet-layer-orejas #oreja-der { scale: 0.88; translate: -5px 0; }
+@keyframes earSway {
+  0%, 100% { rotate: -3deg; }
+  50% { rotate: 4deg; }
+}
+/* Al caminar las orejas rebotan a contratiempo del paso. */
+.game-stage.is-walking .pet-layer-orejas #oreja-izq,
+.game-stage.is-walking .pet-layer-orejas #oreja-der { animation: earFlop 0.21s ease-in-out infinite alternate; animation-delay: -0.07s; }
+@keyframes earFlop {
+  from { rotate: 7deg; }
+  to { rotate: -6deg; }
 }
 
 /* Sombra fija debajo de la mascota: color plano, sin desvanecido ni
@@ -5447,7 +5487,9 @@ button:disabled, [aria-disabled="true"], input:disabled, select:disabled { curso
    - fondos pesados en su copia WebP (scripts/export-lite-v466.py).
    ========================================================================== */
 html.is-lite .brazo,
-html.is-lite .ropa-brazo { animation: none; }
+html.is-lite .ropa-brazo,
+html.is-lite .pet-stage .pet-layer-orejas #oreja-izq,
+html.is-lite .pet-stage .pet-layer-orejas #oreja-der { animation: none; }
 html.is-lite .ropa-brazo { transform: scale(1.14); }
 html.is-lite .wellbeing-avatar *,
 html.is-lite .preview-stage * { animation: none !important; }

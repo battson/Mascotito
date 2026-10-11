@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+<title>Brazos</title>
+  <g id="brazo-izq" class="brazo" style="transform-origin: 178.1px 198.8px;">
+    <path d="M172.69,194.36 L145.43,227.61 A8.5,8.5 0 1,0 158.93,237.92 L183.81,202.85" class="borde-color" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#6fb8e0" stroke-width="5"/><path d="M172.69,194.36 L145.43,227.61 A8.5,8.5 0 1,0 158.93,237.92 L183.81,202.85" class="borde-sombra" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#000000" stroke-opacity="0.3" stroke-width="5"/>
+    <path d="M172.69,194.36 L145.43,227.61 A8.5,8.5 0 1,0 158.93,237.92 L183.81,202.85 A7,7 0 0,0 172.69,194.36 Z" class="brazo-base" fill="#6fb8e0"/>
+    <g class="sombra"><defs><clipPath id="sombra-brazo-izq"><path d="M172.69,194.36 L145.43,227.61 A8.5,8.5 0 1,0 158.93,237.92 L183.81,202.85 A7,7 0 0,0 172.69,194.36 Z"/></clipPath></defs><g clip-path="url(#sombra-brazo-izq)"><path d="M-400,-400 H800 V800 H-400 Z M172.69,194.36 L145.43,227.61 A8.5,8.5 0 1,0 158.93,237.92 L183.81,202.85 A7,7 0 0,0 172.69,194.36 Z" fill-rule="evenodd" fill="#000000" fill-opacity="0.12" transform="translate(-2.5 -3)"/></g></g>
+  </g>
+  <g id="brazo-der" class="brazo" style="transform-origin: 221.2px 198.8px;">
+    <path d="M215.49,202.85 L240.37,237.92 A8.5,8.5 0 1,0 253.87,227.61 L226.61,194.36" class="borde-color" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#6fb8e0" stroke-width="5"/><path d="M215.49,202.85 L240.37,237.92 A8.5,8.5 0 1,0 253.87,227.61 L226.61,194.36" class="borde-sombra" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#000000" stroke-opacity="0.3" stroke-width="5"/>
+    <path d="M215.49,202.85 L240.37,237.92 A8.5,8.5 0 1,0 253.87,227.61 L226.61,194.36 A7,7 0 0,0 215.49,202.85 Z" class="brazo-base" fill="#6fb8e0"/>
+    <g class="sombra"><defs><clipPath id="sombra-brazo-der"><path d="M215.49,202.85 L240.37,237.92 A8.5,8.5 0 1,0 253.87,227.61 L226.61,194.36 A7,7 0 0,0 215.49,202.85 Z"/></clipPath></defs><g clip-path="url(#sombra-brazo-der)"><path d="M-400,-400 H800 V800 H-400 Z M215.49,202.85 L240.37,237.92 A8.5,8.5 0 1,0 253.87,227.61 L226.61,194.36 A7,7 0 0,0 215.49,202.85 Z" fill-rule="evenodd" fill="#000000" fill-opacity="0.12" transform="translate(-2.5 -3)"/></g></g>
+  </g>
+</svg>

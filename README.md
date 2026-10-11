@@ -1,5 +1,74 @@
 # Mascotito Beta
 
+## Beta v4.6.20 — Contorno y sombra suave
+
+- **Mascota, ropa e íconos de la barra** dejan de ser del todo planos: cada pieza tiene un **contorno del mismo color, más oscuro**, y una **sombra plana leve** abajo a la derecha (negro al 12 %, recortada a la forma; la luz viene de arriba a la izquierda). Los colores no cambian.
+- En la mascota el contorno toma el color de cuerpo elegido (clase `borde-color` en `css/style.css`, con negro al 30 % encima). Brazos, piernas, mangas y piernas del pantalón tienen el contorno abierto del lado del hombro y la cadera, para que no marquen una línea sobre el cuerpo.
+- La sombra es una máscara sobre la forma (no un recorte de un rectángulo grande), así la caja de cada pieza no crece: con el rectángulo, las orejas giraban desde un punto lejano y en la demo salían volando.
+- Lo generan `scripts/pet-volume-v470.py`, `scripts/clothes-flat.py` y `scripts/action-icons-flat.py`.
+- Versión en `?v=4.6.20`.
+
+## Beta v4.6.19 — Íconos de acciones planos
+
+- **Barra de acciones redibujada** en el estilo plano de la mascota y la ropa (sin contorno, sin degradado ni brillo): cofre, remera, bolsa, luna, sol, pelota y jabón. Los mismos íconos se ven en la pestaña de torso del vestidor y en la ficha.
+- Cada ícono pesa menos de 1 KB (antes 14 a 83 KB, trazados con vtracer), así que se sacaron sus copias WebP del modo liviano (`LITE_ART`, `assets/lite/manifest.json` y `scripts/export-lite-v466.py`).
+- Los genera `scripts/action-icons-flat.py`.
+- Versión en `?v=4.6.19`.
+
+## Beta v4.6.18 — Más ropa
+
+- **16 prendas nuevas**, planas como la mascota, que se suman a los dos conjuntos:
+  - **Superiores:** remera marinera, remera con corazón, buzo mostaza con bolsillo, vestido de lunares, campera de jean y remera rayada verde.
+  - **Inferiores:** jean azul, jogging gris, bermuda cargo, pollera tableada verde y pollera rosa.
+  - **Calzado:** zapatillas rojas, botas de lluvia, botitas marrones, sandalias y pantuflas de conejo.
+- Todas tienen nombre y precio (160 a 300 monedas), así que aparecen solas en la tienda; el admin puede cambiar precio o esconderlas como siempre.
+- El vestidor y la tienda usan el ícono recortado de cada prenda (`icon` en `js/clothing-manifest.js`).
+- Las genera `scripts/clothes-flat.py` (antes `clothes-flat-v4617.py`): cada prenda es una línea en `CATALOG` con sus rasgos (mangas, rayas, lunares, bolsillo, pollera, botas…).
+- Versión en `?v=4.6.18`.
+
+## Beta v4.6.17 — Ropa plana
+
+- **Los dos conjuntos redibujados** para el cuerpo nuevo, planos como la mascota (sin contorno ni volumen): conjunto 1 con remera blanca de mangas y ruedo oscuros, short celeste y zapatillas beige con suela clara; conjunto 2 con blusa crema, pantalón largo rosa y zapatillas grises.
+- El pantalón ahora tiene una pieza fija para la cadera (`ropa-cadera`) y una por pierna que gira con el paso.
+- Mangas, piernas y calzado se dibujan en su lugar exacto; dentro del juego van en un grupo que deshace la escala que les aplica el CSS (1,14, 1,07 y 1,08).
+- Lo genera `scripts/clothes-flat.py` (también los íconos de `assets/clothes/` y `assets/clothes/previews/`). `js/clothing-manifest.js` pasó de 98 KB a 10 KB.
+- Versión en `?v=4.6.17`.
+
+## Beta v4.6.16 — Mascota plana
+
+- **Personajes planos, como en Pet Society:** cuerpo, brazos, piernas, cabezas y orejas son de un solo color, sin degradado de volumen, sin brillo en la frente, sin panza clara y sin sombra de la cabeza sobre el cuerpo.
+- Como brazo y torso son del mismo color y no hay contorno, los brazos cuelgan un poco hacia afuera (mano en x 152, antes 167) para que se lean por la silueta.
+- `scripts/pet-volume-v470.py` tiene `VOLUME = False`; corrido sobre el manifest original da el mismo resultado.
+- Versión en `?v=4.6.16`.
+
+## Beta v4.6.15 — Mascota más limpia
+
+- **Sin contornos** en cuerpo, brazos, piernas, cabezas y orejas.
+- **Sin hocico blanco ni cachetes rosados** en la cara.
+- **Brillos más suaves:** el blanco del degradado baja de 34 % a 16 %, el brillo de la frente de 38 % a 18 % y la panza de 30 % a 16 %. La sombra del borde queda igual.
+- Las medidas están arriba de todo en `scripts/pet-volume-v470.py` (`OUTLINES`, `LIGHT`, `GLOSS`, `BELLY`); el script se puede volver a correr.
+- Versión en `?v=4.6.15`.
+
+## Beta v4.6.14 — Mascota más flaquita
+
+- **Proporciones más parecidas a Pet Society:** el torso es una pera chica y angosta (54 de ancho en los hombros y 80 abajo; antes 90 y 110), los brazos y las piernas son más finitos (radio 7 a 8,5 en los brazos y 9 a 10,5 en las piernas) y los brazos cuelgan pegados al cuerpo. La cabeza queda igual, así que ahora domina más. Los puntos de giro no cambian.
+- `scripts/pet-volume-v470.py` ahora puede volver a correrse: si las cabezas ya tienen volumen, solo reescribe el cuerpo (medidas en `SHAPE`).
+- Versión en `?v=4.6.14`.
+
+## Beta v4.6.13 — Mascota estilo Pet Society
+
+- **Cuerpo nuevo:** torso tipo frijol y brazos y piernas cortitos con mano y pie redondos. Cada brazo y cada pierna arranca con un círculo centrado justo en su punto de giro (los mismos de antes), así al girar ya no se despegan del cuerpo. El contorno no rodea el hombro ni la cadera, para que no quede una costura.
+- **Volumen estilo Pet Society / Pet Pals** en cuerpo, 7 cabezas y 6 orejas: degradado suave (claro arriba a la izquierda, oscuro en el borde), contorno del mismo color del pelaje pero más oscuro (negro al 30 %), brillo en la frente, hocico y panza más claros y cachetes rosados. Todo es blanco o negro con transparencia, así sirve para los 13 colores sin redibujar nada. Reemplaza la capa negra al 6 % de antes.
+- **Vista en tres cuartos:** la cara (cejas, ojos, nariz, boca, hocico y cara de baño) se corre hacia la derecha y la oreja de atrás queda un poco más chica. Al caminar hacia la izquierda la mascota se espeja entera, así siempre mira hacia donde va.
+- **Animación:**
+  - al caminar da **saltitos**: se aplasta al apoyar el pie y se estira en el aire (rebote 5 %, antes 3 %). La cabeza sigue el paso con retraso;
+  - las **orejas se mecen** desde su base: con retraso estando quieta y a contratiempo al caminar;
+  - los brazos vuelven a **balancearse 20°** al caminar (estaban en 7° porque se despegaban);
+  - el **saludo** es al costado, a la altura del hombro (más arriba la mano quedaba tapada por la cabeza).
+- **Arte editable** en `diseños/mascota/` (cuerpo, brazos, piernas, cabezas y orejas por separado, para abrir en Illustrator). El cambio en `js/manifest.js` lo hace `scripts/pet-volume-v470.py`.
+- Cada copia de cabeza, orejas y cuerpo usa ids propios para sus degradados (como la ropa desde v4.5.2).
+- Versión en `?v=4.6.13`.
+
 ## Beta v4.6.12 — Hotfix 1
 
 - **Ojos 5 y 6:** al seguir el mouse se movía el ojo entero (estaban marcados como «sin pupila», igual que el 2). Ahora cada uno tiene su pupila (`#pupila-izq/der`) y es la que sigue al mouse: en el 6 se mueve el iris completo; en el 5, como el iris ocupa casi todo el ojo, se mueve la pupila con sus brillos, un poco menos (`PET_EYE_CENTERS_BY_OJOS` en `js/manifest.js`).

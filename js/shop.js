@@ -8,7 +8,7 @@ const SHOP_ITEMS = [
   })),
   ...Object.entries(CLOTHING_CATALOG).flatMap(([slot, items]) => items.map((item) => ({
     id: item.id, type: "clothing", slot, label: item.label || (slot === "accesorios" ? "Corona" : `Ropa · ${item.setId} · ${slot}`),
-    asset: item.asset, group: "Ropa", subcategory: { superior: "Prendas superiores", inferior: "Prendas inferiores", calzado: "Calzado", accesorios: "Accesorios" }[slot],
+    asset: item.icon || item.asset, group: "Ropa", subcategory: { superior: "Prendas superiores", inferior: "Prendas inferiores", calzado: "Calzado", accesorios: "Accesorios" }[slot],
     defaultPrice: Number.isInteger(item.price) ? item.price : null,
   }))),
   ...PET_PARTS_MANIFEST.bodyColor.filter((item) => item.locked).map((item) => ({
