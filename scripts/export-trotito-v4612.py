@@ -6,9 +6,10 @@ Uso: python scripts/export-trotito-v4612.py <carpeta con sprites_trotito.png,
 Genera en assets/games/trotito/:
   run.svg        6 cuadros de la carrera (sprite vectorizado con vtracer),
                  alineados por la nariz, como <symbol id="trot-f1…f6">. La
-                 manta azul pasa a var(--manta), el pelaje se mezcla con
-                 var(--fur) y hay manchas opcionales (var(--spots)) para
-                 que cada corredor se vea distinto (hotfix 1).
+                 manta azul pasa a var(--manta) y el pelaje se mezcla con
+                 var(--fur) para que cada corredor se vea distinto (hotfix
+                 1); var(--fur-keep) dice cuánto queda del color original
+                 (hotfix 2, que también sacó las manchas de Trébol).
   escenario.svg  (v4.6.12, reemplazado en el hotfix 1 por el dibujo a mano
                  de scripts/draw-trotito-track-v4612.py) la pista (vtracer).
   podio.svg      sólo el podio de endscreen_trotito.png (sin estadio, pista,
@@ -58,7 +59,8 @@ def frames():
 def recolor(tag):
     """Manta azul → var(--manta). Pelaje (colores claros casi sin
     saturación) → mezcla con var(--fur): sin --fur queda igual (se mezcla
-    consigo mismo); con --fur se tiñe un poco (hotfix 1: Rayo y Canela)."""
+    consigo mismo); con --fur se tiñe un poco (hotfix 1: Rayo y Canela) o
+    más, si el corredor baja --fur-keep (hotfix 2: Trébol chocolate)."""
     m = re.search(r'fill="#([0-9A-Fa-f]{6})"', tag)
     hexc = m.group(1)
     r, g, b = [int(hexc[i:i + 2], 16) / 255 for i in (0, 2, 4)]
@@ -71,34 +73,14 @@ def recolor(tag):
         return tag.replace(m.group(0), f'style="fill:{val}"')
     v = max(r, g, b); sat = (v - min(r, g, b)) / v if v else 0
     if sat < .145 and v > .55:
-        return tag.replace(m.group(0), f'style="fill:color-mix(in srgb, #{hexc} 72%, var(--fur, #{hexc}))"')
+        return tag.replace(m.group(0), f'style="fill:color-mix(in srgb, #{hexc} var(--fur-keep, 72%), var(--fur, #{hexc}))"')
     return tag
-
-
-# Hotfix 1: manchas (Trébol) — se ven sólo si el corredor define --spots.
-# La cabeza queda en el mismo lugar en todos los cuadros (se alinearon por
-# la nariz); la mancha del lomo sigue a la manta de cada cuadro.
-MANTA = [(198.5, 237.5), (201.5, 228.5), (195.5, 225.5), (195.5, 225.5), (212.5, 222.5), (197, 227.5)]
-
-
-def spots(i, silhouette):
-    mx, my = MANTA[i - 1]
-    clip = silhouette.replace("<path", f'<path', 1)
-    return (f'<clipPath id="trot-clip-f{i}">{clip}</clipPath>'
-            f'<g clip-path="url(#trot-clip-f{i})" style="display:var(--spots, none)" fill="var(--spot-color, #9a6a45)" opacity=".85">'
-            f'<ellipse cx="318" cy="118" rx="40" ry="28" transform="rotate(-18 318 118)"/>'
-            f'<ellipse cx="292" cy="228" rx="30" ry="22"/>'
-            f'<ellipse cx="{mx - 78:.1f}" cy="{my + 4:.1f}" rx="30" ry="22"/>'
-            f'<ellipse cx="{mx + 70:.1f}" cy="{my + 40:.1f}" rx="20" ry="14"/></g>')
 
 
 def build_run(paths, W=472, H=385):
     parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>']
     for i, raw in enumerate(paths, 1):
-        ps = [recolor(p) for p in raw]
-        # Las manchas van arriba del pelaje pero abajo de la cara y la manta:
-        # se insertan después del último relleno de pelaje grande (índice 5).
-        body = ps[:6] + [spots(i, raw[0])] + ps[6:]
+        body = [recolor(p) for p in raw]
         parts.append(f'<symbol id="trot-f{i}" viewBox="0 0 {W} {H}">{"".join(body)}</symbol>')
     parts.append("</defs></svg>")
     return "".join(parts)

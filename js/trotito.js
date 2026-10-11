@@ -12,8 +12,9 @@
 
    Arte (ver scripts/export-trotito-v4612.py):
    - assets/games/trotito/run.svg — los 6 cuadros de la carrera (sprite
-     vectorizado) como <symbol> trot-f1…trot-f6. La manta usa var(--manta),
-     el pelaje var(--fur) y las manchas var(--spots) (hotfix 1).
+     vectorizado) como <symbol> trot-f1…trot-f6. La manta usa var(--manta)
+     y el pelaje var(--fur) (hotfix 1), con la fuerza del tinte en
+     var(--fur-keep) (hotfix 2: Trébol chocolate, sin manchas).
    - escenario.svg (pista dibujada a mano en vectores, hotfix 1, ver
      scripts/draw-trotito-track-v4612.py) y podio.svg (el podio sin
      estadio ni confeti).
@@ -24,24 +25,26 @@ const TROTITO_ART = {
   track: liteArt("assets/games/trotito/escenario.svg?v=4.6.12-h1"),
   podium: liteArt("assets/games/trotito/podio.svg"),
   icon: "assets/games/trotito/icon.svg",
-  sprites: "assets/games/trotito/run.svg?v=4.6.12-h1",
+  sprites: "assets/games/trotito/run.svg?v=4.6.12-h2",
 };
 
 // Corredores: color de manta, nombre, cuota y probabilidad real de ganar
 // (suman 1). Todo acá para ajustarlo con la economía de v4.7.
 // Hotfix 1: para que no sean todos iguales, Pompón queda blanco como el
-// sprite, Rayo es gris perla, Canela color canela clarito (fur = tinte del
-// pelaje) y Trébol lleva manchas marrones (spots).
+// sprite, Rayo es gris perla y Canela color canela clarito (fur = tinte del
+// pelaje). Hotfix 2: Trébol ya no lleva manchas: es chocolate. Para eso
+// furKeep dice cuánto queda del blanco del sprite (72 % si no se pone; con
+// menos, el color de fur pesa más).
 const TROTITO_RUNNERS = [
   { n: 1, name: "Pompón", color: "#2f8fe0", odds: 2, chance: .42 },
   { n: 2, name: "Rayo", color: "#e2463c", odds: 3, chance: .28, fur: "#aeb6c4" },
-  { n: 3, name: "Trébol", color: "#3cae4a", odds: 4, chance: .20, spots: "#9a6a45" },
+  { n: 3, name: "Trébol", color: "#3cae4a", odds: 4, chance: .20, fur: "#7d4524", furKeep: "30%" },
   { n: 4, name: "Canela", color: "#f2b92c", odds: 6, chance: .10, fur: "#e2b27c" },
 ];
 
-/** Variables CSS del corredor: manta, pelaje y manchas. */
+/** Variables CSS del corredor: manta, pelaje y fuerza del tinte. */
 function trotitoLook(r) {
-  return `--manta:${r.color}` + (r.fur ? `;--fur:${r.fur}` : "") + (r.spots ? `;--spots:inline;--spot-color:${r.spots}` : "");
+  return `--manta:${r.color}` + (r.fur ? `;--fur:${r.fur}` : "") + (r.furKeep ? `;--fur-keep:${r.furKeep}` : "");
 }
 const TROTITO_BETS = [10, 25, 50, 100];
 const TROTITO_LIMITS = { carrerasPorDia: 5 };
