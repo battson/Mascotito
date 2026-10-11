@@ -1,11 +1,22 @@
 # Mascotito Beta
 
+## Beta v4.6.18 — Más ropa
+
+- **16 prendas nuevas**, planas como la mascota, que se suman a los dos conjuntos:
+  - **Superiores:** remera marinera, remera con corazón, buzo mostaza con bolsillo, vestido de lunares, campera de jean y remera rayada verde.
+  - **Inferiores:** jean azul, jogging gris, bermuda cargo, pollera tableada verde y pollera rosa.
+  - **Calzado:** zapatillas rojas, botas de lluvia, botitas marrones, sandalias y pantuflas de conejo.
+- Todas tienen nombre y precio (160 a 300 monedas), así que aparecen solas en la tienda; el admin puede cambiar precio o esconderlas como siempre.
+- El vestidor y la tienda usan el ícono recortado de cada prenda (`icon` en `js/clothing-manifest.js`).
+- Las genera `scripts/clothes-flat.py` (antes `clothes-flat-v4617.py`): cada prenda es una línea en `CATALOG` con sus rasgos (mangas, rayas, lunares, bolsillo, pollera, botas…).
+- Versión en `?v=4.6.18`.
+
 ## Beta v4.6.17 — Ropa plana
 
 - **Los dos conjuntos redibujados** para el cuerpo nuevo, planos como la mascota (sin contorno ni volumen): conjunto 1 con remera blanca de mangas y ruedo oscuros, short celeste y zapatillas beige con suela clara; conjunto 2 con blusa crema, pantalón largo rosa y zapatillas grises.
 - El pantalón ahora tiene una pieza fija para la cadera (`ropa-cadera`) y una por pierna que gira con el paso.
 - Mangas, piernas y calzado se dibujan en su lugar exacto; dentro del juego van en un grupo que deshace la escala que les aplica el CSS (1,14, 1,07 y 1,08).
-- Lo genera `scripts/clothes-flat-v4617.py` (también los íconos de `assets/clothes/` y `assets/clothes/previews/`). `js/clothing-manifest.js` pasó de 98 KB a 10 KB.
+- Lo genera `scripts/clothes-flat.py` (también los íconos de `assets/clothes/` y `assets/clothes/previews/`). `js/clothing-manifest.js` pasó de 98 KB a 10 KB.
 - Versión en `?v=4.6.17`.
 
 ## Beta v4.6.16 — Mascota plana

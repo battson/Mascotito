@@ -2667,7 +2667,7 @@ function renderWardrobe() {
     button.setAttribute("aria-label", item.label || `Prenda ${item.setId}`);
     button.setAttribute("aria-pressed", String(equipped === item.id));
     button.title = item.label || `Prenda ${item.setId}`;
-    const image = document.createElement("img"); image.src = /^conjunto[12]_(superior|inferior|calzado)$/.test(item.id) ? item.asset.replace("assets/clothes/", "assets/clothes/previews/") : item.asset; image.alt = "";
+    const image = document.createElement("img"); image.src = item.icon || item.asset; image.alt = "";
     button.append(image); el.wardrobeGrid.append(button);
   });
   el.wardrobeTabs.querySelectorAll('[data-slot]').forEach(button => {
