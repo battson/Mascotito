@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+<title>Piernas</title>
+  <defs><radialGradient id="vol-pierna" cx="0.3" cy="0.28" r="0.85"><stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/><stop offset="0.32" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.62" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></radialGradient></defs>
+  <g id="pierna-izq" class="pierna" style="transform-origin: 175.3px 264.1px;">
+    <path d="M162.44,262.19 L157.16,297.80 A15,15 0 1,0 186.99,300.54 L188.29,264.57 A13,13 0 0,0 162.44,262.19 Z" class="pierna-base" fill="#6fb8e0"/>
+    <path d="M162.44,262.19 L157.16,297.80 A15,15 0 1,0 186.99,300.54 L188.29,264.57 A13,13 0 0,0 162.44,262.19 Z" fill="url(#vol-pierna)"/>
+    <path d="M162.44,262.19 L157.16,297.80 A15,15 0 1,0 186.99,300.54 L188.29,264.57" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
+  </g>
+  <g id="pierna-der" class="pierna" style="transform-origin: 224.0px 264.1px;">
+    <path d="M211.01,264.61 L212.41,300.58 A15,15 0 1,0 242.23,297.76 L236.85,262.16 A13,13 0 0,0 211.01,264.61 Z" class="pierna-base" fill="#6fb8e0"/>
+    <path d="M211.01,264.61 L212.41,300.58 A15,15 0 1,0 242.23,297.76 L236.85,262.16 A13,13 0 0,0 211.01,264.61 Z" fill="url(#vol-pierna)"/>
+    <path d="M211.01,264.61 L212.41,300.58 A15,15 0 1,0 242.23,297.76 L236.85,262.16" fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
+  </g>
+</svg>

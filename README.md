@@ -1,5 +1,20 @@
 # Mascotito Beta
 
+## Beta v4.6.13 — Mascota estilo Pet Society
+
+- **Cuerpo nuevo:** torso tipo frijol y brazos y piernas cortitos con mano y pie redondos. Cada brazo y cada pierna arranca con un círculo centrado justo en su punto de giro (los mismos de antes), así al girar ya no se despegan del cuerpo. El contorno no rodea el hombro ni la cadera, para que no quede una costura.
+- **Volumen estilo Pet Society / Pet Pals** en cuerpo, 7 cabezas y 6 orejas: degradado suave (claro arriba a la izquierda, oscuro en el borde), contorno del mismo color del pelaje pero más oscuro (negro al 30 %), brillo en la frente, hocico y panza más claros y cachetes rosados. Todo es blanco o negro con transparencia, así sirve para los 13 colores sin redibujar nada. Reemplaza la capa negra al 6 % de antes.
+- **Vista en tres cuartos:** la cara (cejas, ojos, nariz, boca, hocico y cara de baño) se corre hacia la derecha y la oreja de atrás queda un poco más chica. Al caminar hacia la izquierda la mascota se espeja entera, así siempre mira hacia donde va.
+- **Animación:**
+  - al caminar da **saltitos**: se aplasta al apoyar el pie y se estira en el aire (rebote 5 %, antes 3 %). La cabeza sigue el paso con retraso;
+  - las **orejas se mecen** desde su base: con retraso estando quieta y a contratiempo al caminar;
+  - los brazos vuelven a **balancearse 20°** al caminar (estaban en 7° porque se despegaban);
+  - el **saludo** es al costado, a la altura del hombro (más arriba la mano quedaba tapada por la cabeza).
+- **Arte editable** en `diseños/mascota/` (cuerpo, brazos, piernas, cabezas y orejas por separado, para abrir en Illustrator). El cambio en `js/manifest.js` lo hace `scripts/pet-volume-v470.py`.
+- Cada copia de cabeza, orejas y cuerpo usa ids propios para sus degradados (como la ropa desde v4.5.2).
+- **Pendiente:** la ropa sigue dibujada para el cuerpo anterior: se ve bien puesta, pero conviene redibujarla con el cuerpo y el estilo nuevos.
+- Versión en `?v=4.6.13`.
+
 ## Beta v4.6.12 — Hotfix 1
 
 - **Ojos 5 y 6:** al seguir el mouse se movía el ojo entero (estaban marcados como «sin pupila», igual que el 2). Ahora cada uno tiene su pupila (`#pupila-izq/der`) y es la que sigue al mouse: en el 6 se mueve el iris completo; en el 5, como el iris ocupa casi todo el ojo, se mueve la pupila con sus brillos, un poco menos (`PET_EYE_CENTERS_BY_OJOS` en `js/manifest.js`).
