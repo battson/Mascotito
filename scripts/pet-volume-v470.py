@@ -23,6 +23,9 @@ MANIFEST = ROOT / "js" / "manifest.js"
 LINE = 'fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round"'
 # v4.6.15: Jony pidió sin contornos, sin hocico ni cachetes y brillos más suaves.
 OUTLINES = False
+# v4.6.16: Jony pidió personajes planos como en Pet Society: sin degradado,
+# sin brillo, sin panza ni sombra de la cabeza.
+VOLUME = False
 LIGHT = "0.16"   # blanco del degradado (antes 0.34)
 GLOSS = "0.18"   # brillo de la frente (antes 0.38)
 BELLY = "0.16"   # panza (antes 0.3)
@@ -57,7 +60,7 @@ def limb(gid, cls, a, b, grad):
     d = capsule(a, b)
     return (f'  <g id="{gid}" class="{cls}" style="transform-origin: {a[0]}px {a[1]}px;">\n'
             f'    <path d="{d}" class="{cls}-base" fill="#6fb8e0"/>\n'
-            f'    <path d="{d}" fill="url(#{grad})"/>\n'
+            + (f'    <path d="{d}" fill="url(#{grad})"/>\n' if VOLUME else "")
             + (f'    <path d="{capsule(a, b, True)}" {LINE} stroke-width="3.2"/>\n' if OUTLINES else "")
             + '  </g>')
 
@@ -79,26 +82,31 @@ def pear(top, bottom, wt, wb, cx=200):
 # Proporciones tipo Pet Society (v4.6.14): cabeza grande y cuerpo chico y angosto,
 # brazos y piernas finitos. Los puntos de giro no cambian.
 SHAPE = dict(top=188, bottom=280, wt=27, wb=40,
-             arm=(7, (167, 236), 8.5), leg=(9, (174, 302), 10.5))
+             arm=(7, (152, 233), 8.5), leg=(9, (174, 302), 10.5))
 
 
 def body(shape):
     top, bottom, wt, wb = shape["top"], shape["bottom"], shape["wt"], shape["wb"]
     d = pear(top, bottom, wt, wb)
-    torso = f"""
+    if VOLUME:
+        torso = f"""
   <defs>{gradient("vol-cuerpo")}<clipPath id="clip-cuerpo"><path d="{d}"/></clipPath></defs>
   <path d="{d}" class="cuerpo-base" fill="#6fb8e0"/>
   <path d="{d}" fill="url(#vol-cuerpo)"/>
   <ellipse clip-path="url(#clip-cuerpo)" cx="203" cy="{f((top + bottom) / 2 + 12)}" rx="{f(wb * 0.58)}" ry="{f((bottom - top) * 0.27)}" fill="#ffffff" fill-opacity="{BELLY}"/>
-  <ellipse clip-path="url(#clip-cuerpo)" cx="202" cy="{f(top + 9)}" rx="{f(wt + 14)}" ry="14" fill="#000000" fill-opacity="0.14"/>
-{f'{chr(10)}  <path d="{d}" {LINE} stroke-width="3.4"/>' if OUTLINES else ""}"""
+  <ellipse clip-path="url(#clip-cuerpo)" cx="202" cy="{f(top + 9)}" rx="{f(wt + 14)}" ry="14" fill="#000000" fill-opacity="0.14"/>"""
+    else:
+        torso = f"""
+  <path d="{d}" class="cuerpo-base" fill="#6fb8e0"/>"""
+    if OUTLINES:
+        torso += f'\n  <path d="{d}" {LINE} stroke-width="3.4"/>'
     ar, (hx, hy), hr = shape["arm"]
     lr, (fx, fy), fr = shape["leg"]
-    arms = "\n" + f"  <defs>{gradient('vol-brazo')}</defs>\n" + "\n".join([
+    arms = "\n" + (f"  <defs>{gradient('vol-brazo')}</defs>\n" if VOLUME else "") + "\n".join([
         limb("brazo-izq", "brazo", (178.1, 198.8, round(ar, 2)), (hx, hy, hr), "vol-brazo"),
         limb("brazo-der", "brazo", (221.2, 198.8, round(ar, 2)), (round(399.3 - hx, 2), hy, hr), "vol-brazo"),
     ])
-    legs = "\n" + f"  <defs>{gradient('vol-pierna')}</defs>\n" + "\n".join([
+    legs = "\n" + (f"  <defs>{gradient('vol-pierna')}</defs>\n" if VOLUME else "") + "\n".join([
         limb("pierna-izq", "pierna", (175.3, 264.1, lr), (fx, fy, fr), "vol-pierna"),
         limb("pierna-der", "pierna", (224.0, 264.1, lr), (round(399.3 - fx, 2), fy, fr), "vol-pierna"),
     ])
@@ -171,6 +179,10 @@ def restyle(src):
     src = re.sub(r'\n?\s*<g class="hocico"[^>]*>.*?</g>', "", src, flags=re.S)
     src = src.replace('stop-color="#ffffff" stop-opacity="0.34"', f'stop-color="#ffffff" stop-opacity="{LIGHT}"')
     src = re.sub(r'(transform="rotate\(-25 [^"]*\)" fill="#ffffff" fill-opacity=")0\.38"', r'\g<1>' + GLOSS + '"', src)
+    if not VOLUME:
+        src = re.sub(r'\n?\s*<defs><radialGradient id="vol-[a-z]+".*?</radialGradient></defs>', "", src, flags=re.S)
+        src = re.sub(r'<path d="[^"]*" fill="url\(#vol-[a-z]+\)"/>', "", src)
+        src = re.sub(r'<ellipse [^>]*transform="rotate\(-25 [^"]*\)" fill="#ffffff" fill-opacity="[\d.]+"/>', "", src)
     return src
 
 
@@ -180,15 +192,14 @@ def main():
     src = replace_const(src, "PET_TORSO_INLINE", torso)
     src = replace_const(src, "PET_ARMS_INLINE", arms)
     src = replace_const(src, "PET_LEGS_INLINE", legs)
-    if "vol-cabeza" in src:
-        src = restyle(src)
-        MANIFEST.write_text(src, encoding="utf-8")
-        print("manifest.js: cuerpo actualizado (cabezas y orejas ya tenían volumen).")
-        return 0
-    src = shade_heads(src)
-    src = shade_ears(src)
+    # Cabezas y orejas originales: todavía tienen la capa negra al 6 %.
+    parts = src[src.index("  cabeza: ["):src.index("  ojos: [")]
+    if 'fill="#000000" fill-opacity="0.06"' in parts:
+        src = shade_heads(src)
+        src = shade_ears(src)
+    src = restyle(src)
     MANIFEST.write_text(src, encoding="utf-8")
-    print("manifest.js actualizado: cuerpo nuevo, volumen en cabezas y orejas, hocico en tres cuartos.")
+    print("manifest.js actualizado: cuerpo, cabezas y orejas con el estilo actual.")
     return 0
 
 

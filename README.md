@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.6.16 — Mascota plana
+
+- **Personajes planos, como en Pet Society:** cuerpo, brazos, piernas, cabezas y orejas son de un solo color, sin degradado de volumen, sin brillo en la frente, sin panza clara y sin sombra de la cabeza sobre el cuerpo.
+- Como brazo y torso son del mismo color y no hay contorno, los brazos cuelgan un poco hacia afuera (mano en x 152, antes 167) para que se lean por la silueta.
+- `scripts/pet-volume-v470.py` tiene `VOLUME = False`; corrido sobre el manifest original da el mismo resultado.
+- Versión en `?v=4.6.16`.
+
 ## Beta v4.6.15 — Mascota más limpia
 
 - **Sin contornos** en cuerpo, brazos, piernas, cabezas y orejas.
