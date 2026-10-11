@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v4.6.12 — Hotfix 2
+
+- **Trotito — ganador mal anunciado:** si se cambiaba de pestaña o de app a mitad de carrera (muy común en el celular), al volver los cuatro llegaban a la meta en el mismo cuadro y el cartel anunciaba al primero por número: decía «¡Ganó Pompón!» (y con el color de perder) aunque ganara otro. El podio y el pago ya estaban bien, porque se resuelven al largar. Ahora:
+  - El tiempo de la carrera avanza de a lo sumo 0,1 s por cuadro (antes salía del reloj). En segundo plano no hay cuadros, así que **la carrera queda en pausa y al volver sigue donde estaba**, sin perderse la llegada.
+  - Los corredores se revisan en el **orden sorteado**: si dos cruzan en el mismo cuadro, el que se anuncia es el que ganó.
+- **Trotito — rendimiento:** la animación de la carrera seguía corriendo ~20 s después de la llegada (hasta los 30 s), con el podio ya en pantalla. Ahora se detiene cuando llegan los cuatro.
+- Pruebas: `tests/trotito.test.js` simula una carrera con 20 s sin cuadros a la mitad y revisa el cartel, el orden de llegada y que el bucle se detenga. Versión en `?v=4.6.12-h2`.
+
 ## Beta v4.6.12 — Hotfix 1
 
 - **Ojos 5 y 6:** al seguir el mouse se movía el ojo entero (estaban marcados como «sin pupila», igual que el 2). Ahora cada uno tiene su pupila (`#pupila-izq/der`) y es la que sigue al mouse: en el 6 se mueve el iris completo; en el 5, como el iris ocupa casi todo el ojo, se mueve la pupila con sus brillos, un poco menos (`PET_EYE_CENTERS_BY_OJOS` en `js/manifest.js`).

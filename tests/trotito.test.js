@@ -1,4 +1,5 @@
 // v4.6.12: Trotito — sorteo del orden, pagos de la apuesta y carrera.
+// Hotfix 2: anuncio del ganador con cortes de animación y fin del bucle.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -6,8 +7,8 @@ const vm = require("node:vm");
 
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 const context = vm.createContext({ liteArt: (src) => src, console, Math, fetch: () => Promise.resolve({ ok: false }) });
-vm.runInContext(`${read("js/trotito.js")}\nthis.api = { TROTITO_RUNNERS, TROTITO_BETS, TROTITO_LIMITS, trotitoDrawOrder, trotitoPayout, trotitoPlan, trotitoProgress };`, context);
-const { TROTITO_RUNNERS, TROTITO_BETS, TROTITO_LIMITS, trotitoDrawOrder, trotitoPayout, trotitoPlan, trotitoProgress } = context.api;
+vm.runInContext(`${read("js/trotito.js")}\nthis.api = { TROTITO_RUNNERS, TROTITO_BETS, TROTITO_LIMITS, trotitoDrawOrder, trotitoPayout, trotitoPlan, trotitoProgress, trotitoFrame };`, context);
+const { TROTITO_RUNNERS, TROTITO_BETS, TROTITO_LIMITS, trotitoDrawOrder, trotitoPayout, trotitoPlan, trotitoProgress, trotitoFrame } = context.api;
 
 // 4 corredores, cuotas ×2/×3/×4/×6, probabilidades que suman 1.
 assert.equal(TROTITO_RUNNERS.length, 4);
@@ -49,4 +50,37 @@ for (let k = 0; k < 300; k++) {
   }
 }
 
-console.log("Trotito: probabilidades, pagos y orden de llegada correctos.");
+// Hotfix 2: si se cortan los cuadros a mitad de carrera (pestaña o app en
+// segundo plano), la carrera sigue donde estaba, el cartel anuncia al
+// ganador sorteado (antes podía decir «¡Ganó Pompón!») y el bucle se
+// detiene apenas llegan los cuatro.
+const banners = [];
+Object.assign(context, {
+  $g: () => ({ querySelector: () => null }),
+  fsReduceMotion: () => true,
+  gamesTimer: () => {},
+  gamesHint: () => {},
+  showPenaltyBanner: (text) => banners.push(text),
+});
+for (const order of [[3, 1, 2, 4], [4, 3, 2, 1], [2, 4, 1, 3]]) {
+  banners.length = 0;
+  const trot = { phase: "race", pick: order[0], order, plan: trotitoPlan(order), time: 0, last: 0, finished: [], anim: {} };
+  order.forEach((n) => { trot.anim[n] = { frame: 0, acc: 0, prev: 0 }; });
+  context.minigame = { type: { id: "trotito" }, trot };
+  let now = 0;
+  let running = true;
+  let frames = 0;
+  while (running && frames < 5000) {
+    now += frames === 200 ? 20000 : 16; // a los ~3 s se pierden 20 s de cuadros
+    running = trotitoFrame(now);
+    frames++;
+  }
+  const winner = TROTITO_RUNNERS.find((r) => r.n === order[0]);
+  assert.equal(banners.join("|"), `¡Ganó ${winner.name}!`);
+  assert.equal(trot.finished.join(","), order.join(","));
+  assert.equal(running, false);
+  // Terminó apenas llegó el último: el corte no adelantó la carrera.
+  assert.ok(trot.time < trot.plan[order[3]].T + .1, `tiempo de carrera ${trot.time}`);
+}
+
+console.log("Trotito: probabilidades, pagos, orden de llegada y anuncio del ganador correctos.");

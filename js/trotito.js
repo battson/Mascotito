@@ -326,8 +326,8 @@ function trotitoStartRace() {
   const m = minigame;
   const t = m.trot;
   t.phase = "race";
-  t.t0 = performance.now();
-  t.last = t.t0;
+  t.time = 0;
+  t.last = performance.now();
   t.finished = [];
   t.anim = {};
   TROTITO_RUNNERS.forEach((r) => { t.anim[r.n] = { frame: Math.floor(Math.random() * 6), acc: 0, prev: 0 }; });
@@ -342,11 +342,19 @@ function trotitoFrame(now) {
   const m = minigame;
   const t = m?.trot;
   if (!t || m.type.id !== "trotito") return false;
-  const dt = Math.min(.1, (now - t.last) / 1000);
+  // Hotfix 2: el tiempo de la carrera avanza de a lo sumo 0,1 s por cuadro
+  // (antes salía del reloj). Con la pestaña o la app en segundo plano no
+  // hay cuadros, así que la carrera queda en pausa y al volver sigue donde
+  // estaba, en vez de llegar los cuatro juntos.
+  const dt = Math.min(.1, Math.max(0, (now - t.last) / 1000));
   t.last = now;
-  const tSec = (now - t.t0) / 1000;
+  t.time += dt;
+  const tSec = t.time;
   const reduce = fsReduceMotion();
-  TROTITO_RUNNERS.forEach((r) => {
+  // En el orden sorteado: si dos cruzan en el mismo cuadro, el primero en
+  // marcarse es el que ganó (antes iba por número y podía anunciar a otro).
+  t.order.forEach((n) => {
+    const r = TROTITO_RUNNERS.find((x) => x.n === n);
     const a = t.anim[r.n];
     // Nunca para atrás (las ondas de adelanto/remontada podrían frenarlo).
     const p = Math.max(a.prev, trotitoProgress(t.plan[r.n], tSec));
@@ -367,7 +375,9 @@ function trotitoFrame(now) {
     t.ending = true;
     gamesTimer(() => { if (minigame === m) trotitoShowPodium(); }, 1300);
   }
-  return !t.ending || tSec < 30;
+  // Hotfix 2: con los cuatro en la meta ya no hay nada que mover; antes el
+  // bucle seguía ~20 s más (hasta los 30 s), con el podio ya en pantalla.
+  return !t.ending;
 }
 
 function trotitoPlaceRunners(p) {
