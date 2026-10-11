@@ -1,5 +1,12 @@
 # Mascotito Beta
 
+## Beta v4.6.19 — Íconos de acciones planos
+
+- **Barra de acciones redibujada** en el estilo plano de la mascota y la ropa (sin contorno, sin degradado ni brillo): cofre, remera, bolsa, luna, sol, pelota y jabón. Los mismos íconos se ven en la pestaña de torso del vestidor y en la ficha.
+- Cada ícono pesa menos de 1 KB (antes 14 a 83 KB, trazados con vtracer), así que se sacaron sus copias WebP del modo liviano (`LITE_ART`, `assets/lite/manifest.json` y `scripts/export-lite-v466.py`).
+- Los genera `scripts/action-icons-flat.py`.
+- Versión en `?v=4.6.19`.
+
 ## Beta v4.6.18 — Más ropa
 
 - **16 prendas nuevas**, planas como la mascota, que se suman a los dos conjuntos:
