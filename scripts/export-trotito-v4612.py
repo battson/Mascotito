@@ -12,8 +12,10 @@ Genera en assets/games/trotito/:
                  (hotfix 2, que también sacó las manchas de Trébol).
   escenario.svg  (v4.6.12, reemplazado en el hotfix 1 por el dibujo a mano
                  de scripts/draw-trotito-track-v4612.py) la pista (vtracer).
-  podio.svg      sólo el podio de endscreen_trotito.png (sin estadio, pista,
-                 pasto ni confeti estático; recorte con GrabCut + retoques).
+  podio.svg      (v4.6.12, reemplazado en el hotfix 2 por el dibujo a mano
+                 de scripts/draw-trotito-podium-v4612.py) sólo el podio de
+                 endscreen_trotito.png (sin estadio, pista, pasto ni confeti
+                 estático; recorte con GrabCut + retoques).
   icon.svg       Trotito_icon.ai pasado directo (es vectorial), recortado.
 Las copias WebP del modo liviano se sacan con una captura del SVG.
 Requiere: pip install vtracer opencv-python pillow numpy (y pdftocairo).

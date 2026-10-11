@@ -17,13 +17,14 @@
      var(--fur-keep) (hotfix 2: Trébol lila, sin manchas).
    - escenario.svg (pista dibujada a mano en vectores, hotfix 1, ver
      scripts/draw-trotito-track-v4612.py) y podio.svg (el podio sin
-     estadio ni confeti).
+     estadio ni confeti; hotfix 2: redibujado a mano, ver
+     scripts/draw-trotito-podium-v4612.py).
    - icon.svg (Trotito_icon.ai) para el recuadro de Minijuegos.
    ========================================================================== */
 
 const TROTITO_ART = {
   track: liteArt("assets/games/trotito/escenario.svg?v=4.6.12-h1"),
-  podium: liteArt("assets/games/trotito/podio.svg"),
+  podium: liteArt("assets/games/trotito/podio.svg?v=4.6.12-h2"),
   icon: "assets/games/trotito/icon.svg",
   sprites: "assets/games/trotito/run.svg?v=4.6.12-h2",
 };

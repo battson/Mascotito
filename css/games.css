@@ -998,7 +998,8 @@ html.is-lite #stage-floor .fs-fx { will-change: transform; }
 @keyframes trotCheerBtn { 40% { transform: scale(1.12); } }
 
 /* Podio: fondo liso (sin estadio), confeti animado, los 3 primeros arriba
-   de su escalón (1º y 2º contentos, 3º triste) y la tarjeta del resultado. */
+   de su escalón (contentos los tres desde el hotfix 1) y la tarjeta del
+   resultado. */
 #stage-floor .trot-podium {
   position: absolute; inset: 0; z-index: 6;
   overflow: hidden;
@@ -1022,7 +1023,12 @@ html.is-lite #stage-floor .fs-fx { will-change: transform; }
 #stage-floor .trot-podium-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* Corredores más grandes, apoyados sobre la cara de arriba de su escalón
    (las patas del cuadro parado terminan en y 368 de 385: el margen
-   negativo baja el dibujo para que pisen justo). */
+   negativo baja el dibujo para que pisen justo).
+   Hotfix 2 (podio redibujado, scripts/draw-trotito-podium-v4612.py): pisan
+   en el medio de la cara de arriba de cada tapa (y 30 / 94 / 156 de 343,
+   FEET en el script) → bottom = (343 − y) / 343. La sombra del dibujo
+   (x 262 de 472) queda en el centro del bloque (x 698 / 286 / 1110 de
+   1400): left = centro − 5,5 % del ancho del corredor. */
 #stage-floor .trot-podium-runner {
   position: absolute;
   width: 29%;
@@ -1030,13 +1036,21 @@ html.is-lite #stage-floor .fs-fx { will-change: transform; }
   transform: translateX(-50%);
 }
 #stage-floor .trot-podium-runner svg { width: 100%; aspect-ratio: 472 / 385; overflow: visible; margin-bottom: -3.6%; }
-#stage-floor .trot-podium-runner[data-place="1"] { left: 49%; bottom: 94%; width: 32%; }
-#stage-floor .trot-podium-runner[data-place="2"] { left: 19.5%; bottom: 76%; }
-#stage-floor .trot-podium-runner[data-place="3"] { left: 79%; bottom: 58%; }
-#stage-floor .trot-podium-runner[data-place="1"] svg :is(use, .trot-num) { animation: trotJoy .9s ease-in-out infinite; }
-#stage-floor .trot-podium-runner[data-place="2"] svg :is(use, .trot-num) { animation: trotJoy 1.1s ease-in-out .2s infinite; }
-#stage-floor .trot-podium-runner[data-place="3"] svg :is(use, .trot-num) { animation: trotJoy 1.3s ease-in-out .45s infinite; }
-@keyframes trotJoy { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10%); } 60% { transform: translateY(-7%); } }
+#stage-floor .trot-podium-runner[data-place="1"] { left: 48.1%; bottom: 91.25%; width: 32%; }
+#stage-floor .trot-podium-runner[data-place="2"] { left: 18.83%; bottom: 72.6%; }
+#stage-floor .trot-podium-runner[data-place="3"] { left: 77.69%; bottom: 54.5%; }
+/* Festejo: parados en su escalón y, cada tanto, un saltito que vuelve a
+   apoyar (antes pasaban casi todo el tiempo en el aire y parecían flotar).
+   La sombra queda en el piso y se achica mientras están arriba. */
+#stage-floor .trot-podium-runner svg .trot-shadow { transform-box: fill-box; transform-origin: center; }
+#stage-floor .trot-podium-runner[data-place="1"] svg :is(use, .trot-num) { animation: trotJoy 1.5s ease-in-out infinite; }
+#stage-floor .trot-podium-runner[data-place="2"] svg :is(use, .trot-num) { animation: trotJoy 1.8s ease-in-out .35s infinite; }
+#stage-floor .trot-podium-runner[data-place="3"] svg :is(use, .trot-num) { animation: trotJoy 2.1s ease-in-out .8s infinite; }
+#stage-floor .trot-podium-runner[data-place="1"] svg .trot-shadow { animation: trotJoyShadow 1.5s ease-in-out infinite; }
+#stage-floor .trot-podium-runner[data-place="2"] svg .trot-shadow { animation: trotJoyShadow 1.8s ease-in-out .35s infinite; }
+#stage-floor .trot-podium-runner[data-place="3"] svg .trot-shadow { animation: trotJoyShadow 2.1s ease-in-out .8s infinite; }
+@keyframes trotJoy { 0%, 50%, 82%, 100% { transform: translateY(0); } 66% { transform: translateY(-9%); } 90% { transform: translateY(-2%); } }
+@keyframes trotJoyShadow { 0%, 50%, 82%, 100% { transform: scale(1); } 66% { transform: scale(.72); } 90% { transform: scale(.94); } }
 #stage-floor .trot-podium-name {
   order: -1;
   margin-bottom: 2px; padding: 1px 12px 2px;
@@ -1088,7 +1102,7 @@ html.is-lite #stage-floor .fs-fx { will-change: transform; }
 
 @media (prefers-reduced-motion: reduce) {
   #stage-floor .trot-countdown.is-on { animation-duration: .01ms; opacity: 1; }
-  #stage-floor .trot-podium-runner svg :is(use, .trot-num),
+  #stage-floor .trot-podium-runner svg :is(use, .trot-num, .trot-shadow),
   #stage-floor .trot-runner-body.is-cheered .trot-frame,
   #stage-floor .trot-cheer.is-pop { animation: none !important; }
 }

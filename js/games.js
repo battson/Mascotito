@@ -80,7 +80,7 @@ const GAME_PANEL_ICON = { pesca: FISHING_ART.icon, penales: PENALTY_ART.ball, tr
 const GAME_PRELOAD = {
   pesca: [FISHING_ART.lake, FISHING_ART.rod, FISHING_ART.bobber],
   penales: [PENALTY_ART.field, PENALTY_ART.ball, PENALTY_ART.gloveL, PENALTY_ART.gloveR],
-  trotito: [liteArt("assets/games/trotito/escenario.svg"), liteArt("assets/games/trotito/podio.svg")],
+  trotito: [liteArt("assets/games/trotito/escenario.svg?v=4.6.12-h1"), liteArt("assets/games/trotito/podio.svg?v=4.6.12-h2")],
 };
 
 const SVG_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.8 8.2 3 4.5 6.6 4.5c2.2 0 3.6 1.3 5.4 3.3 1.8-2 3.2-3.3 5.4-3.3 3.6 0 5.8 3.7 4.2 7.3C19.5 16.4 12 21 12 21z" fill="#f06a8a" stroke="#5a3a22" stroke-width="1.8" stroke-linejoin="round"/></svg>';
