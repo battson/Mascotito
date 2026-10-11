@@ -14,7 +14,7 @@
    - assets/games/trotito/run.svg — los 6 cuadros de la carrera (sprite
      vectorizado) como <symbol> trot-f1…trot-f6. La manta usa var(--manta)
      y el pelaje var(--fur) (hotfix 1), con la fuerza del tinte en
-     var(--fur-keep) (hotfix 2: Trébol chocolate, sin manchas).
+     var(--fur-keep) (hotfix 2: Trébol lila, sin manchas).
    - escenario.svg (pista dibujada a mano en vectores, hotfix 1, ver
      scripts/draw-trotito-track-v4612.py) y podio.svg (el podio sin
      estadio ni confeti).
@@ -32,13 +32,13 @@ const TROTITO_ART = {
 // (suman 1). Todo acá para ajustarlo con la economía de v4.7.
 // Hotfix 1: para que no sean todos iguales, Pompón queda blanco como el
 // sprite, Rayo es gris perla y Canela color canela clarito (fur = tinte del
-// pelaje). Hotfix 2: Trébol ya no lleva manchas: es chocolate. Para eso
+// pelaje). Hotfix 2: Trébol ya no lleva manchas: es lila. Para eso
 // furKeep dice cuánto queda del blanco del sprite (72 % si no se pone; con
 // menos, el color de fur pesa más).
 const TROTITO_RUNNERS = [
   { n: 1, name: "Pompón", color: "#2f8fe0", odds: 2, chance: .42 },
   { n: 2, name: "Rayo", color: "#e2463c", odds: 3, chance: .28, fur: "#aeb6c4" },
-  { n: 3, name: "Trébol", color: "#3cae4a", odds: 4, chance: .20, fur: "#7d4524", furKeep: "30%" },
+  { n: 3, name: "Trébol", color: "#3cae4a", odds: 4, chance: .20, fur: "#9b7fd6", furKeep: "55%" },
   { n: 4, name: "Canela", color: "#f2b92c", odds: 6, chance: .10, fur: "#e2b27c" },
 ];
 

@@ -60,7 +60,7 @@ def recolor(tag):
     """Manta azul → var(--manta). Pelaje (colores claros casi sin
     saturación) → mezcla con var(--fur): sin --fur queda igual (se mezcla
     consigo mismo); con --fur se tiñe un poco (hotfix 1: Rayo y Canela) o
-    más, si el corredor baja --fur-keep (hotfix 2: Trébol chocolate)."""
+    más, si el corredor baja --fur-keep (hotfix 2: Trébol lila)."""
     m = re.search(r'fill="#([0-9A-Fa-f]{6})"', tag)
     hexc = m.group(1)
     r, g, b = [int(hexc[i:i + 2], 16) / 255 for i in (0, 2, 4)]
