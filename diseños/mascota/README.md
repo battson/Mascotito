@@ -4,6 +4,8 @@
 
 Esta guía reemplaza las reglas de luz de la guía de brillos anterior. La anatomía de la guía de anatomía se mantiene: cuerpo frijol, articulaciones redondas en los mismos puntos de giro.
 
+**Cambio del 11/10/2026 (v4.6.15), a pedido de Jony:** sin contornos, sin hocico blanco ni cachetes rosados, y brillos más suaves: el blanco del degradado baja a **16 %** (antes 34 %), el brillo de la frente a **18 %** (antes 38 %) y la panza a **16 %** (antes 30 %). Donde la tabla de abajo dice otra cosa, vale esto.
+
 ## Qué cambia respecto de la guía anterior
 
 | Tema | Antes (guía de brillos) | Ahora (Pet Society / Pet Pals) |

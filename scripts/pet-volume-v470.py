@@ -21,12 +21,16 @@ ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "js" / "manifest.js"
 
 LINE = 'fill="none" stroke="#000000" stroke-opacity="0.3" stroke-linecap="round" stroke-linejoin="round"'
-FACE_SHIFT = 9  # tres cuartos: la cara se corre hacia la derecha (unidades del lienzo de 400)
+# v4.6.15: Jony pidió sin contornos, sin hocico ni cachetes y brillos más suaves.
+OUTLINES = False
+LIGHT = "0.16"   # blanco del degradado (antes 0.34)
+GLOSS = "0.18"   # brillo de la frente (antes 0.38)
+BELLY = "0.16"   # panza (antes 0.3)
 
 
 def gradient(gid, cx=0.3):
     return (f'<radialGradient id="{gid}" cx="{cx}" cy="0.28" r="0.85">'
-            '<stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>'
+            f'<stop offset="0" stop-color="#ffffff" stop-opacity="{LIGHT}"/>'
             '<stop offset="0.32" stop-color="#ffffff" stop-opacity="0"/>'
             '<stop offset="0.62" stop-color="#000000" stop-opacity="0"/>'
             '<stop offset="1" stop-color="#000000" stop-opacity="0.2"/></radialGradient>')
@@ -54,8 +58,8 @@ def limb(gid, cls, a, b, grad):
     return (f'  <g id="{gid}" class="{cls}" style="transform-origin: {a[0]}px {a[1]}px;">\n'
             f'    <path d="{d}" class="{cls}-base" fill="#6fb8e0"/>\n'
             f'    <path d="{d}" fill="url(#{grad})"/>\n'
-            f'    <path d="{capsule(a, b, True)}" {LINE} stroke-width="3.2"/>\n'
-            '  </g>')
+            + (f'    <path d="{capsule(a, b, True)}" {LINE} stroke-width="3.2"/>\n' if OUTLINES else "")
+            + '  </g>')
 
 
 def pear(top, bottom, wt, wb, cx=200):
@@ -85,9 +89,9 @@ def body(shape):
   <defs>{gradient("vol-cuerpo")}<clipPath id="clip-cuerpo"><path d="{d}"/></clipPath></defs>
   <path d="{d}" class="cuerpo-base" fill="#6fb8e0"/>
   <path d="{d}" fill="url(#vol-cuerpo)"/>
-  <ellipse clip-path="url(#clip-cuerpo)" cx="203" cy="{f((top + bottom) / 2 + 12)}" rx="{f(wb * 0.58)}" ry="{f((bottom - top) * 0.27)}" fill="#ffffff" fill-opacity="0.3"/>
+  <ellipse clip-path="url(#clip-cuerpo)" cx="203" cy="{f((top + bottom) / 2 + 12)}" rx="{f(wb * 0.58)}" ry="{f((bottom - top) * 0.27)}" fill="#ffffff" fill-opacity="{BELLY}"/>
   <ellipse clip-path="url(#clip-cuerpo)" cx="202" cy="{f(top + 9)}" rx="{f(wt + 14)}" ry="14" fill="#000000" fill-opacity="0.14"/>
-  <path d="{d}" {LINE} stroke-width="3.4"/>"""
+{f'{chr(10)}  <path d="{d}" {LINE} stroke-width="3.4"/>' if OUTLINES else ""}"""
     ar, (hx, hy), hr = shape["arm"]
     lr, (fx, fy), fr = shape["leg"]
     arms = "\n" + f"  <defs>{gradient('vol-brazo')}</defs>\n" + "\n".join([
@@ -99,12 +103,6 @@ def body(shape):
         limb("pierna-der", "pierna", (224.0, 264.1, lr), (round(399.3 - fx, 2), fy, fr), "vol-pierna"),
     ])
     return torso, arms, legs
-
-
-MUZZLE = (f'<g class="hocico" transform="translate({FACE_SHIFT} 0)">'
-          '<ellipse cx="200" cy="185" rx="28" ry="15.5" fill="#ffffff" fill-opacity="0.45"/>'
-          '<ellipse cx="157" cy="181" rx="11" ry="6" fill="#ff6f91" fill-opacity="0.32"/>'
-          '<ellipse cx="243" cy="181" rx="11" ry="6" fill="#ff6f91" fill-opacity="0.32"/></g>')
 
 
 def bbox(d):
@@ -136,13 +134,13 @@ def shade_heads(src):
             if first[0]:
                 gx, gy = x + w * 0.29, y + h * 0.22
                 gloss = (f'<ellipse cx="{f(gx)}" cy="{f(gy)}" rx="{f(w * 0.1)}" ry="{f(h * 0.06)}" '
-                         f'transform="rotate(-25 {f(gx)} {f(gy)})" fill="#ffffff" fill-opacity="0.38"/>')
+                         f'transform="rotate(-25 {f(gx)} {f(gy)})" fill="#ffffff" fill-opacity="{GLOSS}"/>')
                 first[0] = False
             return (pm.group(0) + f'<path d="{d}" fill="url(#vol-cabeza)"/>' + gloss
-                    + f'<path d="{d}" {LINE} stroke-width="3"/>')
+                    + (f'<path d="{d}" {LINE} stroke-width="3"/>' if OUTLINES else ""))
 
         inner = re.sub(r'<path d="([^"]*)" class="cabeza-base" fill="[^"]*"/>', overlay, inner)
-        return m.group(1) + f"\n    <defs>{gradient('vol-cabeza')}</defs>" + inner.rstrip() + f"\n    {MUZZLE}" + m.group(3)
+        return m.group(1) + f"\n    <defs>{gradient('vol-cabeza')}</defs>" + inner.rstrip() + m.group(3)
 
     block = re.sub(r"(inline: `)(.*?)(`)", per_inline, block, flags=re.S)
     return src[:start] + block + src[end:]
@@ -158,12 +156,22 @@ def shade_ears(src):
         inner = re.sub(
             r'<path d="([^"]*)" class="oreja-base" fill="[^"]*"/>',
             lambda pm: pm.group(0) + f'<path d="{pm.group(1)}" fill="url(#vol-oreja)"/>'
-            + f'<path d="{pm.group(1)}" {LINE} stroke-width="3"/>',
+            + (f'<path d="{pm.group(1)}" {LINE} stroke-width="3"/>' if OUTLINES else ""),
             inner)
         return m.group(1) + f"\n    <defs>{gradient('vol-oreja')}</defs>" + inner + m.group(3)
 
     block = re.sub(r"(inline: `)(.*?)(`)", per_inline, block, flags=re.S)
     return src[:start] + block + src[end:]
+
+
+def restyle(src):
+    """Pasa cabezas y orejas ya sombreadas al estilo actual (contornos, hocico, brillos)."""
+    if not OUTLINES:
+        src = re.sub(r'<path d="[^"]*" ' + re.escape(LINE) + r' stroke-width="[\d.]+"/>', "", src)
+    src = re.sub(r'\n?\s*<g class="hocico"[^>]*>.*?</g>', "", src, flags=re.S)
+    src = src.replace('stop-color="#ffffff" stop-opacity="0.34"', f'stop-color="#ffffff" stop-opacity="{LIGHT}"')
+    src = re.sub(r'(transform="rotate\(-25 [^"]*\)" fill="#ffffff" fill-opacity=")0\.38"', r'\g<1>' + GLOSS + '"', src)
+    return src
 
 
 def main():
@@ -173,6 +181,7 @@ def main():
     src = replace_const(src, "PET_ARMS_INLINE", arms)
     src = replace_const(src, "PET_LEGS_INLINE", legs)
     if "vol-cabeza" in src:
+        src = restyle(src)
         MANIFEST.write_text(src, encoding="utf-8")
         print("manifest.js: cuerpo actualizado (cabezas y orejas ya tenían volumen).")
         return 0

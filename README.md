@@ -1,5 +1,13 @@
 # Mascotito Beta
 
+## Beta v4.6.15 — Mascota más limpia
+
+- **Sin contornos** en cuerpo, brazos, piernas, cabezas y orejas.
+- **Sin hocico blanco ni cachetes rosados** en la cara.
+- **Brillos más suaves:** el blanco del degradado baja de 34 % a 16 %, el brillo de la frente de 38 % a 18 % y la panza de 30 % a 16 %. La sombra del borde queda igual.
+- Las medidas están arriba de todo en `scripts/pet-volume-v470.py` (`OUTLINES`, `LIGHT`, `GLOSS`, `BELLY`); el script se puede volver a correr.
+- Versión en `?v=4.6.15`.
+
 ## Beta v4.6.14 — Mascota más flaquita
 
 - **Proporciones más parecidas a Pet Society:** el torso es una pera chica y angosta (54 de ancho en los hombros y 80 abajo; antes 90 y 110), los brazos y las piernas son más finitos (radio 7 a 8,5 en los brazos y 9 a 10,5 en las piernas) y los brazos cuelgan pegados al cuerpo. La cabeza queda igual, así que ahora domina más. Los puntos de giro no cambian.

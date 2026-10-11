@@ -869,8 +869,7 @@ body {
   transform-origin: 50% 54%;
 }
 /* v4.7: vista en tres cuartos (estilo Pet Society). La cara se corre hacia
-   la derecha 9 unidades del dibujo (11 ya escaladas = 2.75 %); el hocico ya
-   viene corrido dentro de cada cabeza. Al caminar hacia la izquierda el
+   la derecha 9 unidades del dibujo (11 ya escaladas = 2.75 %). Al caminar hacia la izquierda el
    juego espeja la mascota entera, así siempre mira hacia donde va. Va en
    transform (no en translate) porque los ojos 2 usan translate para mirar. */
 .pet-stage .pet-layer-cejas,
