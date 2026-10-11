@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v4.6.21 — Vuelven los íconos de acciones de antes
+
+- A pedido de Jony, la barra de acciones vuelve a los íconos anteriores (cofre, remera, bolsa, luna, sol, pelota y jabón), con sus copias WebP del modo liviano. Se deshace el rediseño plano de v4.6.19 y el contorno y la sombra que v4.6.20 les había sumado; la mascota y la ropa no cambian.
+- Se borró `scripts/action-icons-flat.py`.
+- Versión en `?v=4.6.21`.
+
 ## Beta v4.6.20 — Contorno y sombra suave
 
 - **Mascota, ropa e íconos de la barra** dejan de ser del todo planos: cada pieza tiene un **contorno del mismo color, más oscuro**, y una **sombra plana leve** abajo a la derecha (negro al 12 %, recortada a la forma; la luz viene de arriba a la izquierda). Los colores no cambian.
