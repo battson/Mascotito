@@ -31,7 +31,9 @@ LINE_W = 6.5               # contorno de afuera, en unidades del cuadro
 SHADOW = "0.12"            # sombra plana, como la mascota (v4.6.20)
 
 FUR = "#f6f4ef"
-FUR_FILL = f"color-mix(in srgb, {FUR} 72%, var(--fur, {FUR}))"
+# --fur tiñe el pelaje; --fur-mix dice cuánto queda del blanco (72 % = un
+# tinte suave, como Rayo; Canela usa poco blanco para ser color canela).
+FUR_FILL = f"color-mix(in srgb, {FUR} var(--fur-mix, 72%), var(--fur, {FUR}))"
 LINE_FILL = f"color-mix(in srgb, {FUR_FILL} 68%, #000)"
 PINK = "#fb7593"
 TRIM = "#f8f2cf"

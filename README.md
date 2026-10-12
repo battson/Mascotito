@@ -3,7 +3,7 @@
 ## Beta v4.6.22 — Trotito renovado: escenario y corredores
 
 - **Trotito** estrena escenario: el dibujo de Jony en Illustrator (cielo, nubes, árboles y tribuna, `diseños/trotito/run-scene.ai`) completado en vectores con cercas de madera a los costados, baranda crema con postes celestes, pasto con arbustos distintos y flores, la pista de 4 carriles, la salida y la meta a cuadros. Sin carteles ni banderines. Mismo lienzo (1672 × 941) y mismos carriles, así que los corredores no cambian de lugar.
-- **Los trotitos** pasan al estilo de la mascota: colores planos (el pelaje ya no tiene manchas de sombreado), un contorno parejo del mismo tono del pelaje, más oscuro, y la sombra plana negra al 12 % (patas de atrás, panza y debajo de la cabeza). Las poses, los colores de cada corredor y las manchas de Trébol no cambian. `run.svg` pasa de 342 KB a 250 KB.
+- **Los trotitos** pasan al estilo de la mascota: colores planos (el pelaje ya no tiene manchas de sombreado), un contorno parejo del mismo tono del pelaje, más oscuro, y la sombra plana negra al 12 % (patas de atrás, panza y debajo de la cabeza). Las poses y las manchas de Trébol no cambian; **Canela** ahora es color canela de verdad (antes beige clarito), así los cuatro se distinguen mejor (`furMix` en `TROTITO_RUNNERS`). `run.svg` pasa de 342 KB a 250 KB.
 - Scripts: `scripts/complete-trotito-scene-v4622.py` (escenario) y `scripts/trotito-pet-style-v4622.py` (corredores). Copia WebP del modo liviano del escenario regenerada.
 - Versión en `?v=4.6.22`.
 

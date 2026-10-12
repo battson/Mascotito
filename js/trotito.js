@@ -34,18 +34,19 @@ const TROTITO_ART = {
 // Corredores: color de manta, nombre, cuota y probabilidad real de ganar
 // (suman 1). Todo acá para ajustarlo con la economía de v4.7.
 // Hotfix 1: para que no sean todos iguales, Pompón queda blanco como el
-// sprite, Rayo es gris perla, Canela color canela clarito (fur = tinte del
-// pelaje) y Trébol lleva manchas marrones (spots).
+// sprite, Rayo es gris perla, Canela color canela (fur = tinte del
+// pelaje; v4.6.22: furMix = cuánto blanco queda, Canela casi nada) y
+// Trébol lleva manchas marrones (spots).
 const TROTITO_RUNNERS = [
   { n: 1, name: "Pompón", color: "#2f8fe0", odds: 2, chance: .42 },
   { n: 2, name: "Rayo", color: "#e2463c", odds: 3, chance: .28, fur: "#aeb6c4" },
   { n: 3, name: "Trébol", color: "#3cae4a", odds: 4, chance: .20, spots: "#9a6a45" },
-  { n: 4, name: "Canela", color: "#f2b92c", odds: 6, chance: .10, fur: "#e2b27c" },
+  { n: 4, name: "Canela", color: "#f2b92c", odds: 6, chance: .10, fur: "#b9733f", furMix: "12%" },
 ];
 
 /** Variables CSS del corredor: manta, pelaje y manchas. */
 function trotitoLook(r) {
-  return `--manta:${r.color}` + (r.fur ? `;--fur:${r.fur}` : "") + (r.spots ? `;--spots:inline;--spot-color:${r.spots}` : "");
+  return `--manta:${r.color}` + (r.fur ? `;--fur:${r.fur}` : "") + (r.furMix ? `;--fur-mix:${r.furMix}` : "") + (r.spots ? `;--spots:inline;--spot-color:${r.spots}` : "");
 }
 const TROTITO_BETS = [10, 25, 50, 100];
 const TROTITO_LIMITS = { carrerasPorDia: 5 };
