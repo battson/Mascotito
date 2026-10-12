@@ -11,9 +11,11 @@
    ese resultado, con adelantos y remontadas para que tenga suspenso.
 
    Arte (ver scripts/export-trotito-v4612.py):
-   - assets/games/trotito/run.svg — los 6 cuadros de la carrera (sprite
-     vectorizado) como <symbol> trot-f1…trot-f6. La manta usa var(--manta),
-     el pelaje var(--fur) y las manchas var(--spots) (hotfix 1).
+   - assets/games/trotito/run.svg — los 6 cuadros de la carrera como
+     <symbol> trot-f1…trot-f6. La manta usa var(--manta), el pelaje
+     var(--fur) y las manchas var(--spots) (hotfix 1). Desde v4.6.22 tienen
+     el estilo de la mascota: colores planos, contorno parejo del tono del
+     pelaje y sombra plana al 12 % (scripts/trotito-pet-style-v4622.py).
    - escenario.svg: desde v4.6.22, el escenario de Jony en Illustrator
      (diseños/trotito/run-scene.ai: cielo, árboles y tribuna) completado en
      vectores con cercas, pasto, arbustos, pista, salida y meta (ver
@@ -26,7 +28,7 @@ const TROTITO_ART = {
   track: liteArt("assets/games/trotito/escenario.svg?v=4.6.22"),
   podium: liteArt("assets/games/trotito/podio.svg"),
   icon: "assets/games/trotito/icon.svg",
-  sprites: "assets/games/trotito/run.svg?v=4.6.12-h1",
+  sprites: "assets/games/trotito/run.svg?v=4.6.22",
 };
 
 // Corredores: color de manta, nombre, cuota y probabilidad real de ganar
