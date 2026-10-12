@@ -14,14 +14,16 @@
    - assets/games/trotito/run.svg — los 6 cuadros de la carrera (sprite
      vectorizado) como <symbol> trot-f1…trot-f6. La manta usa var(--manta),
      el pelaje var(--fur) y las manchas var(--spots) (hotfix 1).
-   - escenario.svg (pista dibujada a mano en vectores, hotfix 1, ver
-     scripts/draw-trotito-track-v4612.py) y podio.svg (el podio sin
-     estadio ni confeti).
+   - escenario.svg: desde v4.6.22, el escenario de Jony en Illustrator
+     (diseños/trotito/run-scene.ai: cielo, árboles y tribuna) completado en
+     vectores con cercas, pasto, arbustos, pista, salida y meta (ver
+     scripts/complete-trotito-scene-v4622.py). Mismo lienzo y carriles.
+     podio.svg es el podio sin estadio ni confeti.
    - icon.svg (Trotito_icon.ai) para el recuadro de Minijuegos.
    ========================================================================== */
 
 const TROTITO_ART = {
-  track: liteArt("assets/games/trotito/escenario.svg?v=4.6.12-h1"),
+  track: liteArt("assets/games/trotito/escenario.svg?v=4.6.22"),
   podium: liteArt("assets/games/trotito/podio.svg"),
   icon: "assets/games/trotito/icon.svg",
   sprites: "assets/games/trotito/run.svg?v=4.6.12-h1",

@@ -1,5 +1,11 @@
 # Mascotito Beta
 
+## Beta v4.6.22 — Escenario nuevo de Trotito
+
+- **Trotito** estrena escenario: el dibujo de Jony en Illustrator (cielo, nubes, árboles y tribuna, `diseños/trotito/run-scene.ai`) completado en vectores con cercas de madera a los costados, baranda crema con postes celestes, pasto con arbustos distintos y flores, la pista de 4 carriles, la salida y la meta a cuadros. Sin carteles ni banderines. Mismo lienzo (1672 × 941) y mismos carriles, así que los corredores no cambian de lugar.
+- Script: `scripts/complete-trotito-scene-v4622.py`. Copia WebP del modo liviano regenerada.
+- Versión en `?v=4.6.22`.
+
 ## Beta v4.6.21 — Vuelven los íconos de acciones de antes
 
 - A pedido de Jony, la barra de acciones vuelve a los íconos anteriores (cofre, remera, bolsa, luna, sol, pelota y jabón), con sus copias WebP del modo liviano. Se deshace el rediseño plano de v4.6.19 y el contorno y la sombra que v4.6.20 les había sumado; la mascota y la ropa no cambian.
