@@ -33,7 +33,7 @@
 
 ## Beta v4.7 — Tienda y economía
 
-- [ ] Rediseñar la Tienda y sus categorías sin subrayados.
+- [x] v4.6.23: Tienda rediseñada (puesto de feria) con categorías y subcategorías sin subrayados, canasto y confirmación de pago.
 - [ ] Definir precios, formas de obtener y gastar monedas, y progresión.
 - [ ] Revisar compras, artículos propios, saldo insuficiente y confirmaciones.
 - [ ] Comidas y bebidas: frutas y más latas con efectos.
