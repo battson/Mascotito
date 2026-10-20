@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="image" href="assets/brand/logo-load.png" />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=4.6.22" />
-  <link rel="stylesheet" href="css/game-interactions.css?v=4.6.22" />
-  <link rel="stylesheet" href="css/games.css?v=4.6.22" />
+  <link rel="stylesheet" href="css/style.css?v=4.6.23" />
+  <link rel="stylesheet" href="css/game-interactions.css?v=4.6.23" />
+  <link rel="stylesheet" href="css/games.css?v=4.6.23" />
 </head>
 <body>
 
@@ -257,15 +257,37 @@
     </section>
   </div>
 
+  <!-- Beta v4.6.23: Tienda como puesto de feria (toldo, categorías con ícono, subcategorías y canasto). -->
   <div id="shop-overlay" class="modal-overlay" hidden>
     <section class="modal-window shop-window" role="dialog" aria-modal="true" aria-labelledby="shop-title">
-      <div class="modal-topbar"><h2 id="shop-title">Tienda</h2><button id="shop-close" type="button" class="notice-close-btn" aria-label="Cerrar">×</button></div>
-      <p class="shop-balance">Tus monedas: <img src="assets/shop/moneda.png" alt="" /> <strong id="shop-coins">0</strong></p>
-      <div class="inventory-tabs" id="shop-tabs"><button class="inventory-tab is-active" data-group="Casa">Casa</button><button class="inventory-tab" data-group="Ropa">Ropa</button><button class="inventory-tab" data-group="Colores">Colores</button></div>
-      <div class="inventory-tabs shop-subtabs" id="shop-subtabs" aria-label="Tipo de artículo"></div>
-      <p id="shop-status" role="status" class="inventory-status"></p>
-      <div id="shop-grid" class="shop-grid"></div>
-      <div class="modal-actions"><button id="shop-close-action" type="button" class="secondary-btn">Cerrar</button></div>
+      <span class="shop-post is-left" aria-hidden="true"></span><span class="shop-post is-right" aria-hidden="true"></span>
+      <div class="shop-awning" aria-hidden="true"><svg viewBox="0 0 1000 84" preserveAspectRatio="none" aria-hidden="true"><rect width="1000" height="16" fill="#a64e16" stroke="#5b2a14" stroke-width="3" vector-effect="non-scaling-stroke"/><path d="M0 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M6 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M50 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M100 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M106 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M150 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M200 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M206 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M250 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M300 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M306 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M350 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M400 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M406 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M450 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M500 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M506 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M550 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M600 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M606 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M650 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M700 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M706 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M750 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M800 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M806 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M850 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M900 0h50v58a25 25 0 0 1-50 0z" fill="#e0562d" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="M906 0h5v50" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M950 0h50v58a25 25 0 0 1-50 0z" fill="#fff3d6" stroke="#5b2a14" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><rect width="1000" height="6" fill="#ffd97a" opacity=".7"/></svg></div>
+      <div class="shop-sign"><h2 id="shop-title">Tienda</h2></div>
+      <button id="shop-close" type="button" class="shop-close" aria-label="Cerrar tienda" title="Cerrar tienda"><img src="assets/ui/inventory/cofre/cerrar.svg" alt="" draggable="false" /></button>
+      <div class="shop-body">
+        <div class="shop-top"><p class="shop-balance"><span class="sr-only">Tus monedas:</span><img src="assets/shop/moneda.svg" alt="" /> <strong id="shop-coins">0</strong></p></div>
+        <div class="shop-cols">
+          <div class="shop-left">
+            <div class="shop-icons" id="shop-tabs" role="tablist" aria-label="Categoría">
+              <button class="shop-icon is-active" role="tab" data-group="Casa" aria-selected="true" type="button"><span class="shop-icon-art"><img src="assets/housing/ventana_madera_1_1.png" alt="" /></span>Casa</button>
+              <button class="shop-icon" role="tab" data-group="Ropa" aria-selected="false" type="button"><span class="shop-icon-art"><img src="assets/clothes/previews/rayas-superior.svg" alt="" /></span>Ropa</button>
+              <button class="shop-icon" role="tab" data-group="Colores" aria-selected="false" type="button"><span class="shop-icon-art"><svg viewBox="0 0 34 30" aria-hidden="true"><circle cx="13" cy="16" r="11" fill="#8fd0f5" stroke="#5b2a14" stroke-width="2.5"/><circle cx="22" cy="12" r="9" fill="#f2a6c0" stroke="#5b2a14" stroke-width="2.5"/><circle cx="23" cy="21" r="7" fill="#f9d24b" stroke="#5b2a14" stroke-width="2.5"/></svg></span>Colores</button>
+            </div>
+            <div class="shop-subs" id="shop-subtabs" role="tablist" aria-label="Tipo de artículo"></div>
+            <div class="shop-tray"><div id="shop-grid" class="shop-grid"></div></div>
+          </div>
+          <aside class="shop-cart" aria-label="Canasto">
+            <h3>Canasto <span id="shop-cart-count">0 artículos</span></h3>
+            <ul id="shop-cart-lines" class="shop-lines"></ul>
+            <button id="shop-cart-clear" type="button" class="shop-btn is-ghost" data-clear hidden>Vaciar canasto</button>
+            <div class="shop-total"><span>Total</span><span id="shop-cart-total" class="shop-tag"></span></div>
+            <p id="shop-cart-miss" class="shop-miss" hidden></p>
+            <div id="shop-cart-pay" class="shop-pay"></div>
+          </aside>
+        </div>
+        <p id="shop-status" role="status" class="shop-status"></p>
+        <div class="shop-counter" aria-hidden="true"></div>
+      </div>
     </section>
   </div>
 
@@ -704,22 +726,22 @@
     <div id="debug-panel" class="debug-panel" hidden></div>
   </footer>
 
-  <script src="js/firebase-config.js?v=4.6.22"></script>
-  <script src="js/config.js?v=4.6.22"></script>
-  <script src="js/icons.js?v=4.6.22"></script>
-  <script src="js/manifest.js?v=4.6.22"></script>
-  <script src="js/clothing-manifest.js?v=4.6.22"></script>
-  <script src="js/housing.js?v=4.6.22"></script>
-  <script src="js/shop.js?v=4.6.22"></script>
-  <script src="js/state.js?v=4.6.22"></script>
-  <script src="js/world.js?v=4.6.22"></script>
-  <script type="module" src="js/cloud.js?v=4.6.22"></script>
-  <script type="module" src="js/multiplayer.js?v=4.6.22"></script>
-  <script src="js/shop-ui.js?v=4.6.22"></script>
-  <script src="js/game-interactions.js?v=4.6.22"></script>
-  <script src="js/games.js?v=4.6.22"></script>
-  <script src="js/roulette.js?v=4.6.22"></script>
-  <script src="js/trotito.js?v=4.6.22"></script>
-  <script src="js/app.js?v=4.6.22"></script>
+  <script src="js/firebase-config.js?v=4.6.23"></script>
+  <script src="js/config.js?v=4.6.23"></script>
+  <script src="js/icons.js?v=4.6.23"></script>
+  <script src="js/manifest.js?v=4.6.23"></script>
+  <script src="js/clothing-manifest.js?v=4.6.23"></script>
+  <script src="js/housing.js?v=4.6.23"></script>
+  <script src="js/shop.js?v=4.6.23"></script>
+  <script src="js/state.js?v=4.6.23"></script>
+  <script src="js/world.js?v=4.6.23"></script>
+  <script type="module" src="js/cloud.js?v=4.6.23"></script>
+  <script type="module" src="js/multiplayer.js?v=4.6.23"></script>
+  <script src="js/shop-ui.js?v=4.6.23"></script>
+  <script src="js/game-interactions.js?v=4.6.23"></script>
+  <script src="js/games.js?v=4.6.23"></script>
+  <script src="js/roulette.js?v=4.6.23"></script>
+  <script src="js/trotito.js?v=4.6.23"></script>
+  <script src="js/app.js?v=4.6.23"></script>
 </body>
 </html>

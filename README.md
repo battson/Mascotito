@@ -1,5 +1,14 @@
 # Mascotito Beta
 
+## Beta v4.6.23 — Tienda como puesto de feria
+
+- **Tienda rediseñada** con el sistema de las otras ventanas: toldo a rayas, postes y mostrador de madera, categorías con ícono (Casa, Ropa, Colores) y casilleros con borde de selección, como en el probador azul. Botones y campos con esquinas de 6 px; sin subrayados como indicador de selección.
+- **Subcategorías** como rótulos de madera con la cantidad de artículos: Paredes, Pisos, Puertas, Ventanas, Repisas y Alfombras en Casa; Superiores, Inferiores, Calzado y Accesorios en Ropa. Sólo aparecen las que tienen artículos a la vista (antes la primera solía abrir vacía) y cada categoría recuerda la que estabas mirando. Colores, con una sola, no la muestra.
+- **Canasto**: tocar un artículo lo suma o lo saca; cada línea tiene su × y hay «Vaciar canasto». Pagar pide confirmación y avisa cuántas monedas quedan; si no alcanza, lo dice y bloquea el pago. Cada artículo sigue siendo una compra aparte en la nube; si una falla, los que no se compraron quedan en el canasto.
+- Se mantienen los controles de admin (precio y mostrar) en cada tarjeta, el catálogo compartido y Escape para cerrar. Sin buscador ni cantidades por ahora (los suma v4.7 junto con las comidas).
+- El botón de la Tienda en la barra sigue deshabilitado hasta validar la economía (v4.7).
+- `tests/shop.test.js` cubre subcategorías, canasto y total. Versión en `?v=4.6.23`.
+
 ## Beta v4.6.22 — Trotito renovado: escenario y corredores
 
 - **Trotito** estrena escenario: el dibujo de Jony en Illustrator (cielo, nubes, árboles y tribuna, `diseños/trotito/run-scene.ai`) completado en vectores con cercas de madera a los costados, baranda crema con postes celestes, pasto con arbustos distintos y flores, la pista de 4 carriles, la salida y la meta a cuadros. Sin carteles ni banderines. Mismo lienzo (1672 × 941) y mismos carriles, así que los corredores no cambian de lugar.
