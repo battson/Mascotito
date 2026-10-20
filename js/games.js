@@ -1306,13 +1306,12 @@ function finishMinigame(cancelled = false, { quiet = false } = {}) {
   const happiness = success ? PET_CONFIG.play.felicidad : Math.max(2, Math.round(PET_CONFIG.play.felicidad * .45));
   const energyCost = success ? PET_CONFIG.play.energiaCosto : Math.max(1, Math.round(PET_CONFIG.play.energiaCosto * .6));
   const xp = success ? PET_CONFIG.play.vinculo : Math.max(1, Math.round(PET_CONFIG.play.vinculo * .5));
-  const coins = success ? Math.max(5, finished.score * 2) : Math.max(1, finished.score);
+  const coinsEarned = success ? Math.max(5, finished.score * 2) : Math.max(1, finished.score);
 
   gainFelicidad(happiness);
   state.stats.energia = clamp(state.stats.energia - energyCost, 0, 100);
   addBond(xp);
-  state.economy = state.economy || { coins: 0 };
-  state.economy.coins = Math.max(0, (state.economy.coins || 0) + coins);
+  const coins = grantCoins(state, coinsEarned);
   trySave(state);
   refreshUI();
   updateCooldownButtons();

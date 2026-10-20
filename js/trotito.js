@@ -290,11 +290,13 @@ function trotitoGo() {
   if (t.bet > trotitoCoins() && !gamesUnlimited()) return;
   // Se cobra la apuesta, se sortea y se paga antes de largar.
   ensureDailyProgress();
-  state.economy = state.economy || { coins: 0 };
+  state.economy = normalizeEconomy(state.economy);
   t.order = trotitoDrawOrder();
   t.winner = t.order[0];
-  t.payout = trotitoPayout(t.pick, t.bet, t.winner);
-  state.economy.coins = Math.max(0, trotitoCoins() - t.bet + t.payout);
+  // Se cobra la apuesta y el premio entra como ganancia (con el tope diario
+  // de monedas: si se llegó, se cobra lo que quede del tope).
+  state.economy.coins = Math.max(0, trotitoCoins() - t.bet);
+  t.payout = grantCoins(state, trotitoPayout(t.pick, t.bet, t.winner));
   if (!gamesUnlimited()) state.daily.trotitoRaces = (state.daily.trotitoRaces || 0) + 1;
   const won = t.payout > 0;
   addBond(TROTITO_REWARDS.xp);

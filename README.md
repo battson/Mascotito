@@ -1,5 +1,14 @@
 # Mascotito Beta
 
+## Beta v4.6.23 — Monedas y cuentas con PIN más seguras
+
+- **Tope de monedas por día**: una mascota puede ganar hasta **2000 monedas por día** (el día cambia a la medianoche de Argentina). Gastar no tiene límite. Lo controlan las reglas de Firestore, así que aunque alguien toque el juego desde el navegador no puede subirse las monedas más que eso. Pesca, Penales, Ruleta y Trotito suman con `grantCoins()` (`js/state.js`); si se llega al tope, se suma lo que falte y aparece un aviso. El saldo guarda también el día y lo ganado ese día (`economy.day` y `economy.earned`).
+- **Cuentas con PIN protegidas**: antes cualquier jugador podía modificar una cuenta con PIN ajena. Ahora el hash del PIN ya no está en el perfil (que lee cualquiera) sino en `pins/{usuario}`, privado, y para guardar hace falta una sesión del navegador que sólo se consigue acertando el PIN, con un intento cada 5 segundos por cuenta. Las cuentas de antes se pasan solas la primera vez que se entra con el PIN; si el navegador tenía la sesión recordada, se pide el PIN una vez más. «Cambiar de usuario» borra la sesión de ese navegador.
+- **Catálogo de la tienda**: sólo lo puede cambiar la cuenta «jony».
+- **Hay que publicar `firestore.rules`** en Firebase Console → Firestore Database → Reglas apenas se suba esta versión: el juego nuevo no funciona con las reglas viejas, ni el viejo con las nuevas.
+- Prueba nueva: `tests/economy.test.js`. Las reglas se probaron con el emulador de Firebase (alta, PIN incorrecto, intentos seguidos, migración de cuentas viejas, tope diario, cambio de día, borrar y recrear una cuenta, catálogo).
+- Versión en `?v=4.6.23`.
+
 ## Beta v4.6.22 — Trotito renovado: escenario y corredores
 
 - **Trotito** estrena escenario: el dibujo de Jony en Illustrator (cielo, nubes, árboles y tribuna, `diseños/trotito/run-scene.ai`) completado en vectores con cercas de madera a los costados, baranda crema con postes celestes, pasto con arbustos distintos y flores, la pista de 4 carriles, la salida y la meta a cuadros. Sin carteles ni banderines. Mismo lienzo (1672 × 941) y mismos carriles, así que los corredores no cambian de lugar.
@@ -833,7 +842,7 @@ No hace falta saber nada de Firebase de antemano — son estos pasos, todos dent
 
 Las dos formas de entrar tienen niveles de protección distintos:
 
-- **Usuario + PIN**: **no es autenticación real** — no hay backend propio de por medio, así que no hay forma de verificar el PIN sin que quien lo revise (las reglas de Firestore) pueda ser esquivado por alguien con conocimientos técnicos que inspeccione las peticiones de red del navegador. Lo que sí evita: que alguien entre "sin querer" a la cuenta de otra persona con sólo escribir su nombre de usuario en la app, y que un script simple escriba datos a ciegas sin conocer el PIN. El PIN se guarda siempre hasheado (SHA-256), nunca en texto plano.
+- **Usuario + PIN**: desde v4.6.23 el hash del PIN (SHA-256) está en `pins/{usuario}`, que nadie puede leer, y para escribir en la cuenta hace falta una sesión que sólo se crea acertando el PIN, con un intento cada 5 segundos por cuenta. Sigue sin ser una cuenta de verdad (sin mail ni recuperación) y, como el PIN es de 4 números, alguien muy insistente podría adivinarlo en unas horas de intentos.
 - **Google**: acá sí hay autenticación real de Firebase — la cuenta guarda el `uid` que Google/Firebase verifica en cada pedido (no un valor que viaja en la petición y se pueda copiar), así que sólo esa persona puede modificar su mascota o los datos de su cuenta, sin el punto débil de arriba.
 
 En ambos casos, el sistema de **amigos** (mandar/aceptar solicitudes) usa el mismo nivel liviano de protección: como no hay backend propio que arbitre esos mensajes, cualquier usuario autenticado puede escribir en el buzón de solicitudes de cualquier otro (nunca en su mascota ni en los demás datos de su cuenta), sea cuenta con PIN o con Google. Para un juego para jugar entre amigos de confianza es un techo de protección razonable — no sería bueno para nada que necesite guardar información sensible de verdad. El detalle completo está comentado al principio de `js/cloud.js` y en `firestore.rules`.

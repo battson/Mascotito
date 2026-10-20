@@ -21,15 +21,14 @@
  *
  * 1) Usuario + PIN de 4 dígitos, sin cuenta de verdad detrás (sin mail,
  *    sin recuperación) — pensado para jugar entre amigos de confianza,
- *    no para datos sensibles. El PIN se guarda hasheado (SHA-256), nunca
- *    en texto plano, y las reglas de Firestore exigen que cualquier
- *    actualización mantenga ese hash sin cambios. Eso evita que alguien
- *    entre "sin querer" a la cuenta de otro sólo tipeando su nombre de
- *    usuario. NO es autenticación real: como no hay backend propio, una
- *    persona con conocimientos técnicos que inspeccione las peticiones
- *    de red podría leer el hash guardado (la lectura está abierta, hace
- *    falta para poder buscar amigos por nombre) y reenviarlo sin conocer
- *    el PIN real.
+ *    no para datos sensibles. Desde v4.6.23 el PIN se guarda hasheado
+ *    (SHA-256) en pins/{usuario}, que ningún cliente puede leer. Al entrar
+ *    se anota el intento en pinAttempts/{usuario} (uno cada 5 segundos por
+ *    cuenta) y, si coincide con el hash guardado, las reglas dejan crear
+ *    una "sesión" para este navegador (players/{usuario}/sessions/{uid
+ *    anónimo}). Sólo con esa sesión se puede escribir la mascota. Como el
+ *    PIN es de 4 números, alguien muy insistente podría adivinarlo en
+ *    unas horas de intentos: sigue siendo para jugar entre amigos.
  *
  * 2) "Iniciar sesión con Google": acá SÍ hay autenticación real de
  *    Firebase de por medio. La cuenta guarda un `ownerUid` (el uid que
@@ -200,23 +199,41 @@ async function ensureReady() {
   return { ok: true };
 }
 
+function pinRef(usernameLower) {
+  return window.__cloudFns.doc(db, "pins", usernameLower);
+}
+
+function pinAttemptRef(usernameLower) {
+  return window.__cloudFns.doc(db, "pinAttempts", usernameLower);
+}
+
+function sessionRef(usernameLower) {
+  return window.__cloudFns.doc(db, "players", usernameLower, "sessions", auth.currentUser.uid);
+}
+
+function isPermissionDenied(err) {
+  return err?.code === "permission-denied";
+}
+
 async function register(usernameRaw, pin, initialPetState) {
   const gate = await ensureReady();
   if (!gate.ok) return gate;
   const usernameLower = normalizeUsername(usernameRaw);
   if (!usernameLower) return { ok: false, error: "invalid_username" };
   if (!isValidPin(pin)) return { ok: false, error: "invalid_pin" };
-  const { getDoc, setDoc } = window.__cloudFns;
+  const { getDoc, writeBatch, serverTimestamp } = window.__cloudFns;
   const ref = playerRef(usernameLower);
   try {
     const snap = await getDoc(ref);
     if (snap.exists()) return { ok: false, error: "taken" };
     const pinHash = await hashPin(usernameLower, pin);
     const now = Date.now();
-    await setDoc(ref, {
+    // v4.6.23: la cuenta, el hash del PIN (privado) y la sesión de este
+    // navegador se crean juntos; las reglas exigen las tres cosas.
+    const batch = writeBatch(db);
+    batch.set(ref, {
       usernameLower,
       username: usernameRaw.trim(),
-      pinHash,
       createdAt: now,
       lastActive: now,
       petState: initialPetState || null,
@@ -224,10 +241,16 @@ async function register(usernameRaw, pin, initialPetState) {
       friends: {},
       friendRequests: { incoming: {}, outgoing: {} },
     });
+    batch.set(pinRef(usernameLower), { hash: pinHash });
+    batch.set(pinAttemptRef(usernameLower), { uid: auth.currentUser.uid, guess: pinHash, at: serverTimestamp() });
+    batch.set(sessionRef(usernameLower), { accountCreatedAt: now, at: serverTimestamp() });
+    await batch.commit();
     return { ok: true, usernameLower, username: usernameRaw.trim() };
   } catch (err) {
     console.warn("[Mascotito] Error al crear la cuenta en la nube.", err);
-    return { ok: false, error: "network" };
+    // Rechazo de las reglas: lo más probable es que alguien haya probado
+    // un PIN en ese nombre hace menos de 5 segundos.
+    return { ok: false, error: isPermissionDenied(err) ? "slow_down" : "network" };
   }
 }
 
@@ -237,17 +260,59 @@ async function login(usernameRaw, pin) {
   const usernameLower = normalizeUsername(usernameRaw);
   if (!usernameLower) return { ok: false, error: "invalid_username" };
   if (!isValidPin(pin)) return { ok: false, error: "invalid_pin" };
-  const { getDoc } = window.__cloudFns;
+  const { getDoc, setDoc, updateDoc, deleteField, serverTimestamp } = window.__cloudFns;
   try {
     const snap = await getDoc(playerRef(usernameLower));
     if (!snap.exists()) return { ok: false, error: "not_found" };
-    const data = snap.data();
+    let data = snap.data();
+    // Las cuentas de Google no tienen PIN.
+    if (data.ownerUid) return { ok: false, error: "wrong_pin" };
     const pinHash = await hashPin(usernameLower, pin);
-    if (pinHash !== data.pinHash) return { ok: false, error: "wrong_pin" };
+    if (data.pinHash) {
+      // Cuenta de antes de v4.6.23: el hash todavía está en el perfil.
+      // Se chequea acá y se pasa a pins/{usuario} (si ya se había pasado,
+      // las reglas rechazan esta copia y no pasa nada).
+      if (pinHash !== data.pinHash) return { ok: false, error: "wrong_pin" };
+      await setDoc(pinRef(usernameLower), { hash: data.pinHash }).catch(() => {});
+    }
+    // El intento va solo y primero: es lo que las reglas limitan a uno
+    // cada 5 segundos por cuenta.
+    try {
+      await setDoc(pinAttemptRef(usernameLower), { uid: auth.currentUser.uid, guess: pinHash, at: serverTimestamp() });
+    } catch (err) {
+      if (isPermissionDenied(err)) return { ok: false, error: "slow_down" };
+      throw err;
+    }
+    try {
+      await setDoc(sessionRef(usernameLower), { accountCreatedAt: data.createdAt ?? 0, at: serverTimestamp() });
+    } catch (err) {
+      if (isPermissionDenied(err)) return { ok: false, error: "wrong_pin" };
+      throw err;
+    }
+    if (data.pinHash) {
+      await updateDoc(playerRef(usernameLower), { pinHash: deleteField() });
+      data = (await getDoc(playerRef(usernameLower))).data();
+    }
     return { ok: true, usernameLower, username: data.username, data };
   } catch (err) {
     console.warn("[Mascotito] Error al iniciar sesión en la nube.", err);
     return { ok: false, error: "network" };
+  }
+}
+
+/** v4.6.23: ¿este navegador ya tiene sesión en esa cuenta? Las cuentas de
+ * Google dependen de Firebase Auth (siempre true acá); las de PIN, de su
+ * sesión (si no hay, hay que volver a pedir el PIN, porque sin ella no se
+ * puede guardar). */
+async function hasSession(usernameLower, data) {
+  const gate = await ensureReady();
+  if (!gate.ok) return false;
+  if (data?.ownerUid) return auth.currentUser?.uid === data.ownerUid;
+  try {
+    const snap = await window.__cloudFns.getDoc(sessionRef(usernameLower));
+    return snap.exists() && snap.data().accountCreatedAt === (data?.createdAt ?? 0);
+  } catch (err) {
+    return false;
   }
 }
 
@@ -469,7 +534,18 @@ async function deleteAccount(usernameLower) {
   }
 
   try {
-    await deleteDoc(meRef);
+    if (data.ownerUid) {
+      await deleteDoc(meRef);
+    } else {
+      // v4.6.23: con la cuenta se van el hash del PIN y la sesión de este
+      // navegador (las de otros navegadores quedan huérfanas, pero las
+      // reglas no las aceptan para una cuenta nueva con el mismo nombre).
+      const batch = window.__cloudFns.writeBatch(db);
+      batch.delete(pinRef(usernameLower));
+      batch.delete(sessionRef(usernameLower));
+      batch.delete(meRef);
+      await batch.commit();
+    }
     return { ok: true };
   } catch (err) {
     console.warn("[Mascotito] Error al eliminar la cuenta.", err);
@@ -549,10 +625,13 @@ async function completeGoogleSignup(usernameRaw, googleUid) {
 /** Cierra la sesión de Google y vuelve a entrar como anónimo, para que la
  * pantalla de login pueda seguir buscando/entrando cuentas con PIN sin
  * quedarse sin `request.auth` (las reglas de Firestore lo exigen). */
-async function signOutCloud() {
+async function signOutCloud(usernameLower) {
   const gate = await ensureReady();
   if (!gate.ok) return gate;
   try {
+    // v4.6.23: al cambiar de usuario se borra la sesión de PIN de este
+    // navegador, así nadie más que use esta computadora entra sin el PIN.
+    if (usernameLower) await window.__cloudFns.deleteDoc(sessionRef(usernameLower)).catch(() => {});
     await authModRef.signOut(auth);
     await authModRef.signInAnonymously(auth);
     return { ok: true };
@@ -588,6 +667,7 @@ window.Cloud = {
   isValidPin,
   register,
   login,
+  hasSession,
   loginWithGoogle,
   completeGoogleSignup,
   signOutCloud,
