@@ -35,6 +35,7 @@
 
 - [x] v4.6.23: Tienda rediseñada (puesto de feria) con categorías y subcategorías sin subrayados, canasto y confirmación de pago.
 - [ ] Definir precios, formas de obtener y gastar monedas, y progresión.
+- [x] v4.6.23: monedas seguras con reglas de Firestore: tope de 2000 monedas ganadas por día y cuentas con PIN que sólo puede escribir quien sabe el PIN. Pendiente: lo comprado (ropa, casa, colores) todavía se podría agregar a mano desde el navegador.
 - [ ] Revisar compras, artículos propios, saldo insuficiente y confirmaciones.
 - [ ] Comidas y bebidas: frutas y más latas con efectos.
 - [ ] Reactivar la Tienda cuando se validen su interfaz y economía; hoy está deshabilitada deliberadamente.

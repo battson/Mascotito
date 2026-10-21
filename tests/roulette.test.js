@@ -10,6 +10,7 @@ const context = vm.createContext({
   window: { addEventListener() {}, matchMedia: () => ({ matches: false }) },
   document: { getElementById: () => null, addEventListener() {} },
   addBond: (n) => { bond.xp += n; },
+  grantCoins: (s, n) => { s.economy.coins += n; return n; },
   liteArt: (src) => src,
   ROULETTE_EXTRA_COST: 25,
   freeLeft: true,

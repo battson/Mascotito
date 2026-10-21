@@ -246,10 +246,38 @@ function normalizeWorld(raw) {
   };
 }
 
+/* Beta v4.6.23: tope de monedas ganadas por día. Las reglas de Firestore
+   (firestore.rules, economyOk) rechazan cualquier guardado que suba las
+   monedas más de lo anotado en `earned` para el día `day`, así que cambiar
+   este número obliga a cambiar también el 2000 de las reglas. */
+const COIN_DAILY_CAP = 2000;
+
+/* Día de Argentina (UTC-3) contado desde 1970; el mismo cálculo que
+   today() en firestore.rules. */
+function coinDayNumber(now = Date.now()) {
+  return Math.floor((now - 10800000) / 86400000);
+}
+
 function normalizeEconomy(raw) {
-  if (!raw || typeof raw !== "object") return { coins: 0 };
-  const coins = Number.isFinite(raw.coins) ? Math.max(0, Math.floor(raw.coins)) : 0;
-  return { coins };
+  if (!raw || typeof raw !== "object") return { coins: 0, day: 0, earned: 0 };
+  const int = (value) => (Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0);
+  return { coins: int(raw.coins), day: int(raw.day), earned: Math.min(COIN_DAILY_CAP, int(raw.earned)) };
+}
+
+/** Suma monedas ganadas respetando el tope diario y devuelve cuántas se
+ * sumaron de verdad (puede ser menos que `amount`, o 0, si ya se llegó al
+ * tope del día). Toda ganancia de monedas tiene que pasar por acá. */
+function grantCoins(pet, amount) {
+  const economy = pet.economy = normalizeEconomy(pet.economy);
+  const today = coinDayNumber();
+  if (today > economy.day) { economy.day = today; economy.earned = 0; }
+  const granted = Math.max(0, Math.min(Math.floor(amount) || 0, COIN_DAILY_CAP - economy.earned));
+  economy.coins += granted;
+  economy.earned += granted;
+  if (granted < amount && typeof notifySystem === "function") {
+    notifySystem(`Llegaste al tope de ${COIN_DAILY_CAP} monedas ganadas por hoy. Mañana podés seguir sumando.`);
+  }
+  return granted;
 }
 
 function normalizeState(raw) {
@@ -305,7 +333,7 @@ function createNewState(name, look, housingGiftStatus = "none") {
     location: defaultLocation(),
     sleep: { dormida: false, since: null },
     bond: { xp: 0 },
-    economy: { coins: 0 },
+    economy: { coins: 0, day: 0, earned: 0 },
     unlockedColors: {},
     world: normalizeWorld(null),
     inventory: { pescado: 0, lata: 0, energizante: 0 },

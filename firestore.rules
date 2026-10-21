@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Reglas de seguridad de Firestore para Mascotito v3.3.
+// Reglas de seguridad de Firestore para Mascotito (v3.3, revisadas en v4.6.23).
 // Pegar este archivo completo en Firebase Console → Firestore Database →
 // Reglas, y publicar. Ver la sección "Cómo crear tu proyecto de Firebase"
 // en README.md para el paso a paso completo, y la nota de seguridad al
@@ -9,7 +9,7 @@ rules_version = '2';
 //
 // Dos tipos de cuenta conviven en la misma colección "players":
 // - Cuentas con PIN (login anónimo de Firebase por dentro): no tienen
-//   campo "ownerUid". Protección liviana (ver nota de seguridad).
+//   campo "ownerUid". Desde v4.6.23 se protegen con sesiones (ver abajo).
 // - Cuentas con Google (el usuario entró con "Iniciar sesión con
 //   Google"): tienen "ownerUid" = el uid real que Firebase Authentication
 //   verifica en cada pedido. Estas SÍ tienen protección real sobre su
@@ -28,35 +28,118 @@ rules_version = '2';
 // v3.4: se agregó "Eliminar cuenta" (allow delete, antes false siempre) —
 // ver el comentario junto a esa regla más abajo para el detalle de qué
 // tan protegida está cada tipo de cuenta contra un borrado.
+// v4.6.23 (monedas seguras, sólo con reglas, sin servidor propio):
+// - Cuentas con PIN: el hash del PIN ya no está en el perfil (que lee
+//   cualquiera) sino en pins/{usuario}, que ningún cliente puede leer.
+//   Para escribir en una cuenta con PIN hace falta una "sesión"
+//   (players/{usuario}/sessions/{uid}), y para crearla hay que acertar
+//   el PIN. Cada intento queda anotado en pinAttempts/{usuario} y se
+//   permite uno cada 5 segundos por cuenta, así que adivinar un PIN de 4
+//   números a la fuerza lleva horas en vez de segundos.
+// - Monedas: lo que una mascota puede ganar por día tiene un tope
+//   (TOPE_DIARIO_MONEDAS, 2000; mismo número en js/state.js). Gastar no
+//   tiene límite. El día cambia a la medianoche de Argentina (UTC-3).
+// - Catálogo de la tienda: sólo lo puede cambiar la cuenta "jony".
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Catálogo global del juego entre amigos. El panel sólo ofrece edición a Jony.
-    // El modelo de cuentas con PIN no verifica el rol admin en el servidor.
+
+    // --- Funciones comunes -------------------------------------------
+
+    function playerPath(u) {
+      return /databases/$(database)/documents/players/$(u);
+    }
+
+    function sessionPath(u) {
+      return /databases/$(database)/documents/players/$(u)/sessions/$(request.auth.uid);
+    }
+
+    // ¿Quien escribe tiene una sesión válida (PIN acertado) en la cuenta
+    // con PIN "u", cuyos datos actuales son "data"? accountCreatedAt ata
+    // la sesión a ESA cuenta: si se borra y alguien crea otra con el
+    // mismo nombre, las sesiones viejas no le sirven.
+    function hasPinSession(u, data) {
+      return exists(sessionPath(u))
+        && get(sessionPath(u)).data.accountCreatedAt == data.get('createdAt', 0);
+    }
+
+    function isAdmin() {
+      let jony = get(playerPath('jony')).data;
+      return request.auth != null && (
+        ('ownerUid' in jony && jony.ownerUid == request.auth.uid)
+        || (!('ownerUid' in jony) && hasPinSession('jony', jony))
+      );
+    }
+
+    // Día de Argentina (UTC-3) contado desde 1970, igual que
+    // coinDayNumber() en js/state.js.
+    function today() {
+      return math.floor((request.time.toMillis() - 10800000) / 86400000);
+    }
+
+    function economyOf(data) {
+      return data.get('petState', null) == null ? {} : data.petState.get('economy', {});
+    }
+
+    // TOPE_DIARIO_MONEDAS = 2000 (cambiarlo también en js/state.js).
+    // "earned" es lo ganado en el día "day". Si las monedas no suben, day
+    // y earned no pueden cambiar. Si suben, la suba no puede pasar de lo
+    // que se anotó como ganado (más lo que le quedaba al día anterior si
+    // justo cambió el día con monedas sin guardar).
+    function economyOk(before, after) {
+      let o = economyOf(before);
+      let n = economyOf(after);
+      let oldCoins = o.get('coins', 0);
+      let oldDay = o.get('day', 0);
+      let oldEarned = o.get('earned', 0);
+      let coins = n.get('coins', -1);
+      let day = n.get('day', 0);
+      let earned = n.get('earned', 0);
+      let sameDay = day == oldDay;
+      let base = sameDay ? oldEarned : 0;
+      let carry = sameDay || oldEarned >= 2000 ? 0 : 2000 - oldEarned;
+      return coins is number && coins >= 0 && (
+        (coins <= oldCoins && sameDay && earned == oldEarned)
+        || (day is int && earned is int
+          && day >= oldDay && day >= today() - 1 && day <= today() + 1
+          && earned >= base && earned <= 2000
+          && coins - oldCoins <= earned - base + carry)
+      );
+    }
+
+    // --- Catálogo de la tienda ---------------------------------------
+
     match /shop/catalog {
       allow get: if request.auth != null;
       allow list: if false;
-      allow create, update: if request.auth != null;
+      allow create, update: if isAdmin();
       allow delete: if false;
     }
+
+    // --- Cuentas ------------------------------------------------------
+
     match /players/{playerId} {
       // Cualquier cliente puede LEER un perfil (hace falta para poder
       // buscar amigos por nombre e iniciar sesión), pero nunca LISTAR
       // (recorrer toda la colección) — sólo se puede consultar un
-      // usuario por nombre exacto.
+      // usuario por nombre exacto. Desde v4.6.23 el perfil ya no guarda
+      // el hash del PIN.
       allow get: if request.auth != null;
       allow list: if false;
 
       // Crear cuenta nueva: el ID del documento tiene que ser el nombre
-      // de usuario en minúsculas con formato válido, y viene en dos
-      // variantes según cómo se creó:
+      // de usuario en minúsculas con formato válido, sin monedas, y
+      // viene en dos variantes según cómo se creó:
       allow create: if request.auth != null
         && playerId == request.resource.data.usernameLower
         && playerId.matches('^[a-z][a-z0-9_]{2,15}$')
+        && !('pinHash' in request.resource.data)
+        && economyOf(request.resource.data).get('coins', 0) == 0
         && (
-          // (a) cuenta con PIN: sin ownerUid, con un PIN ya hasheado (nunca en texto plano).
+          // (a) cuenta con PIN: sin ownerUid; en el mismo lote se crean su
+          // pins/{usuario} y la sesión de quien la crea.
           (!('ownerUid' in request.resource.data)
-            && request.resource.data.pinHash is string
-            && request.resource.data.pinHash.size() > 10)
+            && existsAfter(/databases/$(database)/documents/pins/$(playerId))
+            && existsAfter(sessionPath(playerId)))
           // (b) cuenta de Google: ownerUid tiene que ser exactamente el uid real de quien escribe.
           || request.resource.data.ownerUid == request.auth.uid
         );
@@ -67,30 +150,88 @@ service cloud.firestore {
         // mascota, el PIN ni el ownerUid de nadie.
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'friendRequests'])
         ||
-        // Escritura del dueño de su propia cuenta: puede tocar cualquier campo.
+        // Escritura del dueño de su propia cuenta: cualquier campo, menos
+        // cambiar su nombre o su fecha de alta, y con las monedas dentro
+        // del tope diario.
         (
-          !('ownerUid' in resource.data)
-            ? (resource.data.pinHash == request.resource.data.pinHash
-               && resource.data.usernameLower == request.resource.data.usernameLower)
-            : (request.auth.uid == resource.data.ownerUid
-               && request.resource.data.ownerUid == resource.data.ownerUid
-               && resource.data.usernameLower == request.resource.data.usernameLower)
+          resource.data.usernameLower == request.resource.data.usernameLower
+          && resource.data.get('createdAt', 0) == request.resource.data.get('createdAt', 0)
+          && economyOk(resource.data, request.resource.data)
+          && (
+            !('ownerUid' in resource.data)
+              // PIN: con sesión, y el hash viejo sólo puede salir (nunca
+              // volver a entrar ni cambiar).
+              ? (hasPinSession(playerId, resource.data)
+                 && !('ownerUid' in request.resource.data)
+                 && !('pinHash' in request.resource.data))
+              : (request.auth.uid == resource.data.ownerUid
+                 && request.resource.data.ownerUid == resource.data.ownerUid)
+          )
         )
       );
 
-      // v3.4: "Eliminar cuenta" (Opciones → Eliminar cuenta, pide escribir
-      // el nombre de usuario para confirmar). Mismo nivel de protección
-      // que el resto de cada tipo de cuenta: una cuenta de Google sólo la
-      // puede borrar su uid real (verificado por Firebase, no falsificable
-      // desde el cliente); una cuenta con PIN, cualquier autenticado —
-      // Firestore no tiene forma de verificar que quien pide el borrado
-      // conoce el PIN sin un backend propio (misma limitación ya
-      // documentada para "update" más arriba y en js/cloud.js). El "escribí
-      // tu usuario para confirmar" de la app es una salvaguarda de UX
-      // contra un borrado accidental, no una medida de seguridad.
+      // v3.4: "Eliminar cuenta" (Opciones → Eliminar cuenta). Una cuenta de
+      // Google sólo la puede borrar su uid real; una cuenta con PIN, sólo
+      // quien tenga una sesión en ella (desde v4.6.23).
       allow delete: if request.auth != null && (
-        !('ownerUid' in resource.data) || request.auth.uid == resource.data.ownerUid
+        'ownerUid' in resource.data
+          ? request.auth.uid == resource.data.ownerUid
+          : hasPinSession(playerId, resource.data)
       );
+
+      // Sesiones de cuentas con PIN: una por navegador (uid anónimo de
+      // Firebase). Se crea acertando el PIN: el intento anotado en
+      // pinAttempts tiene que ser de quien escribe, reciente y coincidir
+      // con el hash guardado en pins.
+      match /sessions/{uid} {
+        allow get, delete: if request.auth != null && request.auth.uid == uid;
+        allow list: if false;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['accountCreatedAt', 'at'])
+          && request.resource.data.at == request.time
+          && request.resource.data.accountCreatedAt == getAfter(playerPath(playerId)).data.get('createdAt', 0)
+          && getAfter(/databases/$(database)/documents/pinAttempts/$(playerId)).data.uid == request.auth.uid
+          && getAfter(/databases/$(database)/documents/pinAttempts/$(playerId)).data.at > request.time - duration.value(2, 'm')
+          && getAfter(/databases/$(database)/documents/pinAttempts/$(playerId)).data.guess
+             == getAfter(/databases/$(database)/documents/pins/$(playerId)).data.hash;
+      }
+    }
+
+    // Hash del PIN de cada cuenta con PIN. Nadie lo puede leer ni cambiar.
+    // Se crea al dar de alta la cuenta (en el mismo lote) o, para las
+    // cuentas de antes de v4.6.23, copiando el hash que todavía tienen en
+    // el perfil (que después se borra de ahí).
+    match /pins/{playerId} {
+      allow get, list, update: if false;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['hash'])
+        && request.resource.data.hash is string
+        && request.resource.data.hash.size() == 64
+        && (
+          (exists(playerPath(playerId))
+            && get(playerPath(playerId)).data.get('pinHash', null) == request.resource.data.hash)
+          || (!exists(playerPath(playerId)) && existsAfter(playerPath(playerId)))
+        );
+      allow delete: if request.auth != null
+        && exists(playerPath(playerId))
+        && !('ownerUid' in get(playerPath(playerId)).data)
+        && hasPinSession(playerId, get(playerPath(playerId)).data);
+    }
+
+    // Último intento de PIN de cada cuenta. Se puede escribir uno cada 5
+    // segundos por cuenta (es lo que frena adivinar el PIN a la fuerza).
+    match /pinAttempts/{playerId} {
+      function validAttempt() {
+        return request.auth != null
+          && request.resource.data.keys().hasOnly(['uid', 'guess', 'at'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.at == request.time
+          && request.resource.data.guess is string
+          && request.resource.data.guess.size() == 64;
+      }
+      allow get, list, delete: if false;
+      allow create: if validAttempt();
+      allow update: if validAttempt() && resource.data.at < request.time - duration.value(5, 's');
     }
 
     // Mapa privado "uid de Google -> nombre de usuario", para poder

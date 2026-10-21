@@ -3438,7 +3438,10 @@ async function doCambiarUsuario() {
   stopRoomPlayerWatch();
   stopDirectChatWatch();
   stopDirectInboxWatch();
-  flushCloudSaveNow();
+  // v4.6.23: se espera el último guardado, porque al cerrar sesión se
+  // borra la sesión de PIN de este navegador y después ya no se podría.
+  const leavingUsername = currentUsername;
+  await flushCloudSaveNow();
   if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
   if (requestsTimer) { clearInterval(requestsTimer); requestsTimer = null; }
@@ -3462,7 +3465,7 @@ async function doCambiarUsuario() {
   // pantalla de login). Vuelve a entrar anónimo para que el login de
   // usuario+PIN siga funcionando.
   if (window.Cloud && window.Cloud.enabled && typeof window.Cloud.signOutCloud === "function") {
-    try { await window.Cloud.signOutCloud(); } catch (e) { /* no es grave */ }
+    try { await window.Cloud.signOutCloud(leavingUsername); } catch (e) { /* no es grave */ }
   }
   showLoginScreen();
 }
@@ -4168,6 +4171,17 @@ async function boot() {
   const remembered = getRememberedUsername();
   if (remembered) {
     const result = await Cloud.getPlayerData(remembered);
+    // v4.6.23: sin sesión en esta cuenta (por ejemplo, la primera vez
+    // después de la actualización) no se podría guardar: se pide el PIN.
+    if (result.ok && !(await Cloud.hasSession(remembered, result.data))) {
+      showLoginScreen();
+      if (el.loginUsername) el.loginUsername.value = result.data.username || remembered;
+      if (!result.data.ownerUid) {
+        showLoginError("Por seguridad, escribí tu PIN otra vez para seguir guardando en la nube.");
+        setTimeout(() => el.loginPin && el.loginPin.focus(), 60);
+      }
+      return;
+    }
     if (result.ok) {
       currentUsername = remembered;
       currentDisplayName = result.data.username;
@@ -4268,6 +4282,7 @@ const LOGIN_ERROR_MESSAGES = {
   invalid_username: "El usuario debe tener 3 a 16 letras/números, empezando con una letra (sin espacios ni símbolos).",
   invalid_pin: "El PIN tiene que ser de 4 números.",
   taken: "Ese usuario ya existe — si es tuyo, escribí el PIN con el que lo creaste.",
+  slow_down: "Esperá unos segundos antes de volver a probar el PIN.",
 };
 
 async function handleLoginSubmit() {

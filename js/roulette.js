@@ -150,8 +150,7 @@ function pickRoulettePrize() {
 
 /** Aplica el premio al guardado y devuelve el texto a mostrar. */
 function applyRoulettePrize(prize) {
-  state.economy = state.economy || { coins: 0 };
-  const addCoins = (n) => { state.economy.coins = Math.max(0, (state.economy.coins || 0) + n); };
+  const addCoins = (n) => grantCoins(state, n);
   switch (prize.id) {
     case "coins10": addCoins(10); break;
     case "coins25": addCoins(25); break;
