@@ -1,13 +1,6 @@
 # Mascotito Beta
 
-## Beta v4.6.23 — Monedas y cuentas con PIN más seguras
 
-- **Tope de monedas por día**: una mascota puede ganar hasta **2000 monedas por día** (el día cambia a la medianoche de Argentina). Gastar no tiene límite. Lo controlan las reglas de Firestore, así que aunque alguien toque el juego desde el navegador no puede subirse las monedas más que eso. Pesca, Penales, Ruleta y Trotito suman con `grantCoins()` (`js/state.js`); si se llega al tope, se suma lo que falte y aparece un aviso. El saldo guarda también el día y lo ganado ese día (`economy.day` y `economy.earned`).
-- **Cuentas con PIN protegidas**: antes cualquier jugador podía modificar una cuenta con PIN ajena. Ahora el hash del PIN ya no está en el perfil (que lee cualquiera) sino en `pins/{usuario}`, privado, y para guardar hace falta una sesión del navegador que sólo se consigue acertando el PIN, con un intento cada 5 segundos por cuenta. Las cuentas de antes se pasan solas la primera vez que se entra con el PIN; si el navegador tenía la sesión recordada, se pide el PIN una vez más. «Cambiar de usuario» borra la sesión de ese navegador.
-- **Catálogo de la tienda**: sólo lo puede cambiar la cuenta «jony».
-- **Hay que publicar `firestore.rules`** en Firebase Console → Firestore Database → Reglas apenas se suba esta versión: el juego nuevo no funciona con las reglas viejas, ni el viejo con las nuevas.
-- Prueba nueva: `tests/economy.test.js`. Las reglas se probaron con el emulador de Firebase (alta, PIN incorrecto, intentos seguidos, migración de cuentas viejas, tope diario, cambio de día, borrar y recrear una cuenta, catálogo).
-- Versión en `?v=4.6.23`.
 
 ## Beta v4.6.22 — Trotito renovado: escenario y corredores
 

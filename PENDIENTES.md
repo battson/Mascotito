@@ -33,7 +33,7 @@
 
 ## Beta v4.7 — Tienda y economía
 
-- [ ] Rediseñar la Tienda y sus categorías sin subrayados.
+- [x] v4.6.23: Tienda rediseñada (puesto de feria) con categorías y subcategorías sin subrayados, canasto y confirmación de pago.
 - [ ] Definir precios, formas de obtener y gastar monedas, y progresión.
 - [x] v4.6.23: monedas seguras con reglas de Firestore: tope de 2000 monedas ganadas por día y cuentas con PIN que sólo puede escribir quien sabe el PIN. Pendiente: lo comprado (ropa, casa, colores) todavía se podría agregar a mano desde el navegador.
 - [ ] Revisar compras, artículos propios, saldo insuficiente y confirmaciones.
